@@ -1,4 +1,5 @@
 // src/components/contact.js
+import { Contact as ContactAPI } from '../api.js';
 // ═══════════════════════════════════════════════════════
 // OTAKU PULSE — Section Contact & Réservation
 // Formulaire réservation, FAQ, réseaux sociaux
@@ -926,9 +927,8 @@ window.submitContactForm = async function() {
   }
 
   try {
-    // 🔌 À connecter : const res = await fetch('/api/contact', { method:'POST', body: JSON.stringify(payload) });
-    // Simulation délai réseau
-    await new Promise(r => setTimeout(r, 1800));
+    // Appel API réel
+    await ContactAPI.send(payload);
 
     // Succès
     formSubmitted = true;

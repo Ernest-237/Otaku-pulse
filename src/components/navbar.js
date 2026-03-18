@@ -1,4 +1,5 @@
 // src/components/navbar.js
+import { Auth } from '../api.js';
 // ═══════════════════════════════════════════════════════
 // OTAKU PULSE — Navbar Component
 // Prêt pour intégration backend (auth JWT, panier API)
@@ -975,6 +976,8 @@ export function initNavbar() {
   if (savedUser) {
     try {
       const user = JSON.parse(savedUser);
+      if (!user.name) user.name = user.pseudo || user.email?.split('@')[0] || 'Otaku';
+      if (!user.avatar) user.avatar = '🎌';
       setLoggedIn(user);
     } catch(e) {
       localStorage.removeItem('op_user');
@@ -1135,27 +1138,21 @@ window.handleLogin = async function(e) {
   errorEl?.classList.remove('visible');
 
   try {
-    // 🔌 À REMPLACER PAR : const res = await fetch('/api/auth/login', {...})
-    // Simulation pour le moment
-    await new Promise(r => setTimeout(r, 1000));
-    
-    // Simuler une réponse backend
-    const fakeUser = { 
-      id: 1, 
-      name: email.split('@')[0], 
-      email, 
-      role: 'user',
-      avatar: '🎌'
-    };
-    
-    localStorage.setItem('op_user', JSON.stringify(fakeUser));
-    setLoggedIn(fakeUser);
+    const data = await Auth.login(email, password);
+    const user = data.user;
+    // Normalise le champ name pour setLoggedIn
+    user.name = user.pseudo || user.firstName || email.split('@')[0];
+    user.avatar = user.avatar || '🎌';
+    setLoggedIn(user);
     window.closeModal();
-    showToast(`Bienvenue ${fakeUser.name} ⚡`, 'success');
-    
+    showToast(`Bienvenue ${user.name} ⚡`, 'success');
+    // Redirection admin si role admin
+    if (Auth.isAdmin()) {
+      setTimeout(() => { window.location.href = '/admin.html'; }, 1200);
+    }
   } catch (err) {
     if (errorEl) {
-      errorEl.textContent = err.message || 'Erreur de connexion';
+      errorEl.textContent = err.message || 'Email ou mot de passe incorrect';
       errorEl.classList.add('visible');
     }
   } finally {
@@ -1186,12 +1183,11 @@ window.handleSignup = async function(e) {
   errorEl?.classList.remove('visible');
 
   try {
-    // 🔌 À REMPLACER PAR : const res = await fetch('/api/auth/register', {...})
-    await new Promise(r => setTimeout(r, 1200));
-    
-    const fakeUser = { id: 2, name: pseudo, email, role: 'user', avatar: '⚡' };
-    localStorage.setItem('op_user', JSON.stringify(fakeUser));
-    setLoggedIn(fakeUser);
+    const data = await Auth.register(pseudo, email, password);
+    const user = data.user;
+    user.name = user.pseudo || pseudo;
+    user.avatar = user.avatar || '⚡';
+    setLoggedIn(user);
     window.closeModal();
     showToast(`Bienvenue dans l'univers Otaku, ${pseudo} ⚡`, 'success');
     
@@ -1211,8 +1207,8 @@ window.googleAuth = function() {
   showToast('Google Auth — bientôt disponible !', 'info');
 };
 
-window.logout = function() {
-  localStorage.removeItem('op_user');
+window.logout = async function() {
+  await Auth.logout();
   navState.user = null;
   document.getElementById('authButtons').style.display = 'flex';
   document.getElementById('userMenu').style.display = 'none';
@@ -1233,8 +1229,9 @@ function setLoggedIn(user) {
   const avatarEl = document.getElementById('userAvatar');
   if (avatarEl) avatarEl.textContent = user.avatar || '🎌';
   // Afficher lien admin si role admin
-  if (user.role === 'admin') {
-    document.getElementById('adminLink').style.display = 'flex';
+  if (user.role === 'admin' || user.role === 'superadmin') {
+    const al = document.getElementById('adminLink');
+    if (al) al.style.display = 'flex';
   }
 }
 

@@ -1,4 +1,5 @@
 // src/components/footer.js
+import { Newsletter } from '../api.js';
 // ═══════════════════════════════════════════════════════
 // OTAKU PULSE — Footer
 // Nav, légal, newsletter, crédits, easter egg
