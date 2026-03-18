@@ -18,7 +18,7 @@ const PACKS = {
       color: '#3b82f6',
       colorGlow: 'rgba(59,130,246,0.25)',
       target: 'Anniversaires en appartement, petits comités (5–12 pers.)',
-      setup: '45 min • 1 personne',
+      setup: '',
       features: [
         { icon: '🧳', label: 'Kit Nomade', desc: '1 grande valise renforcée contenant tout le nécessaire' },
         { icon: '🎨', label: 'Décoration de Table', desc: 'Chemin thématique + confettis découpés laser (shurikens, logos)' },
@@ -41,7 +41,7 @@ const PACKS = {
       color: '#22c55e',
       colorGlow: 'rgba(34,197,94,0.3)',
       target: 'Salons spacieux, jardins, salles de fête',
-      setup: '2h15 • 2 personnes',
+      setup: '',
       features: [
         { icon: '🖼️', label: 'Habillage Mural', desc: 'Couverture de 2–3 murs avec tissus tendus ou posters géants repositionnables' },
         { icon: '🗿', label: 'Accessoires 3D', desc: '2 éléments en relief : trône, rocher de combat, porte coulissante japonaise' },
@@ -65,7 +65,7 @@ const PACKS = {
       color: '#dc2626',
       colorGlow: 'rgba(220,38,38,0.25)',
       target: 'Événements extérieurs, rassemblements, soirées privées',
-      setup: '4h • 3 personnes',
+      setup: '',
       features: [
         { icon: '⛺', label: 'Tente Événementielle', desc: 'Structure dédiée lestée + étanchéité tropicale garantie' },
         { icon: '🗺️', label: 'Kakemonos Géants (2m+)', desc: 'Fonds de scène immersifs au fond de la tente' },
@@ -91,7 +91,7 @@ const PACKS = {
       color: '#3b82f6',
       colorGlow: 'rgba(59,130,246,0.25)',
       target: 'Apartment birthdays, small groups (5–12 people)',
-      setup: '45 min • 1 person',
+      setup: '',
       features: [
         { icon: '🧳', label: 'Nomad Kit', desc: '1 reinforced suitcase with everything needed' },
         { icon: '🎨', label: 'Table Decoration', desc: 'Thematic runner + laser-cut confetti (shurikens, logos)' },
@@ -138,7 +138,7 @@ const PACKS = {
       color: '#dc2626',
       colorGlow: 'rgba(220,38,38,0.25)',
       target: 'Outdoor events, gatherings, private parties',
-      setup: '4h • 3 people',
+      setup: '',
       features: [
         { icon: '⛺', label: 'Event Tent', desc: 'Dedicated weighted structure + tropical waterproofing' },
         { icon: '🗺️', label: 'Giant Kakemonos (2m+)', desc: 'Immersive scene backgrounds at the back of the tent' },
