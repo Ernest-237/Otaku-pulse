@@ -41,7 +41,7 @@ const FOOTER_LINKS = {
 
 const CONTACT_INFO = [
   { icon: '📍', label: 'Yaoundé, Cameroun' },
-  { icon: '💬', label: 'WhatsApp : +237 6XX XXX XXX' },
+  { icon: '💬', label: 'WhatsApp : +237 675712739' },
   { icon: '📧', label: 'contact@otaku-pulse.com' },
   { icon: '⏰', label: 'Réponse sous 24h' },
 ];

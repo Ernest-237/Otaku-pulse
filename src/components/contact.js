@@ -33,7 +33,7 @@ const SOCIALS = [
   { icon: '📸', name: 'Instagram',  handle: '@otakupulse_cm',  url: 'https://instagram.com/otakupulse_cm',  color: '#e1306c' },
   { icon: '📘', name: 'Facebook',   handle: 'Otaku Pulse CM',  url: 'https://facebook.com/otakupulsecm',    color: '#1877f2' },
   { icon: '🎵', name: 'TikTok',     handle: '@otakupulse',     url: 'https://tiktok.com/@otakupulse',       color: '#ff0050' },
-  { icon: '💬', name: 'WhatsApp',   handle: '+237 6XX XXX XXX',url: 'https://wa.me/237600000000',           color: '#25d366' },
+  { icon: '💬', name: 'WhatsApp',   handle: '+237 675712739',url: 'https://wa.me/237675712739',           color: '#25d366' },
 ];
 
 // ── HTML ──────────────────────────────────────────────
