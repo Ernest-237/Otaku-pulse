@@ -1,28 +1,31 @@
 {
-  "name": "pulse",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "otaku-pulse-server",
+  "version": "2.0.0",
+  "description": "Otaku Pulse — Backend API Node.js/Express + PostgreSQL",
+  "main": "index.js",
+  "type": "commonjs",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "start":    "node index.js",
+    "dev":      "nodemon index.js",
+    "db:seed":  "node utils/seed.js",
+    "db:reset": "node utils/seed.js --reset"
   },
   "dependencies": {
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.1"
+    "express":            "^4.18.2",
+    "sequelize":          "^6.37.1",
+    "pg":                 "^8.11.3",
+    "pg-hstore":          "^2.3.4",
+    "bcryptjs":           "^2.4.3",
+    "jsonwebtoken":       "^9.0.2",
+    "cors":               "^2.8.5",
+    "dotenv":             "^16.4.1",
+    "express-validator":  "^7.0.1",
+    "express-rate-limit": "^7.2.0",
+    "helmet":             "^7.1.0",
+    "morgan":             "^1.10.0",
+    "nodemailer":         "^6.9.9"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "vite": "^8.0.1"
+    "nodemon": "^3.1.0"
   }
 }
