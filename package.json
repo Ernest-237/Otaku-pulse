@@ -1,31 +1,22 @@
 {
-  "name": "otaku-pulse-server",
-  "version": "2.0.0",
-  "description": "Otaku Pulse — Backend API Node.js/Express + PostgreSQL",
-  "main": "index.js",
-  "type": "commonjs",
+  "name": "otaku-pulse",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "start":    "node index.js",
-    "dev":      "nodemon index.js",
-    "db:seed":  "node utils/seed.js",
-    "db:reset": "node utils/seed.js --reset"
+    "dev":     "vite",
+    "build":   "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "express":            "^4.18.2",
-    "sequelize":          "^6.37.1",
-    "pg":                 "^8.11.3",
-    "pg-hstore":          "^2.3.4",
-    "bcryptjs":           "^2.4.3",
-    "jsonwebtoken":       "^9.0.2",
-    "cors":               "^2.8.5",
-    "dotenv":             "^16.4.1",
-    "express-validator":  "^7.0.1",
-    "express-rate-limit": "^7.2.0",
-    "helmet":             "^7.1.0",
-    "morgan":             "^1.10.0",
-    "nodemailer":         "^6.9.9"
+    "react":            "^18.3.1",
+    "react-dom":        "^18.3.1",
+    "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "@types/react":     "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.10"
   }
 }
