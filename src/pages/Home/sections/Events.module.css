@@ -1,0 +1,49 @@
+/* src/pages/Home/sections/Events.module.css */
+.section { padding: 6rem 0; background: linear-gradient(180deg,var(--navy-deep),#0a1628,var(--navy-deep)); }
+.filters { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:2.5rem; }
+.filterBtn {
+  padding:8px 20px; border-radius:50px; cursor:pointer;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+  color:var(--muted); font-family:var(--font-body); font-size:.82rem; font-weight:600; letter-spacing:1px; transition:all .2s;
+}
+.filterBtn:hover,.active { border-color:var(--green); color:var(--green); background:rgba(34,197,94,.08); }
+
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+
+.card {
+  background:linear-gradient(160deg,rgba(12,26,46,.9),rgba(6,14,26,.95));
+  border:1px solid rgba(255,255,255,.07); border-radius:16px;
+  padding:1.4rem; cursor:pointer; transition:all .3s;
+}
+.card:hover { border-color:rgba(34,197,94,.3); transform:translateY(-4px); box-shadow:0 15px 40px rgba(0,0,0,.3); }
+.featuredCard { border-color:rgba(34,197,94,.2); }
+
+.cardTop { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
+.cardEmoji { font-size:2.5rem; }
+.cardMeta { display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+.typeBadge { font-size:.65rem; font-weight:700; letter-spacing:1px; padding:3px 10px; border-radius:20px; }
+.featBadge { font-size:.65rem; background:rgba(245,158,11,.12); color:#fcd34d; border:1px solid rgba(245,158,11,.2); border-radius:20px; padding:2px 8px; }
+
+.cardTitle { font-family:var(--font-title); font-size:1.2rem; letter-spacing:2px; margin-bottom:.8rem; color:var(--text); }
+.cardInfo { display:flex; flex-direction:column; gap:4px; margin-bottom:1rem; }
+.cardInfo span { font-size:.8rem; color:var(--muted); }
+
+.progressWrap { margin-bottom:1rem; }
+.progressBar { height:4px; background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden; margin-bottom:5px; }
+.progressFill { height:100%; border-radius:4px; transition:width .5s ease; }
+.progressLbl { font-size:.72rem; color:var(--muted); }
+
+.cardFooter { display:flex; justify-content:space-between; align-items:center; }
+.price { font-family:var(--font-title); font-size:1rem; letter-spacing:1px; color:var(--green); }
+.registerBtn { font-size:.8rem; font-weight:700; color:var(--green); }
+.fullBadge { font-size:.75rem; color:var(--red); font-weight:700; }
+
+.detailGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:.5rem; }
+.detailItem { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:10px; padding:10px; }
+.detailLbl { display:block; font-size:.7rem; color:var(--muted); margin-bottom:3px; }
+.detailItem strong { font-size:.88rem; font-weight:700; }
+
+@media(max-width:600px) {
+  .grid { grid-template-columns:1fr; }
+  .detailGrid { grid-template-columns:1fr; }
+}

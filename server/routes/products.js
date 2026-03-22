@@ -1,63 +1,102 @@
-// server/routes/products.js — Sequelize
-const express  = require('express');
-const { Op }   = require('sequelize');
-const { Product } = require('../models/index');
-const { protect, restrictTo } = require('../middleware/auth');
-const router   = express.Router();
+// server/routes/products.js — Produits avec fournisseurs + images BD
+const router  = require('express').Router()
+const { Op }  = require('sequelize')
+const { Product, Supplier } = require('../models/index')
+const { protect, restrictTo } = require('../middleware/auth')
 
-// GET /api/products
-router.get('/', async (req, res, next) => {
+const ALL_CATS = ['posters','stickers','accessoires','kits','manga','livre','dessin','nutrition','echange','jeux']
+
+// ── GET /api/products — public ─────────────────────────
+router.get('/', async (req, res) => {
   try {
-    const { category, search, sort = 'createdAt', order = 'DESC', limit = 20, page = 1 } = req.query;
-    const where = { isActive: true };
-    if (category && category !== 'all') where.category = category;
+    const { category, search, limit = 50, page = 1, featured } = req.query
+    const where = { isActive: true }
+    if (category && category !== 'all') where.category = category
+    if (featured === 'true') where.isFeatured = true
     if (search) where[Op.or] = [
-      { nameF: { [Op.like]: `%${search}%` } },
-      { nameE: { [Op.like]: `%${search}%` } },
-    ];
+      { nameF:{ [Op.iLike]:`%${search}%` } },
+      { nameE:{ [Op.iLike]:`%${search}%` } },
+    ]
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    const { rows: products, count: total } = await Product.findAndCountAll({
-      where, order: [[sort, order]], limit: parseInt(limit), offset,
-    });
+    const products = await Product.findAll({
+      where,
+      limit: parseInt(limit),
+      offset: (parseInt(page)-1) * parseInt(limit),
+      order: [['isFeatured','DESC'],['createdAt','DESC']],
+      // Exclure imageData pour alléger la réponse liste
+      attributes: { exclude: ['imageData'] },
+      include:[{
+        model: Supplier,
+        as: 'supplier',
+        attributes: ['id','name'],
+        required: false,
+      }]
+    })
 
-    res.json({ products, total, page: parseInt(page), pages: Math.ceil(total / limit) });
-  } catch (err) { next(err); }
-});
+    // Ajouter URL image servie par l'API si imageData existe
+    const productsWithImageUrl = await Promise.all(products.map(async p => {
+      const hasImageData = await Product.count({ where:{ id:p.id, imageData:{ [Op.ne]:null } } })
+      const pJson = p.toJSON()
+      if (hasImageData) pJson.imageUrl = `/api/upload/product/${p.id}/image`
+      return pJson
+    }))
 
-// GET /api/products/:slug
-router.get('/:slug', async (req, res, next) => {
+    const total = await Product.count({ where })
+    res.json({ products: productsWithImageUrl, total, page: parseInt(page) })
+  } catch(err) { res.status(500).json({ error: err.message }) }
+})
+
+// ── GET /api/products/:slug ────────────────────────────
+router.get('/:slug', async (req, res) => {
   try {
-    const product = await Product.findOne({ where: { slug: req.params.slug, isActive: true } });
-    if (!product) return res.status(404).json({ error: 'Produit introuvable.' });
-    res.json({ product });
-  } catch (err) { next(err); }
-});
+    const p = await Product.findOne({
+      where: { slug: req.params.slug, isActive: true },
+      attributes: { exclude: ['imageData'] },
+      include:[{ model:Supplier, as:'supplier', attributes:['id','name','logoMime'] }]
+    })
+    if (!p) return res.status(404).json({ error: 'Produit introuvable' })
+    const pJson = p.toJSON()
+    if (p.imageMime) pJson.imageUrl = `/api/upload/product/${p.id}/image`
+    res.json({ product: pJson })
+  } catch(err) { res.status(500).json({ error: err.message }) }
+})
 
-// POST /api/products — admin
-router.post('/', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+// ── POST /api/products — admin ─────────────────────────
+router.post('/', protect, restrictTo('admin','superadmin'), async (req, res) => {
   try {
-    const product = await Product.create(req.body);
-    res.status(201).json({ product });
-  } catch (err) { next(err); }
-});
+    if (!ALL_CATS.includes(req.body.category))
+      return res.status(400).json({ error: `Catégorie invalide. Valides: ${ALL_CATS.join(', ')}` })
+    const product = await Product.create(req.body)
+    res.status(201).json({ product })
+  } catch(err) {
+    if (err.name === 'SequelizeUniqueConstraintError')
+      return res.status(409).json({ error: 'Ce slug existe déjà.' })
+    res.status(400).json({ error: err.message })
+  }
+})
 
-// PATCH /api/products/:id — admin
-router.patch('/:id', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+// ── PATCH /api/products/:id — admin ───────────────────
+router.patch('/:id', protect, restrictTo('admin','superadmin'), async (req, res) => {
   try {
-    const product = await Product.findByPk(req.params.id);
-    if (!product) return res.status(404).json({ error: 'Produit introuvable.' });
-    await product.update(req.body);
-    res.json({ product });
-  } catch (err) { next(err); }
-});
+    const product = await Product.findByPk(req.params.id)
+    if (!product) return res.status(404).json({ error: 'Produit introuvable' })
+    if (req.body.category && !ALL_CATS.includes(req.body.category))
+      return res.status(400).json({ error: 'Catégorie invalide' })
+    await product.update(req.body)
+    const pJson = product.toJSON()
+    if (product.imageMime) pJson.imageUrl = `/api/upload/product/${product.id}/image`
+    res.json({ product: pJson })
+  } catch(err) { res.status(400).json({ error: err.message }) }
+})
 
-// DELETE /api/products/:id — soft delete
-router.delete('/:id', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+// ── DELETE /api/products/:id — admin ──────────────────
+router.delete('/:id', protect, restrictTo('admin','superadmin'), async (req, res) => {
   try {
-    await Product.update({ isActive: false }, { where: { id: req.params.id } });
-    res.json({ message: 'Produit désactivé.' });
-  } catch (err) { next(err); }
-});
+    const product = await Product.findByPk(req.params.id)
+    if (!product) return res.status(404).json({ error: 'Produit introuvable' })
+    await product.update({ isActive: false })
+    res.json({ success: true })
+  } catch(err) { res.status(500).json({ error: err.message }) }
+})
 
-module.exports = router;
+module.exports = router

@@ -1,216 +1,156 @@
-// src/api.js
-// ═══════════════════════════════════════════════════════
-// OTAKU PULSE — Couche API centrale
-// Tous les appels vers le backend Render passent ici
-// ═══════════════════════════════════════════════════════
+// src/api.js — OTAKU PULSE v2
+export const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'
 
-// 🔧 Change cette URL par ton vrai URL Render
-export const API_BASE = 'https://api-pulse-v9vy.onrender.com';
-
-// ── Helpers ───────────────────────────────────────────
-function getToken() {
-  return localStorage.getItem('op_token');
+function getToken()  { return localStorage.getItem('op_token') }
+function headers(auth = true) {
+  const h = { 'Content-Type': 'application/json' }
+  if (auth) { const t = getToken(); if (t) h['Authorization'] = `Bearer ${t}` }
+  return h
+}
+async function refreshToken() {
+  const rt = localStorage.getItem('op_refresh')
+  if (!rt) return false
+  try {
+    const res  = await fetch(`${API_BASE}/api/auth/refresh`, { method:'POST', headers:headers(false), body:JSON.stringify({ refreshToken:rt }) })
+    if (!res.ok) return false
+    const data = await res.json()
+    localStorage.setItem('op_token',   data.accessToken)
+    localStorage.setItem('op_refresh', data.refreshToken)
+    return true
+  } catch { return false }
 }
 
-function getHeaders(withAuth = true) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (withAuth) {
-    const token = getToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
-// ── Requête générique avec refresh token auto ─────────
-async function request(method, path, body = null, auth = true) {
-  const opts = {
-    method,
-    headers: getHeaders(auth),
-  };
-  if (body) opts.body = JSON.stringify(body);
-
-  let res = await fetch(`${API_BASE}${path}`, opts);
-
-  // Token expiré → tenter refresh
+export async function request(method, path, body = null, auth = true) {
+  const opts = { method, headers: headers(auth) }
+  if (body) opts.body = JSON.stringify(body)
+  let res = await fetch(`${API_BASE}${path}`, opts)
   if (res.status === 401 && auth) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      opts.headers = getHeaders(true);
-      res = await fetch(`${API_BASE}${path}`, opts);
-    } else {
-      // Refresh échoué → déconnexion
-      Auth.logout();
-      return null;
-    }
+    const ok = await refreshToken()
+    if (ok) { opts.headers = headers(true); res = await fetch(`${API_BASE}${path}`, opts) }
+    else { localStorage.removeItem('op_token'); localStorage.removeItem('op_refresh'); localStorage.removeItem('op_user'); window.location.href = '/'; return null }
   }
-
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Erreur réseau' }));
-    throw new Error(err.error || `Erreur ${res.status}`);
+    const err = await res.json().catch(() => ({}))
+    if (err.details?.length) throw new Error(err.details.map(d => d.msg).join(', '))
+    throw new Error(err.error || `Erreur ${res.status}`)
   }
-
-  return res.json();
+  return res.json()
 }
 
-async function refreshAccessToken() {
-  try {
-    const refreshToken = localStorage.getItem('op_refresh');
-    if (!refreshToken) return false;
-    const res = await fetch(`${API_BASE}/api/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    localStorage.setItem('op_token', data.accessToken);
-    localStorage.setItem('op_refresh', data.refreshToken);
-    return true;
-  } catch { return false; }
+// ── AUTH ──────────────────────────────────────────────
+export const authApi = {
+  login:    (email, password)         => request('POST', '/api/auth/login', { email, password }, false),
+  register: (pseudo, email, password) => request('POST', '/api/auth/register', { pseudo, email, password }, false),
+  logout:   ()                        => request('POST', '/api/auth/logout'),
+  me:       ()                        => request('GET',  '/api/auth/me'),
 }
 
-// ═══════════════════════════════════════════════════════
-// AUTH
-// ═══════════════════════════════════════════════════════
-export const Auth = {
-  async login(email, password) {
-    const data = await request('POST', '/api/auth/login', { email, password }, false);
-    if (data) {
-      localStorage.setItem('op_token',   data.accessToken);
-      localStorage.setItem('op_refresh', data.refreshToken);
-      localStorage.setItem('op_user',    JSON.stringify(data.user));
+// ── PRODUCTS ──────────────────────────────────────────
+export const productsApi = {
+  getAll:   (p = {}) => request('GET', `/api/products?${new URLSearchParams(p)}`, null, false),
+  getBySlug:(slug)   => request('GET', `/api/products/${slug}`, null, false),
+  create:   (data)   => request('POST', '/api/products', data),
+  update:   (id, d)  => request('PATCH', `/api/products/${id}`, d),
+  delete:   (id)     => request('DELETE', `/api/products/${id}`),
+  uploadImage: (id, imageData, imageMime) => request('POST', `/api/upload/product/${id}`, { imageData, imageMime }),
+  getImageUrl: (id)  => `${API_BASE}/api/upload/product/${id}/image`,
+}
+
+// ── ORDERS ────────────────────────────────────────────
+export const ordersApi = {
+  create:       (payload) => request('POST', '/api/orders', payload),
+  getMy:        ()        => request('GET',  '/api/orders/my'),
+  getById:      (id)      => request('GET',  `/api/orders/${id}`),
+  updateStatus: (id, status, note) => request('PATCH', `/api/orders/${id}/status`, { status, note }),
+  notify:       (data)    => request('POST', '/api/orders/notify', data),
+}
+
+// ── EVENTS ────────────────────────────────────────────
+export const eventsApi = {
+  getAll:   (p = {}) => request('GET', `/api/events?${new URLSearchParams(p)}`, null, false),
+  getById:  (id)     => request('GET', `/api/events/${id}`, null, false),
+  register: (eventId, guests, whatsapp) => request('POST', '/api/events/register', { eventId, guests, whatsapp }),
+  create:   (data)   => request('POST', '/api/events', data),
+  update:   (id, d)  => request('PATCH', `/api/events/${id}`, d),
+}
+
+// ── USERS ─────────────────────────────────────────────
+export const usersApi = {
+  updateProfile:  (data) => request('PATCH', '/api/users/profile', data),
+  changePassword: (data) => request('PATCH', '/api/users/password', data),
+  getWishlist:    ()     => request('GET',   '/api/users/wishlist'),
+  toggleWishlist: (pid)  => request('POST',  `/api/users/wishlist/${pid}`),
+}
+
+// ── ADMIN ─────────────────────────────────────────────
+export const adminApi = {
+  getDashboard: ()         => request('GET', '/api/admin/dashboard'),
+  getUsers:     (p = {})   => request('GET', `/api/admin/users?${new URLSearchParams(p)}`),
+  updateUser:   (id, d)    => request('PATCH', `/api/admin/users/${id}`, d),
+  getOrders:    (p = {})   => request('GET', `/api/admin/orders?${new URLSearchParams(p)}`),
+  getContacts:  (p = {})   => request('GET', `/api/admin/contacts?${new URLSearchParams(p)}`),
+}
+
+// ── CONTACT ───────────────────────────────────────────
+export const contactApi = {
+  send:         (payload) => request('POST',  '/api/contact', payload, false),
+  updateStatus: (id, d)   => request('PATCH', `/api/contact/${id}/status`, d),
+}
+
+// ── NEWSLETTER ────────────────────────────────────────
+export const newsletterApi = {
+  subscribe: (email, lang = 'fr') => request('POST', '/api/newsletter/subscribe', { email, lang }, false),
+}
+
+// ── BLOG ──────────────────────────────────────────────
+export const blogApi = {
+  getPosts:      (p = {})  => request('GET', `/api/blog?${new URLSearchParams(p)}`, null, false),
+  getPost:       (id)      => request('GET', `/api/blog/${id}`, null, false),
+  createPost:    (data)    => request('POST',   '/api/blog', data),
+  updatePost:    (id, d)   => request('PATCH',  `/api/blog/${id}`, d),
+  deletePost:    (id)      => request('DELETE', `/api/blog/${id}`),
+  getPartners:   ()        => request('GET', '/api/blog/partners', null, false),
+  createPartner: (data)    => request('POST', '/api/blog/partners', data),
+  deletePartner: (id)      => request('DELETE', `/api/blog/partners/${id}`),
+  getPopup:      ()        => request('GET', '/api/blog/popup', null, false),
+  savePopup:     (data)    => request('POST', '/api/blog/popup', data),
+}
+
+// ── HERO ──────────────────────────────────────────────
+export const heroApi = {
+  get:      ()       => request('GET',   '/api/hero', null, false),
+  update:   (data)   => request('PATCH', '/api/hero', data),
+  uploadBg: (imageData, imageMime) => request('POST', '/api/hero/upload-bg', { imageData, imageMime }),
+}
+
+// ── SUPPLIERS ─────────────────────────────────────────
+export const suppliersApi = {
+  getAll:      (p = {}) => request('GET', `/api/suppliers?${new URLSearchParams(p)}`),
+  getById:     (id)     => request('GET', `/api/suppliers/${id}`),
+  create:      (data)   => request('POST',   '/api/suppliers', data),
+  update:      (id, d)  => request('PATCH',  `/api/suppliers/${id}`, d),
+  delete:      (id)     => request('DELETE', `/api/suppliers/${id}`),
+  getStats:    (id)     => request('GET', `/api/suppliers/${id}/stats`),
+  getLogoUrl:  (id)     => `${API_BASE}/api/upload/supplier/${id}/logo`,
+  uploadLogo:  (id, imageData, imageMime) => request('POST', `/api/upload/supplier/${id}`, { imageData, imageMime }),
+}
+
+// ── UPLOAD helper ─────────────────────────────────────
+// Convertit un File en base64
+export function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload  = () => {
+      const result = reader.result // data:image/jpeg;base64,xxx
+      const [meta, data] = result.split(',')
+      const mime = meta.match(/:(.*?);/)[1]
+      resolve({ data, mime })
     }
-    return data;
-  },
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
-  async register(pseudo, email, password) {
-    const data = await request('POST', '/api/auth/register', { pseudo, email, password }, false);
-    if (data) {
-      localStorage.setItem('op_token',   data.accessToken);
-      localStorage.setItem('op_refresh', data.refreshToken);
-      localStorage.setItem('op_user',    JSON.stringify(data.user));
-    }
-    return data;
-  },
-
-  async logout() {
-    try { await request('POST', '/api/auth/logout'); } catch {}
-    localStorage.removeItem('op_token');
-    localStorage.removeItem('op_refresh');
-    localStorage.removeItem('op_user');
-  },
-
-  async me() {
-    return request('GET', '/api/auth/me');
-  },
-
-  async forgotPassword(email) {
-    return request('POST', '/api/auth/forgot-password', { email }, false);
-  },
-
-  getUser() {
-    try { return JSON.parse(localStorage.getItem('op_user')); } catch { return null; }
-  },
-
-  isLoggedIn() { return !!getToken(); },
-  isAdmin()    { return ['admin','superadmin'].includes(this.getUser()?.role); },
-};
-
-// ═══════════════════════════════════════════════════════
-// PRODUITS
-// ═══════════════════════════════════════════════════════
-export const Products = {
-  async getAll({ category = 'all', search = '', page = 1 } = {}) {
-    const params = new URLSearchParams({ page });
-    if (category !== 'all') params.set('category', category);
-    if (search) params.set('search', search);
-    return request('GET', `/api/products?${params}`, null, false);
-  },
-
-  async getBySlug(slug) {
-    return request('GET', `/api/products/${slug}`, null, false);
-  },
-};
-
-// ═══════════════════════════════════════════════════════
-// COMMANDES
-// ═══════════════════════════════════════════════════════
-export const Orders = {
-  async create(payload) { return request('POST', '/api/orders', payload); },
-  async getMy()         { return request('GET',  '/api/orders/my'); },
-  async getById(id)     { return request('GET',  `/api/orders/${id}`); },
-};
-
-// ═══════════════════════════════════════════════════════
-// ÉVÉNEMENTS
-// ═══════════════════════════════════════════════════════
-export const Events = {
-  async getAll(params = {}) {
-    const q = new URLSearchParams(params);
-    return request('GET', `/api/events?${q}`, null, false);
-  },
-  async getById(id)              { return request('GET',  `/api/events/${id}`, null, false); },
-  async register(eventId, guests){ return request('POST', '/api/events/register', { eventId, guests }); },
-};
-
-// ═══════════════════════════════════════════════════════
-// CONTACT / RÉSERVATIONS
-// ═══════════════════════════════════════════════════════
-export const Contact = {
-  async send(payload) { return request('POST', '/api/contact', payload, false); },
-};
-
-// ═══════════════════════════════════════════════════════
-// NEWSLETTER
-// ═══════════════════════════════════════════════════════
-export const Newsletter = {
-  async subscribe(email, lang = 'fr') {
-    return request('POST', '/api/newsletter/subscribe', { email, lang }, false);
-  },
-};
-
-// ═══════════════════════════════════════════════════════
-// PAIEMENT
-// ═══════════════════════════════════════════════════════
-export const Payment = {
-  async initiate(orderId, method) {
-    return request('POST', '/api/payment/initiate', { orderId, method });
-  },
-  async confirm(orderId, reference) {
-    return request('POST', '/api/payment/confirm', { orderId, reference });
-  },
-};
-
-// ═══════════════════════════════════════════════════════
-// ADMIN
-// ═══════════════════════════════════════════════════════
-export const Admin = {
-  async getDashboard()            { return request('GET', '/api/admin/dashboard'); },
-  async getUsers(params = {})     { return request('GET', `/api/admin/users?${new URLSearchParams(params)}`); },
-  async updateUser(id, data)      { return request('PATCH', `/api/admin/users/${id}`, data); },
-  async getOrders(params = {})    { return request('GET', `/api/admin/orders?${new URLSearchParams(params)}`); },
-  async updateOrderStatus(id, status, note) {
-    return request('PATCH', `/api/orders/${id}/status`, { status, note });
-  },
-  async getContacts(params = {})  { return request('GET', `/api/admin/contacts?${new URLSearchParams(params)}`); },
-  async updateContact(id, status, adminNotes) {
-    return request('PATCH', `/api/contact/${id}/status`, { status, adminNotes });
-  },
-  async getProducts(params = {})  { return request('GET', `/api/products?${new URLSearchParams(params)}`); },
-  async createProduct(data)       { return request('POST', '/api/products', data); },
-  async updateProduct(id, data)   { return request('PATCH', `/api/products/${id}`, data); },
-  async deleteProduct(id)         { return request('DELETE', `/api/products/${id}`); },
-  async getEvents(params = {})    { return request('GET', `/api/events?${new URLSearchParams(params)}`); },
-  async createEvent(data)         { return request('POST', '/api/events', data); },
-  async updateEvent(id, data)     { return request('PATCH', `/api/events/${id}`, data); },
-};
-
-// ═══════════════════════════════════════════════════════
-// UTILS — Health check
-// ═══════════════════════════════════════════════════════
-export async function checkApiHealth() {
-  try {
-    const res = await fetch(`${API_BASE}/api/health`);
-    return res.ok;
-  } catch { return false; }
+export const checkHealth = async () => {
+  try { const res = await fetch(`${API_BASE}/api/health`); return res.ok } catch { return false }
 }

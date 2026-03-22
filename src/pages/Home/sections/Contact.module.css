@@ -1,0 +1,36 @@
+/* src/pages/Home/sections/Contact.module.css */
+.section { padding: 6rem 0; background: var(--navy-deep); }
+.layout  { display: grid; grid-template-columns: 1fr 300px; gap: 2.5rem; align-items: start; }
+.form    { background: var(--navy-mid); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; }
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+.formGroup { margin-bottom: 1rem; }
+.formLabel { display: block; font-size: .72rem; font-weight: 700; letter-spacing: 1px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; }
+.textarea {
+  width: 100%; padding: 10px 12px; border-radius: 10px; resize: vertical; min-height: 80px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+  color: var(--text); font-family: var(--font-body); font-size: .9rem; outline: none;
+}
+.textarea:focus { border-color: var(--green); }
+.checkLabel { display: flex; align-items: flex-start; gap: 10px; font-size: .82rem; color: var(--muted); cursor: pointer; margin-bottom: 1.2rem; }
+.checkLabel input { margin-top: 3px; accent-color: var(--green); }
+.submitBtn {
+  width: 100%; padding: 14px; border-radius: 12px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  color: #0c1a2e; font-family: var(--font-title); font-size: 1.1rem; letter-spacing: 2px;
+  box-shadow: 0 0 20px rgba(34,197,94,.2); transition: all .3s;
+}
+.submitBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 25px rgba(34,197,94,.4); }
+.submitBtn:disabled { opacity: .55; cursor: not-allowed; }
+
+.sidebar { display: flex; flex-direction: column; gap: 1.2rem; }
+.infoCard { background: var(--navy-mid); border: 1px solid var(--border); border-radius: 14px; padding: 1.3rem; }
+.infoTitle { font-family: var(--font-title); font-size: 1rem; letter-spacing: 2px; margin-bottom: 1rem; color: var(--green-light); }
+.waBtn {
+  display: block; padding: 10px; border-radius: 10px; text-align: center;
+  background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.2);
+  color: var(--green); font-weight: 700; font-size: .88rem; transition: all .25s;
+}
+.waBtn:hover { background: rgba(34,197,94,.2); }
+
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .formGrid { grid-template-columns: 1fr; } }
