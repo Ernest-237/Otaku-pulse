@@ -1,95 +1,119 @@
-// src/pages/Home/sections/Hero.jsx
-import { useState, useEffect } from 'react'
-import { useLang }  from '../../../contexts/LangContext'
-import styles       from './Hero.module.css'
+// src/pages/Home/sections/Hero.jsx — Dynamique, cache-busting, design lumineux
+import { useState, useEffect, useCallback } from 'react'
+import { heroApi, API_BASE } from '../../../api'
+import { useLang } from '../../../contexts/LangContext'
+import styles from './Hero.module.css'
 
-const LAUNCH = new Date('2026-06-30T00:00:00')
-
-function getCountdown() {
-  const diff = LAUNCH - Date.now()
-  if (diff <= 0) return { j:0, h:0, m:0, s:0 }
-  const s = Math.floor(diff/1000)
-  return {
-    j: Math.floor(s/86400),
-    h: Math.floor((s%86400)/3600),
-    m: Math.floor((s%3600)/60),
-    s: s%60,
-  }
+const DEFAULT_HERO = {
+  taglineF:"LANCEMENT · 30 JUIN 2026 · CAMEROUN", taglineE:"LAUNCH · JUNE 30, 2026 · CAMEROON",
+  line1F:"VIVEZ L'EXPÉRIENCE", line1E:"LIVE THE EXPERIENCE",
+  line2F:"AU-DELÀ DE", line2E:"BEYOND THE",
+  accentF:"L'ÉCRAN", accentE:"THE SCREEN",
+  subtitleF:"Premier service de livraison de goodies Otaku au Cameroun. Mangas, posters, accessoires livrés chez toi.",
+  subtitleE:"First Otaku goods delivery service in Cameroon. Manga, posters, accessories delivered to you.",
+  primaryColor:"#22c55e", secondColor:"#86efac", glowColor:"rgba(34,197,94,0.4)",
+  bgImageUrl:"/img/deku.jpg",
+  ctaPrimaryF:"🛒 Commander maintenant", ctaPrimaryE:"🛒 Order now",
+  ctaSecondaryF:"🎌 Voir les événements", ctaSecondaryE:"🎌 See events",
+  launchDate:"2026-06-30",
+  statsJson:[
+    { valueFr:'50+',  valueEn:'50+',  labelFr:'Thèmes Anime',      labelEn:'Anime Themes' },
+    { valueFr:'200+', valueEn:'200+', labelFr:'Clients heureux',    labelEn:'Happy clients' },
+    { valueFr:'3',    valueEn:'3',    labelFr:'Villes livrées',      labelEn:'Delivery cities' },
+    { valueFr:'4.9',  valueEn:'4.9',  labelFr:'Note Moyenne',        labelEn:'Avg Rating' },
+  ],
 }
 
-const STATS = [
-  { value:'50+',  labelFr:'Thèmes Anime',   labelEn:'Anime Themes'   },
-  { value:'100+', labelFr:'Événements',      labelEn:'Events'         },
-  { value:'3',    labelFr:'Villes',          labelEn:'Cities'         },
-  { value:'4.9',  labelFr:'Note Moyenne',    labelEn:'Average Rating' },
-]
-
-const PACKS = [
-  { name:'GENIN',   price:'85 000',  color:'#22c55e', emoji:'🥋', descFr:'5-12 personnes',    descEn:'5-12 people'    },
-  { name:'CHŪNIN',  price:'200 000', color:'#3b82f6', emoji:'⚔️', descFr:'Jardins & Salons',  descEn:'Gardens & Halls'},
-  { name:'HOKAGE',  price:'450 000', color:'#f97316', emoji:'👑', descFr:'Événement complet',  descEn:'Full event'     },
-]
+function getCountdown(launchDate) {
+  const diff = new Date(launchDate) - Date.now()
+  if (diff <= 0) return { j:0, h:0, m:0, s:0 }
+  const s = Math.floor(diff / 1000)
+  return { j:Math.floor(s/86400), h:Math.floor((s%86400)/3600), m:Math.floor((s%3600)/60), s:s%60 }
+}
 
 export default function Hero() {
   const { lang } = useLang()
-  const [cd, setCd] = useState(getCountdown())
+  const [hero, setHero] = useState(DEFAULT_HERO)
+  const [cd,   setCd]   = useState(getCountdown('2026-06-30'))
 
-  useEffect(() => {
-    const id = setInterval(() => setCd(getCountdown()), 1000)
-    return () => clearInterval(id)
+  // Fetch sans cache — timestamp pour forcer le refresh
+  const fetchHero = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/hero?t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data?.hero) setHero(data.hero)
+      }
+    } catch(_) { /* fallback DEFAULT_HERO */ }
   }, [])
 
-  const pad = (n) => String(n).padStart(2,'0')
+  useEffect(() => { fetchHero() }, [fetchHero])
+
+  useEffect(() => {
+    const id = setInterval(() => setCd(getCountdown(hero.launchDate || '2026-06-30')), 1000)
+    return () => clearInterval(id)
+  }, [hero.launchDate])
+
+  const pad = n => String(n).padStart(2,'0')
+  const primary = hero.primaryColor || '#22c55e'
+  const second  = hero.secondColor  || '#86efac'
+  const glow    = hero.glowColor    || 'rgba(34,197,94,0.4)'
+
+  // Image de fond : base64 en priorité, sinon URL
+  const bgImageSrc = hero.bgImageData
+    ? `data:${hero.bgImageMime};base64,${hero.bgImageData}`
+    : (hero.bgImageUrl || '/img/deku.jpg')
+
+  const stats = Array.isArray(hero.statsJson) ? hero.statsJson : DEFAULT_HERO.statsJson
 
   return (
-    <section id="hero" className={styles.hero}>
-      {/* Background */}
-      <div className={styles.bg} style={{ backgroundImage:'url(/img/deku.jpg)' }} />
+    <section id="hero" className={styles.hero} style={{ '--primary':primary, '--second':second, '--glow':glow }}>
+      {/* Fond avec image */}
+      <div className={styles.bg} style={{ backgroundImage:`url(${bgImageSrc})` }} />
       <div className={styles.overlay} />
+      {/* Grille déco */}
       <div className={styles.grid} />
-
-      {/* Particles */}
-      {[...Array(8)].map((_,i) => (
+      {/* Orbes décoratifs */}
+      <div className={styles.orb1} style={{ background:`radial-gradient(circle, ${primary}30, transparent)` }} />
+      <div className={styles.orb2} style={{ background:`radial-gradient(circle, #3b82f640, transparent)` }} />
+      {/* Particules */}
+      {[...Array(6)].map((_,i) => (
         <div key={i} className={styles.particle} style={{
-          left:`${10+i*12}%`, top:`${20+i*7}%`,
-          animationDelay:`${i*.4}s`,
+          left:`${12+i*14}%`, top:`${15+i*10}%`,
+          animationDelay:`${i*.5}s`, background:primary,
+          width: i%2===0 ? 6 : 4, height: i%2===0 ? 6 : 4,
         }} />
       ))}
 
       <div className={styles.content}>
-        {/* Badge lancement */}
-        <div className={styles.badge}>
-          <span className={styles.dot} />
-          {lang==='fr' ? 'LANCEMENT · 30 JUIN 2026 · CAMEROUN' : 'LAUNCH · JUNE 30, 2026 · CAMEROON'}
+        {/* Badge anime */}
+        <div className={styles.badge} style={{ background:`${primary}18`, borderColor:`${primary}35`, color:second }}>
+          <span className={styles.dot} style={{ background:primary, boxShadow:`0 0 8px ${primary}` }} />
+          {lang==='fr' ? hero.taglineF : hero.taglineE}
         </div>
 
-        {/* Titre */}
+        {/* Titre principal */}
         <h1 className={styles.title}>
-          <span className={styles.titleLine1}>
-            {lang==='fr' ? 'VIVEZ L\'EXPÉRIENCE' : 'LIVE THE EXPERIENCE'}
+          <span className={styles.line1}>{lang==='fr' ? hero.line1F : hero.line1E}</span>
+          <span className={styles.line2}>{lang==='fr' ? hero.line2F : hero.line2E}</span>
+          <span className={styles.accent} style={{
+            background:`linear-gradient(135deg, ${primary}, ${second})`,
+            WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
+            textShadow:'none',
+          }}>
+            {lang==='fr' ? hero.accentF : hero.accentE}
           </span>
-          <span className={styles.titleLine2}>
-            {lang==='fr' ? 'AU-DELÀ DE' : 'BEYOND THE'}
-          </span>
-          <span className={styles.titleGreen}>L'ÉCRAN</span>
         </h1>
 
-        <p className={styles.sub}>
-          {lang==='fr'
-            ? 'Premier service événementiel clé en main spécialisé dans l\'immersion Otaku au Cameroun. Décoration manga, mixologie narrative, 50+ thèmes.'
-            : 'First all-inclusive Otaku event service in Cameroon. Manga decoration, narrative mixology, 50+ themes.'}
-        </p>
+        <p className={styles.sub}>{lang==='fr' ? hero.subtitleF : hero.subtitleE}</p>
 
         {/* Countdown */}
         <div className={styles.countdown}>
-          {[
-            { v:cd.j, lFr:'Jours',    lEn:'Days'    },
-            { v:cd.h, lFr:'Heures',   lEn:'Hours'   },
-            { v:cd.m, lFr:'Minutes',  lEn:'Minutes' },
-            { v:cd.s, lFr:'Secondes', lEn:'Seconds' },
-          ].map((item, i) => (
-            <div key={i} className={styles.cdItem}>
-              <span className={styles.cdVal}>{pad(item.v)}</span>
+          {[{v:cd.j,lFr:'Jours',lEn:'Days'},{v:cd.h,lFr:'Heures',lEn:'Hrs'},{v:cd.m,lFr:'Min.',lEn:'Min.'},{v:cd.s,lFr:'Sec.',lEn:'Sec.'}].map((item,i) => (
+            <div key={i} className={styles.cdItem} style={{ borderColor:`${primary}30` }}>
+              <span className={styles.cdVal} style={{ color:primary }}>{pad(item.v)}</span>
               <span className={styles.cdLbl}>{lang==='fr' ? item.lFr : item.lEn}</span>
             </div>
           ))}
@@ -97,32 +121,26 @@ export default function Hero() {
 
         {/* CTA buttons */}
         <div className={styles.ctas}>
-          <button className={styles.ctaPrimary} onClick={() => document.getElementById('contact')?.scrollIntoView({behavior:'smooth'})}>
-            {lang==='fr' ? '⚡ Réserver mon événement' : '⚡ Book my event'}
+          <button
+            className={styles.ctaPrimary}
+            style={{ background:`linear-gradient(135deg,${primary},${primary}cc)`, boxShadow:`0 4px 20px ${glow}` }}
+            onClick={() => document.getElementById('boutique')?.scrollIntoView({behavior:'smooth'})}
+          >
+            {lang==='fr' ? hero.ctaPrimaryF : hero.ctaPrimaryE}
           </button>
-          <button className={styles.ctaSecondary} onClick={() => document.getElementById('services')?.scrollIntoView({behavior:'smooth'})}>
-            {lang==='fr' ? '🎌 Voir les packs' : '🎌 See packs'}
+          <button className={styles.ctaSecondary}
+            onClick={() => document.getElementById('events')?.scrollIntoView({behavior:'smooth'})}
+          >
+            {lang==='fr' ? hero.ctaSecondaryF : hero.ctaSecondaryE}
           </button>
         </div>
 
         {/* Stats */}
         <div className={styles.stats}>
-          {STATS.map((s, i) => (
+          {stats.map((s,i) => (
             <div key={i} className={styles.stat}>
-              <span className={styles.statVal}>{s.value}</span>
+              <span className={styles.statVal} style={{ color:primary }}>{lang==='fr' ? s.valueFr : s.valueEn}</span>
               <span className={styles.statLbl}>{lang==='fr' ? s.labelFr : s.labelEn}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Pack preview */}
-        <div className={styles.packs}>
-          {PACKS.map((p) => (
-            <div key={p.name} className={styles.pack} style={{ borderColor:`${p.color}33` }}>
-              <span className={styles.packEmoji}>{p.emoji}</span>
-              <span className={styles.packName} style={{ color:p.color }}>{p.name}</span>
-              <span className={styles.packDesc}>{lang==='fr' ? p.descFr : p.descEn}</span>
-              <span className={styles.packPrice}>{p.price} <small>FCFA</small></span>
             </div>
           ))}
         </div>

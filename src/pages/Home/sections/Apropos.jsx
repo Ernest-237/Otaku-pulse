@@ -1,34 +1,57 @@
 // src/pages/Home/sections/Apropos.jsx
 import { useLang } from '../../../contexts/LangContext'
+import styles from './Apropos.module.css'
 
-const TIMELINE = [
-  { year:'2024', icon:'💡', fr:'Naissance de l\'idée', en:'Birth of the idea', descFr:'Premier événement test à Yaoundé avec 30 invités.' },
-  { year:'2025', icon:'🚀', fr:'Lancement officiel',   en:'Official launch',   descFr:'3 événements organisés, 200+ clients satisfaits.' },
-  { year:'2026', icon:'🌍', fr:'Expansion Cameroun',   en:'Cameroon expansion',descFr:'3 villes, partenariats, plateforme digitale.' },
+const STORY = [
+  { year:'2024', iconFr:'💡', iconEn:'💡', textFr:"L'idée naît : créer une boutique de goodies Otaku pour les fans camerounais.", textEn:"The idea is born: create an Otaku goods store for Cameroonian fans." },
+  { year:'2025', iconFr:'🛒', iconEn:'🛒', textFr:"Lancement de la boutique en ligne avec posters, mangas et accessoires.", textEn:"Launch of the online store with posters, manga and accessories." },
+  { year:'2026', iconFr:'🚀', iconEn:'🚀', textFr:"Expansion : Yaoundé, Douala, Bafoussam — livraison dans tout le Cameroun !", textEn:"Expansion: Yaoundé, Douala, Bafoussam — delivery across Cameroon!" },
 ]
 
 export default function Apropos() {
   const { lang } = useLang()
   return (
-    <section id="apropos" style={{ padding:'6rem 0', background:'linear-gradient(180deg,#060e1a,#091525)' }}>
+    <section id="apropos" className={styles.section}>
       <div className="container">
-        <h2 className="section-title">
-          À <span style={{ background:'linear-gradient(135deg,#22c55e,#86efac)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>PROPOS</span>
-        </h2>
-        <p style={{ textAlign:'center', color:'rgba(240,253,244,.6)', maxWidth:600, margin:'0 auto 3rem', fontSize:'1rem', lineHeight:1.8 }}>
-          {lang==='fr'
-            ? 'Otaku Pulse est né d\'une passion pour l\'univers manga/anime et d\'un rêve : offrir aux fans camerounais une expérience immersive inoubliable lors de leurs événements.'
-            : 'Otaku Pulse was born from a passion for manga/anime and a dream: to give Cameroonian fans an unforgettable immersive experience at their events.'}
-        </p>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))', gap:24 }}>
-          {TIMELINE.map(t => (
-            <div key={t.year} style={{ background:'rgba(12,26,46,.9)', border:'1px solid rgba(34,197,94,.12)', borderRadius:16, padding:'1.5rem', textAlign:'center' }}>
-              <div style={{ fontSize:'2.5rem', marginBottom:'.5rem' }}>{t.icon}</div>
-              <div style={{ fontFamily:'var(--font-title)', fontSize:'2rem', letterSpacing:'3px', color:'#22c55e' }}>{t.year}</div>
-              <div style={{ fontFamily:'var(--font-title)', fontSize:'1.1rem', letterSpacing:'2px', marginBottom:'.5rem' }}>{lang==='fr' ? t.fr : t.en}</div>
-              <p style={{ fontSize:'.82rem', color:'rgba(240,253,244,.5)', lineHeight:1.6 }}>{t.descFr}</p>
+        <div className={styles.inner}>
+          {/* Gauche */}
+          <div className={styles.left}>
+            <div className={styles.tag}>✨ {lang==='fr' ? 'Notre Histoire' : 'Our Story'}</div>
+            <h2 className={styles.title}>
+              {lang==='fr' ? 'À PROPOS D\'' : 'ABOUT '}
+              <span className={styles.accent}>OTAKU PULSE</span>
+            </h2>
+            <p className={styles.desc}>
+              {lang==='fr'
+                ? "Otaku Pulse est la première boutique de goodies anime au Cameroun. Nous livrons posters, mangas, accessoires et produits collectors directement chez les fans otaku, où qu'ils soient dans le pays."
+                : "Otaku Pulse is the first anime goods store in Cameroon. We deliver posters, manga, accessories and collectibles directly to otaku fans, wherever they are in the country."}
+            </p>
+            <div className={styles.values}>
+              {[
+                { emoji:'🎌', fr:'Passion Otaku',   en:'Otaku Passion'  },
+                { emoji:'🚚', fr:'Livraison rapide', en:'Fast Delivery'  },
+                { emoji:'💎', fr:'Qualité premium',  en:'Premium Quality'},
+                { emoji:'🤝', fr:'Partenaires locaux',en:'Local Partners'},
+              ].map((v,i) => (
+                <div key={i} className={styles.value}>
+                  <span className={styles.valueIcon}>{v.emoji}</span>
+                  <span className={styles.valueText}>{lang==='fr' ? v.fr : v.en}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          {/* Droite — Timeline */}
+          <div className={styles.right}>
+            <div className={styles.timeline}>
+              {STORY.map((s,i) => (
+                <div key={i} className={styles.timelineItem}>
+                  <div className={styles.timelineYear}>{s.year}</div>
+                  <div className={styles.timelineDot}>{s.iconFr}</div>
+                  <div className={styles.timelineText}>{lang==='fr' ? s.textFr : s.textEn}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

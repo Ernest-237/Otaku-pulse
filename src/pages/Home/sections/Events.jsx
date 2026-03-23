@@ -1,216 +1,99 @@
 // src/pages/Home/sections/Events.jsx
+// Charge les posts Blog de catégorie "event" — masqué si vide
 import { useState } from 'react'
-import { useAuth }  from '../../../contexts/AuthContext'
 import { useLang }  from '../../../contexts/LangContext'
 import { useToast } from '../../../contexts/ToastContext'
-import { useApi, useMutation } from '../../../hooks/useApi'
-import { eventsApi } from '../../../api'
-import Modal from '../../../components/ui/Modal'
-import Button from '../../../components/ui/Button'
-import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
+import { useApi }   from '../../../hooks/useApi'
+import { blogApi, API_BASE } from '../../../api'
 import styles from './Events.module.css'
 
-const FILTERS = [
-  { key:'all',      fr:'Tous',       en:'All'      },
-  { key:'upcoming', fr:'À venir',    en:'Upcoming' },
-  { key:'past',     fr:'Passés',     en:'Past'     },
-]
-
 export default function Events() {
-  const { user }  = useAuth()
-  const { lang }  = useLang()
-  const toast     = useToast()
+  const { lang } = useLang()
+  const toast    = useToast()
+  const [selected, setSelected] = useState(null)
 
-  const [filter,      setFilter]      = useState('all')
-  const [selectedEvt, setSelectedEvt] = useState(null)
-  const [guests,      setGuests]      = useState(1)
-  const [confirmOpen, setConfirmOpen] = useState(false)
-
-  const { data, loading, error } = useApi(
-    () => eventsApi.getAll({ limit: 20 }), [], true
-  )
-  const { mutate: doRegister, loading: registering } = useMutation(
-    (eventId, guests) => eventsApi.register(eventId, guests)
+  // Charger uniquement les posts catégorie "event" publiés
+  const { data, loading } = useApi(
+    () => blogApi.getPosts({ category: 'event', limit: 6 }),
+    [], true
   )
 
-  const events = data?.events || []
-  const filtered = events.filter(e => {
-    if (filter === 'all')      return true
-    if (filter === 'upcoming') return ['upcoming','ongoing'].includes(e.status)
-    if (filter === 'past')     return e.status === 'past'
-    return true
-  })
+  const posts = (data?.posts || []).filter(p => p.isPublished !== false)
 
-  const featured = filtered.find(e => e.featured) || filtered[0]
-
-  const openDetail = (evt) => { setSelectedEvt(evt); setGuests(1) }
-
-  const handleRegister = async () => {
-    if (!user) { toast.error(lang==='fr' ? 'Connecte-toi pour t\'inscrire' : 'Login to register'); return }
-    const { error } = await doRegister(selectedEvt.id, guests)
-    if (error) { toast.error(error); return }
-    toast.success(lang==='fr' ? '✅ Inscription confirmée !' : '✅ Registration confirmed!')
-    setConfirmOpen(false)
-    setSelectedEvt(null)
-  }
+  // ⚠️ Si aucun événement publié → section masquée
+  if (loading || posts.length === 0) return null
 
   return (
     <section id="events" className={styles.section}>
       <div className="container">
-        <h2 className="section-title">
-          <span style={{ background:'linear-gradient(135deg,#22c55e,#86efac)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
-            {lang==='fr' ? 'ÉVÉNEMENTS' : 'EVENTS'}
-          </span>
-        </h2>
-
-        {/* Filters */}
-        <div className={styles.filters}>
-          {FILTERS.map(f => (
-            <button
-              key={f.key}
-              className={`${styles.filterBtn} ${filter===f.key ? styles.active : ''}`}
-              onClick={() => setFilter(f.key)}
-            >
-              {lang==='fr' ? f.fr : f.en}
-            </button>
-          ))}
-        </div>
-
-        {loading && <PageLoader />}
-        {error   && <EmptyState icon="⚠️" title="Erreur de chargement" message={error} />}
-
-        {!loading && !error && (
-          filtered.length === 0
-            ? <EmptyState icon="🎌" title={lang==='fr' ? 'Aucun événement' : 'No events'} />
-            : (
-              <div className={styles.grid}>
-                {filtered.map(evt => (
-                  <EventCard
-                    key={evt.id}
-                    event={evt}
-                    lang={lang}
-                    featured={evt.id === featured?.id}
-                    onClick={() => openDetail(evt)}
-                  />
-                ))}
-              </div>
-            )
-        )}
-      </div>
-
-      {/* Detail modal */}
-      {selectedEvt && (
-        <Modal
-          isOpen={!!selectedEvt}
-          onClose={() => setSelectedEvt(null)}
-          title={`${selectedEvt.img} ${lang==='fr' ? selectedEvt.titleF : (selectedEvt.titleE || selectedEvt.titleF)}`}
-          footer={
-            <>
-              <Button variant="ghost" onClick={() => setSelectedEvt(null)}>
-                {lang==='fr' ? 'Fermer' : 'Close'}
-              </Button>
-              {selectedEvt.registered < selectedEvt.capacity && (
-                <Button variant="primary" onClick={() => setConfirmOpen(true)}>
-                  ⚡ {lang==='fr' ? 'S\'inscrire' : 'Register'}
-                </Button>
-              )}
-            </>
-          }
-        >
-          <EventDetail event={selectedEvt} lang={lang} guests={guests} setGuests={setGuests} />
-        </Modal>
-      )}
-
-      {/* Confirm modal */}
-      <Modal
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        title="✅ Confirmer l'inscription"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Annuler</Button>
-            <Button variant="primary" loading={registering} onClick={handleRegister}>
-              {lang==='fr' ? 'Confirmer' : 'Confirm'}
-            </Button>
-          </>
-        }
-      >
-        <div style={{ textAlign:'center', padding:'1rem 0' }}>
-          <div style={{ fontSize:'2.5rem', marginBottom:'1rem' }}>🎌</div>
-          <p style={{ color:'var(--muted)', lineHeight:1.7 }}>
+        <div className={styles.sectionHeader}>
+          <div className={styles.tag}>🎌 {lang==='fr' ? 'Événements' : 'Events'}</div>
+          <h2 className={styles.title}>
+            {lang==='fr' ? 'Nos ' : 'Our '}
+            <span className={styles.titleAccent}>{lang==='fr' ? 'ÉVÉNEMENTS' : 'EVENTS'}</span>
+          </h2>
+          <p className={styles.subtitle}>
             {lang==='fr'
-              ? `Tu t'inscris à ${selectedEvt?.titleF} avec ${guests} personne${guests>1?'s':''}.`
-              : `You're registering for ${selectedEvt?.titleF} with ${guests} person${guests>1?'s':''}.`}
+              ? 'Découvre nos prochains événements Otaku au Cameroun'
+              : 'Discover our upcoming Otaku events in Cameroon'}
           </p>
         </div>
-      </Modal>
+
+        <div className={styles.grid}>
+          {posts.map(post => (
+            <EventCard key={post.id} post={post} lang={lang} onClick={() => setSelected(post)} />
+          ))}
+        </div>
+      </div>
+
+      {/* Modal détail */}
+      {selected && (
+        <div className={styles.modalOverlay} onClick={() => setSelected(null)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <button className={styles.modalClose} onClick={() => setSelected(null)}>✕</button>
+            <div className={styles.modalEmoji}>{selected.emoji || '🎌'}</div>
+            <h2 className={styles.modalTitle}>{selected.title}</h2>
+            {selected.excerpt && <p className={styles.modalExcerpt}>{selected.excerpt}</p>}
+            {selected.content && <div className={styles.modalContent}>{selected.content}</div>}
+            {selected.promoCode && (
+              <div className={styles.promoBox}>
+                🎁 Code promo : <strong className={styles.promoCode}>{selected.promoCode}</strong>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   )
 }
 
-function EventCard({ event, lang, featured, onClick }) {
-  const pct = Math.round((event.registered / event.capacity) * 100)
-  return (
-    <div className={`${styles.card} ${featured ? styles.featuredCard : ''}`} onClick={onClick}>
-      <div className={styles.cardTop}>
-        <span className={styles.cardEmoji}>{event.img}</span>
-        <div className={styles.cardMeta}>
-          <span className={`${styles.typeBadge}`} style={{ background:`${event.typeColor || '#22c55e'}22`, color: event.typeColor || '#22c55e', border:`1px solid ${event.typeColor || '#22c55e'}44` }}>
-            {event.type.toUpperCase()}
-          </span>
-          {featured && <span className={styles.featBadge}>⭐ {lang==='fr' ? 'À la une' : 'Featured'}</span>}
-        </div>
-      </div>
-      <div className={styles.cardTitle}>{lang==='fr' ? event.titleF : (event.titleE || event.titleF)}</div>
-      <div className={styles.cardInfo}>
-        <span>📅 {new Date(event.date).toLocaleDateString(lang==='fr'?'fr-FR':'en-US', { day:'numeric', month:'long', year:'numeric' })}</span>
-        <span>📍 {event.venue || event.location || event.city}</span>
-      </div>
-      <div className={styles.progressWrap}>
-        <div className={styles.progressBar}>
-          <div className={styles.progressFill} style={{ width:`${pct}%`, background: pct>=90?'#dc2626':'#22c55e' }} />
-        </div>
-        <span className={styles.progressLbl}>{event.registered}/{event.capacity} {lang==='fr' ? 'inscrits' : 'registered'}</span>
-      </div>
-      <div className={styles.cardFooter}>
-        <span className={styles.price}>
-          {event.isFree
-            ? (lang==='fr' ? '🎁 Gratuit' : '🎁 Free')
-            : `${event.price?.toLocaleString()} FCFA`}
-        </span>
-        {event.registered >= event.capacity
-          ? <span className={styles.fullBadge}>🚫 {lang==='fr' ? 'Complet' : 'Full'}</span>
-          : <span className={styles.registerBtn}>S'inscrire →</span>
-        }
-      </div>
-    </div>
-  )
-}
+function EventCard({ post, lang, onClick }) {
+  const imgSrc = post.imageData
+    ? `data:${post.imageMime};base64,${post.imageData}`
+    : post.imageUrl || null
 
-function EventDetail({ event, lang, guests, setGuests }) {
   return (
-    <div>
-      <div className={styles.detailGrid}>
-        <div className={styles.detailItem}><span className={styles.detailLbl}>📅 Date</span><strong>{new Date(event.date).toLocaleDateString(lang==='fr'?'fr-FR':'en-US',{dateStyle:'long'})}</strong></div>
-        <div className={styles.detailItem}><span className={styles.detailLbl}>🕐 Heure</span><strong>{event.timeStart||'—'} {event.timeEnd?`→ ${event.timeEnd}`:''}</strong></div>
-        <div className={styles.detailItem}><span className={styles.detailLbl}>📍 Lieu</span><strong>{event.venue||event.location||'—'}</strong></div>
-        <div className={styles.detailItem}><span className={styles.detailLbl}>🏙️ Ville</span><strong>{event.city}</strong></div>
-        <div className={styles.detailItem}><span className={styles.detailLbl}>👥 Places</span><strong>{event.registered}/{event.capacity}</strong></div>
-        <div className={styles.detailItem}><span className={styles.detailLbl}>💰 Prix</span><strong>{event.isFree ? 'Gratuit' : `${event.price?.toLocaleString()} FCFA`}</strong></div>
+    <div className={styles.card} onClick={onClick}>
+      {/* Image ou emoji */}
+      <div className={styles.cardImg}>
+        {imgSrc
+          ? <img src={imgSrc} alt={post.title} loading="lazy" />
+          : <span className={styles.cardEmoji}>{post.emoji || '🎌'}</span>}
+        {post.isFeatured && <span className={styles.featuredBadge}>⭐ À la une</span>}
       </div>
-      {event.descF && <p style={{ color:'var(--muted)', fontSize:'.88rem', lineHeight:1.7, margin:'1rem 0' }}>{lang==='fr' ? event.descF : (event.descE||event.descF)}</p>}
-      {event.registered < event.capacity && (
-        <div style={{ marginTop:'1rem' }}>
-          <label style={{ display:'block', fontSize:'.72rem', fontWeight:700, letterSpacing:'1px', color:'var(--muted)', marginBottom:5 }}>
-            {lang==='fr' ? 'NOMBRE DE PERSONNES' : 'NUMBER OF GUESTS'}
-          </label>
-          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-            <button style={{ background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', width:36, height:36, borderRadius:8, cursor:'pointer', fontSize:'1.2rem' }} onClick={() => setGuests(g => Math.max(1,g-1))}>−</button>
-            <span style={{ fontFamily:'var(--font-title)', fontSize:'1.5rem', minWidth:30, textAlign:'center' }}>{guests}</span>
-            <button style={{ background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', width:36, height:36, borderRadius:8, cursor:'pointer', fontSize:'1.2rem' }} onClick={() => setGuests(g => Math.min(event.capacity-event.registered, g+1))}>+</button>
-          </div>
+      <div className={styles.cardBody}>
+        <div className={styles.cardMeta}>
+          <span className={styles.cardCat}>🎌 Événement</span>
+          <span className={styles.cardDate}>
+            {new Date(post.createdAt).toLocaleDateString('fr-FR', { day:'numeric', month:'short' })}
+          </span>
         </div>
-      )}
+        <h3 className={styles.cardTitle}>{post.title}</h3>
+        {post.excerpt && <p className={styles.cardExcerpt}>{post.excerpt}</p>}
+        <button className={styles.cardBtn}>
+          {lang==='fr' ? 'En savoir plus →' : 'Learn more →'}
+        </button>
+      </div>
     </div>
   )
 }

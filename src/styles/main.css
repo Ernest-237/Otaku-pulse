@@ -1,85 +1,114 @@
-/* src/styles/main.css */
-/* ═══════════════════════════════════════════════════════
-   OTAKU PULSE — Styles globaux
-═══════════════════════════════════════════════════════ */
+/* src/styles/main.css — Otaku Pulse v2 — Design lumineux & mignon */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap');
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap');
-
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --green:       #22c55e;
-  --green-glow:  #16a34a;
-  --green-light: #86efac;
-  --red:         #dc2626;
-  --blue-dark:   #1e3a5f;
-  --navy:        #0c1a2e;
-  --navy-deep:   #060e1a;
-  --white:       #f0fdf4;
-  --gray:        rgba(240,253,244,0.5);
+  /* Palette principale — moins sombre, plus chaleureuse */
+  --green:        #22c55e;
+  --green-dark:   #16a34a;
+  --green-light:  #86efac;
+  --green-pale:   #dcfce7;
+  --red:          #ef4444;
+  --amber:        #f59e0b;
+  --blue:         #3b82f6;
+  --purple:       #8b5cf6;
 
-  --font-display: 'Bebas Neue', sans-serif;
-  --font-body:    'Rajdhani', sans-serif;
+  /* Fond — bleu nuit clair (pas noir pur) */
+  --navy:         #0f2544;
+  --navy-deep:    #0a1628;
+  --navy-mid:     #132035;
+  --navy-light:   #1a2d48;
+  --navy-card:    #162540;
 
-  --radius-sm:   8px;
-  --radius-md:   12px;
-  --radius-lg:   20px;
+  /* Surfaces avec légère transparence */
+  --surface-1:    rgba(255,255,255,0.04);
+  --surface-2:    rgba(255,255,255,0.07);
+  --surface-3:    rgba(255,255,255,0.10);
 
-  --transition:  0.25s ease;
+  /* Bordures douces */
+  --border:       rgba(34,197,94,0.15);
+  --border-soft:  rgba(255,255,255,0.08);
+
+  /* Texte — blanc chaud, pas pur */
+  --text:         #e8f4fd;
+  --text-strong:  #f0fdf4;
+  --muted:        rgba(200,230,255,0.5);
+
+  /* Typographie */
+  --font-title:   'Bebas Neue', sans-serif;
+  --font-body:    'Nunito', sans-serif;
+  --font-alt:     'Rajdhani', sans-serif;
+
+  /* Ombres douces */
+  --shadow-sm:    0 2px 8px rgba(0,0,0,0.25);
+  --shadow-md:    0 4px 20px rgba(0,0,0,0.3);
+  --shadow-lg:    0 8px 40px rgba(0,0,0,0.4);
+  --glow-green:   0 0 20px rgba(34,197,94,0.3);
 }
 
 html { scroll-behavior: smooth; }
 
 body {
   background: var(--navy-deep);
-  color: var(--white);
+  color: var(--text);
   font-family: var(--font-body);
   line-height: 1.6;
   overflow-x: hidden;
+  /* Légère texture subtile */
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(34,197,94,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(59,130,246,0.03) 0%, transparent 40%);
+  background-attachment: fixed;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
+/* Scrollbar douce */
+::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--navy-deep); }
-::-webkit-scrollbar-thumb {
-  background: rgba(34,197,94,0.3);
-  border-radius: 3px;
-}
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--green), #3b82f6); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--green); }
 
-/* Sélection */
-::selection {
-  background: rgba(34,197,94,0.3);
-  color: var(--white);
-}
-
-/* Push content below fixed navbar + announce bar */
-#app > main { padding-top: 104px; }
-
-/* Sections de base */
-section {
-  position: relative;
-  overflow: hidden;
-}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+input, textarea, select { font-family: inherit; color: var(--text); }
 
 /* Utilitaires */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
+.container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+
+/* Cartes globales — moins sombres */
+.card-base {
+  background: var(--navy-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
 }
 
-.section-title {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 6vw, 5rem);
-  letter-spacing: 4px;
-  line-height: 1;
+/* Section headers globaux */
+.section-tag {
+  display: inline-block;
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.25);
+  color: var(--green);
+  font-family: var(--font-alt);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 50px;
+  margin-bottom: .8rem;
 }
 
-.text-green { color: var(--green); }
-.text-red   { color: var(--red); }
-.text-gray  { color: var(--gray); }
+/* Animations globales */
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes pulse-glow {
+  0%,100% { box-shadow: 0 0 10px rgba(34,197,94,0.3); }
+  50%      { box-shadow: 0 0 25px rgba(34,197,94,0.6); }
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
