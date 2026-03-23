@@ -37,18 +37,10 @@ export default function Hero() {
   const [cd,   setCd]   = useState(getCountdown(DEFAULT.launchDate))
 
   useEffect(() => {
-    // Fetch sans cache
-    fetch(`${API_BASE}/api/hero?_=${Date.now()}`, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-    })
+    // ✅ Pas de headers custom (bloque CORS) — timestamp suffit pour casser le cache
+    fetch(`${API_BASE}/api/hero?_=${Date.now()}`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d?.hero) {
-          // Merge avec DEFAULT pour les champs manquants
-          setHero({ ...DEFAULT, ...d.hero })
-        }
-      })
+      .then(d => { if (d?.hero) setHero({ ...DEFAULT, ...d.hero }) })
       .catch(() => {/* garde DEFAULT */})
   }, [])
 

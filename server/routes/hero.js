@@ -11,8 +11,7 @@ router.get('/', async (req, res) => {
     
     // Anti-cache headers
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-    res.set('Pragma', 'no-cache')
-    res.set('Expires', '0')
+    res.set('Vary', 'Origin')
     res.json({ hero })
   } catch(err) { res.status(500).json({ error: err.message }) }
 })
