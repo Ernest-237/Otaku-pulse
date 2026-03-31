@@ -1,6 +1,7 @@
 // src/pages/Home/sections/Boutique.jsx
 import { useState, useCallback } from 'react'
 import { useNavigate }   from 'react-router-dom'
+import { useAuth }   from '../../../contexts/AuthContext'
 import { useCart }   from '../../../contexts/CartContext'
 import { useLang }   from '../../../contexts/LangContext'
 import { useToast }  from '../../../contexts/ToastContext'
@@ -25,7 +26,8 @@ const CATS = [
 
 export default function Boutique() {
   const { lang }    = useLang()
-  const { addItem } = useCart()
+  const { user }    = useAuth()
+  const { addItem, count } = useCart()
   const toast       = useToast()
   const navigate    = useNavigate()
   const [cat,       setCat]       = useState('all')
@@ -119,9 +121,16 @@ export default function Boutique() {
             )
         )}
 
+        {user && count > 0 && (
+          <div className={styles.cartCta}>
+            <button className={styles.ctaBtn} onClick={() => navigate('/profil')}>
+              🛒 {lang==='fr' ? `Voir mon panier (${count})` : `View my cart (${count})`}
+            </button>
+          </div>
+        )}
         <div className={styles.cartCta}>
-          <button className={styles.ctaBtn} onClick={() => navigate('/profil')}>
-            🛒 {lang==='fr' ? 'Voir mon panier' : 'View my cart'}
+          <button className={styles.ctaBtnSecondary} onClick={() => navigate('/boutique')}>
+            {lang==='fr' ? '🛍️ Voir toute la boutique' : '🛍️ See full shop'}
           </button>
         </div>
       </div>

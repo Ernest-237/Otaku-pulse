@@ -99,3 +99,12 @@
   .cardImg { height: 130px; }
 }
 @media(max-width:400px) { .grid { grid-template-columns: 1fr; } }
+
+/* Bouton voir boutique complète */
+.ctaBtnSecondary {
+  padding: 13px 32px; border-radius: 12px; cursor: pointer;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.15);
+  color: var(--muted); font-family: var(--font-title); font-size: 1rem; letter-spacing: 2px;
+  transition: all .3s;
+}
+.ctaBtnSecondary:hover { background: rgba(255,255,255,.1); color: var(--text); transform: translateY(-2px); }

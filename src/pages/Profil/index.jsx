@@ -42,16 +42,12 @@ export default function Profil() {
 
   useEffect(() => { document.title = 'Mon Profil — Otaku Pulse' }, [])
 
-  if (!user) return (
-    <div className={styles.notLogged}>
-      <div className={styles.notLoggedInner}>
-        <span style={{ fontSize:'4rem' }}>🔒</span>
-        <h2 className={styles.notLoggedTitle}>Connexion requise</h2>
-        <p style={{ color:'var(--muted)', marginBottom:'1.5rem' }}>Tu dois être connecté pour accéder à ton profil.</p>
-        <Link to="/" className={styles.backBtn}>⚡ Se connecter</Link>
-      </div>
-    </div>
-  )
+  // Visiteur non connecté → modal login
+  const [showLoginModal, setShowLoginModal] = useState(!user)
+  const isGuest = !user
+
+  // Si connecté après coup, fermer le modal
+  useEffect(() => { if (user) setShowLoginModal(false) }, [user])
 
   const handleLogout = async () => { await logout(); navigate('/') }
 
@@ -67,6 +63,66 @@ export default function Profil() {
 
   return (
     <div className={styles.page}>
+
+      {/* ── Modal login pour visiteurs ── */}
+      {showLoginModal && !user && (
+        <div style={{
+          position:'fixed', inset:0, zIndex:2000,
+          background:'rgba(0,0,0,0.75)', backdropFilter:'blur(8px)',
+          display:'flex', alignItems:'center', justifyContent:'center', padding:'1.5rem',
+        }}>
+          <div style={{
+            background:'linear-gradient(135deg,#132035,#0a1628)',
+            border:'1px solid rgba(34,197,94,0.25)', borderRadius:20,
+            padding:'2.5rem 2rem', maxWidth:440, width:'100%', textAlign:'center',
+            boxShadow:'0 20px 60px rgba(0,0,0,0.6)',
+            animation:'fadeInModal .3s ease',
+          }}>
+            <style>{`@keyframes fadeInModal{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}`}</style>
+            <div style={{ fontSize:'3.5rem', marginBottom:'1rem' }}>🛒</div>
+            <h2 style={{ fontFamily:'var(--font-title)', fontSize:'1.8rem', letterSpacing:'3px', color:'#f0fdf4', marginBottom:'.8rem' }}>
+              TON PANIER T'ATTEND
+            </h2>
+            <p style={{ fontSize:'.9rem', color:'rgba(200,230,255,.65)', lineHeight:1.7, marginBottom:'1.8rem' }}>
+              Tu as des articles dans ton panier ! Crée un compte ou connecte-toi pour finaliser ta commande et suivre tes achats.
+            </p>
+            {/* Aperçu panier */}
+            {items.length > 0 && (
+              <div style={{ background:'rgba(34,197,94,.06)', border:'1px solid rgba(34,197,94,.15)', borderRadius:12, padding:'1rem', marginBottom:'1.5rem', textAlign:'left' }}>
+                <div style={{ fontSize:'.72rem', fontWeight:700, letterSpacing:1, color:'var(--green)', textTransform:'uppercase', marginBottom:8 }}>Ton panier ({count} article{count>1?'s':''})</div>
+                {items.slice(0,3).map(i => (
+                  <div key={i.id} style={{ display:'flex', justifyContent:'space-between', fontSize:'.84rem', color:'rgba(200,230,255,.75)', marginBottom:4 }}>
+                    <span>{i.emoji||'🎁'} {i.name}</span>
+                    <span style={{ color:'var(--green)', fontFamily:'var(--font-title)' }}>{(i.price*i.qty).toLocaleString()} F</span>
+                  </div>
+                ))}
+                {items.length > 3 && <div style={{ fontSize:'.75rem', color:'var(--muted)', marginTop:4 }}>+{items.length-3} autre(s)...</div>}
+                <div style={{ display:'flex', justifyContent:'space-between', fontFamily:'var(--font-title)', fontSize:'1.1rem', borderTop:'1px solid rgba(255,255,255,.08)', paddingTop:8, marginTop:8 }}>
+                  <span>Total</span><span style={{ color:'var(--green)' }}>{total.toLocaleString()} FCFA</span>
+                </div>
+              </div>
+            )}
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <Link to="/" style={{
+                padding:'13px 24px', borderRadius:50, textDecoration:'none',
+                background:'linear-gradient(135deg,#22c55e,#16a34a)',
+                color:'#071220', fontFamily:'var(--font-title)', fontSize:'1rem', letterSpacing:'2px',
+                display:'block', fontWeight:900,
+              }} onClick={() => sessionStorage.setItem('openLogin','1')}>
+                ⚡ Se connecter / S'inscrire
+              </Link>
+              <button onClick={() => setShowLoginModal(false)} style={{
+                padding:'11px 24px', borderRadius:50, border:'1px solid rgba(255,255,255,.12)',
+                background:'rgba(255,255,255,.05)', color:'rgba(200,230,255,.6)',
+                fontFamily:'var(--font-body)', fontSize:'.88rem', cursor:'pointer',
+              }}>
+                Continuer sans compte →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={styles.topbar}>
         <Link to="/" className={styles.logo}><span className={styles.bolt}>⚡</span><span className={styles.brand}>OTAKU PULSE</span></Link>
         <nav className={styles.topNav}><Link to="/">← Accueil</Link><Link to="/blog">Blog</Link></nav>
@@ -159,9 +215,22 @@ export default function Profil() {
                   </div>
                   {shipping > 0 && <p style={{ fontSize:'.72rem', color:'var(--green)', textAlign:'center', marginBottom:'.5rem' }}>Gratuite dès 15 000 FCFA 🎌</p>}
                   <div className={styles.summaryTotal}><span>Total</span><span>{total.toLocaleString()} FCFA</span></div>
-                  <button className={styles.orderBtn} onClick={() => setCheckoutOpen(true)}>
-                    ⚡ Finaliser l'achat
-                  </button>
+                  {user ? (
+                    <button className={styles.orderBtn} onClick={() => setCheckoutOpen(true)}>
+                      ⚡ Finaliser l'achat
+                    </button>
+                  ) : (
+                    <div className={styles.loginPrompt}>
+                      <p>🔐 Connecte-toi pour finaliser ta commande</p>
+                      <Link to="/" className={styles.loginPromptBtn}
+                        onClick={() => {
+                          // Trigger login modal via navigation avec state
+                          sessionStorage.setItem('openLogin', '1')
+                        }}>
+                        ⚡ Se connecter / S'inscrire
+                      </Link>
+                    </div>
+                  )}
                   <p className={styles.orderNote}>
                     Livraison sur tout le Cameroun 🇨🇲<br/>
                     Paiement : MTN Money / Orange Money

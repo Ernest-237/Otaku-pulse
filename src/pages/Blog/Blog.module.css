@@ -71,3 +71,33 @@
 
 @media(max-width:900px) { .layout { grid-template-columns:1fr; } }
 @media(max-width:600px) { .postCard { flex-direction:column; } .postThumb { width:100%; height:140px; } .content { padding:1.5rem 1rem; } }
+
+/* ══ RESPONSIVE BLOG ══ */
+@media (max-width: 1024px) {
+  .layout { grid-template-columns: 1fr; }
+  .content { padding: 2rem 1.2rem; }
+}
+@media (max-width: 768px) {
+  .nav { padding: 0 1rem; gap: 1rem; height: 56px; }
+  .navSearch { width: 140px; font-size: .78rem; }
+  .navLinks { gap: .8rem; }
+  .navLinks a { font-size: .78rem; }
+  .hero { padding: 2.5rem 1rem; }
+  .heroTitle { font-size: clamp(1.8rem,8vw,3rem); letter-spacing: 3px; }
+  .cats { gap: 6px; margin-bottom: 1.5rem; }
+  .catBtn { padding: 6px 14px; font-size: .78rem; }
+  .postCard { flex-direction: column; }
+  .postThumb { width: 100%; height: 180px; }
+  .featured .postThumb { height: 200px; }
+  .postBody { padding: 1rem; }
+  .postTitle { font-size: 1.1rem; }
+  .featured .postTitle { font-size: 1.3rem; }
+}
+@media (max-width: 480px) {
+  .nav { padding: 0 .8rem; }
+  .navSearch { display: none; }
+  .hero { padding: 2rem .8rem; }
+  .content { padding: 1.5rem .8rem; }
+  .postMeta { gap: 5px; }
+  .catBtn { padding: 5px 10px; font-size: .72rem; }
+}

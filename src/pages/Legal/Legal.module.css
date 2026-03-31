@@ -1,0 +1,14 @@
+.page { min-height: 100vh; background: var(--navy-deep); }
+.header { background: linear-gradient(135deg,var(--navy-mid),var(--navy-deep)); border-bottom: 1px solid var(--border-soft); padding: 2rem 0 1.5rem; }
+.back { font-size: .82rem; color: var(--green); text-decoration: none; display: block; margin-bottom: .8rem; }
+.back:hover { text-decoration: underline; }
+.title { font-family: var(--font-title); font-size: clamp(2rem,5vw,3rem); letter-spacing: 3px; margin-bottom: .4rem; }
+.sub { color: var(--muted); font-size: .9rem; }
+.content { max-width: 800px; margin: 3rem auto; padding-bottom: 4rem; }
+.section { background: var(--navy-card); border: 1px solid var(--border-soft); border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; }
+.sectionTitle { font-family: var(--font-title); font-size: 1.2rem; letter-spacing: 2px; color: var(--green); margin-bottom: 1rem; }
+.sectionText p { font-size: .88rem; color: var(--muted); line-height: 1.8; margin-bottom: .5rem; }
+.sectionText p:empty { display: none; }
+.bullet { padding-left: 1rem; }
+.bullet::before { content: ''; }
+.updated { text-align: center; font-size: .78rem; color: rgba(200,230,255,.3); margin-top: 2rem; }
