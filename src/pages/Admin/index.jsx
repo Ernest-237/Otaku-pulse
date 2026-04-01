@@ -89,74 +89,7 @@ export default function Admin() {
 }
 
 // ══ DASHBOARD ════════════════════════════════════════
-function DashboardSection({ toast, setSection }) {
-  const { data, loading } = useApi(() => adminApi.getDashboard(), [], true)
-  if (loading) return <PageLoader />
-  const { stats, recentContacts, recentOrders } = data || {}
-  if (!stats) return <EmptyState icon="⚠️" title="Impossible de charger le dashboard" />
 
-  const cards = [
-    { ico:'👥', val:stats.users.total,   lbl:'Membres',      pill:`+${stats.users.month} ce mois`,      v:'green',  sec:'users'    },
-    { ico:'📬', val:stats.contacts.total,lbl:'Réservations',  pill:`${stats.contacts.newMonth} nouveaux`, v:'blue',   sec:'contacts' },
-    { ico:'🛒', val:stats.orders.total,  lbl:'Commandes',     pill:`${stats.orders.pending} en attente`,  v:stats.orders.pending>0?'amber':'green', sec:'orders' },
-    { ico:'💰', val:`${Math.round(stats.revenue.total/1000)}K`, lbl:'Revenus FCFA', pill:`${Math.round(stats.revenue.month/1000)}K ce mois`, v:'green', sec:'orders' },
-    { ico:'📦', val:stats.products.total,lbl:'Produits',      pill:`${stats.products.lowStock} stock bas`, v:stats.products.lowStock>0?'red':'green', sec:'products' },
-    { ico:'🎌', val:stats.events.upcoming,lbl:'Événements',   pill:'à venir',                              v:'green',  sec:'events'  },
-  ]
-
-  return (
-    <div>
-      <div className={styles.statsGrid}>
-        {cards.map((c,i) => (
-          <div key={i} className={styles.statCard} style={{ cursor:'pointer' }} onClick={() => setSection(c.sec)}>
-            <div className={styles.statTop}><span style={{ fontSize:'1.6rem' }}>{c.ico}</span><Badge variant={c.v} style={{ fontSize:'.62rem' }}>{c.pill}</Badge></div>
-            <div className={styles.statVal}>{c.val}</div>
-            <div className={styles.statLbl}>{c.lbl}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Alertes */}
-      {stats.orders.pending > 0 && (
-        <div style={{ background:'rgba(245,158,11,.08)', border:'1px solid rgba(245,158,11,.2)', borderRadius:12, padding:'1rem 1.3rem', marginBottom:'1.5rem', display:'flex', alignItems:'center', gap:12 }}>
-          <span style={{ fontSize:'1.5rem' }}>⚠️</span>
-          <div>
-            <div style={{ fontWeight:700, color:'#fcd34d' }}>{stats.orders.pending} commande{stats.orders.pending>1?'s':''} en attente de traitement</div>
-            <div style={{ fontSize:'.82rem', color:'var(--muted)' }}>Confirmez et préparez les commandes pour vos clients.</div>
-          </div>
-          <Button variant="ghost" size="sm" style={{ marginLeft:'auto' }} onClick={() => setSection('orders')}>Voir →</Button>
-        </div>
-      )}
-
-      <div className={styles.dash2col}>
-        <div className={styles.card}>
-          <div className={styles.cardHeader}><span className={styles.cardTitle}>🆕 Dernières réservations</span></div>
-          {(recentContacts||[]).map(c => (
-            <div key={c.id} className={styles.listRow}>
-              <span><strong>{c.prenom} {c.nom}</strong> — {c.theme}</span>
-              <Badge variant={statusVariant(c.status)} style={{ fontSize:'.65rem' }}>{STATUS_LABELS[c.status]||c.status}</Badge>
-            </div>
-          ))}
-          {!recentContacts?.length && <div style={{ padding:'1rem', color:'var(--muted)', fontSize:'.85rem', textAlign:'center' }}>Aucune réservation</div>}
-        </div>
-        <div className={styles.card}>
-          <div className={styles.cardHeader}><span className={styles.cardTitle}>🛒 Dernières commandes</span></div>
-          {(recentOrders||[]).map(o => (
-            <div key={o.id} className={styles.listRow}>
-              <div>
-                <span style={{ fontFamily:'var(--font-title)', color:'var(--green)', fontSize:'1rem' }}>{o.orderNumber}</span>
-                {o.quartier && <div style={{ fontSize:'.72rem', color:'var(--muted)' }}>📍 {o.quartier}</div>}
-              </div>
-              <span style={{ fontSize:'.82rem' }}>{o.total?.toLocaleString()} F</span>
-              <Badge variant={statusVariant(o.status)} style={{ fontSize:'.65rem' }}>{STATUS_LABELS[o.status]||o.status}</Badge>
-            </div>
-          ))}
-          {!recentOrders?.length && <div style={{ padding:'1rem', color:'var(--muted)', fontSize:'.85rem', textAlign:'center' }}>Aucune commande</div>}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ══ CONTACTS ═════════════════════════════════════════
 function ContactsSection({ toast }) {
