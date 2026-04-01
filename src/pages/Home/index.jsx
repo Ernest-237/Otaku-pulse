@@ -1,13 +1,14 @@
 // src/pages/Home/index.jsx
 import { useEffect } from 'react'
-import Navbar          from '../../components/Navbar'
-import Music           from '../../components/Music'
-import Hero            from './sections/Hero'
-import AnimeCategories from './sections/Animecategories'
-import Boutique        from './sections/Boutique'
-import Events          from './sections/Events'
-import Apropos         from './sections/Apropos'
-import Footer          from './sections/Footer'
+import Navbar              from '../../components/Navbar'
+import Music               from '../../components/Music'
+import FloatingCharacter   from '../../components/FloatingCharacter'
+import Hero                from './sections/Hero'
+import AnimeCategories     from './sections/AnimeCategories'
+import Boutique            from './sections/Boutique'
+import Events              from './sections/Events'
+import Apropos             from './sections/Apropos'
+import Footer              from './sections/Footer'
 
 export default function Home() {
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function Home() {
       </main>
       <Footer />
       <Music />
+      <FloatingCharacter />
     </>
   )
 }
