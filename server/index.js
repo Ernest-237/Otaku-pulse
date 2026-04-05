@@ -38,6 +38,7 @@ app.use('/api/events',     require('./routes/events'))
 app.use('/api/contact',    require('./routes/contact'))
 app.use('/api/newsletter', require('./routes/newsletter'))
 app.use('/api/admin',      require('./routes/admin'))
+app.use('/api/membership', require('./routes/membership'))
 app.use('/api/payment',    require('./routes/payment'))
 app.use('/api/blog',       require('./routes/blog'))
 app.use('/api/hero',       require('./routes/hero'))        // NOUVEAU

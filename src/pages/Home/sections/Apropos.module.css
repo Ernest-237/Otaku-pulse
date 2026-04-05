@@ -1,17 +1,123 @@
-.section { padding: 6rem 0; background: var(--navy-deep); }
-.inner { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
-.tag { display:inline-block; background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.25); color:var(--green); font-size:.75rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; padding:5px 14px; border-radius:50px; margin-bottom:.8rem; }
-.title { font-family:var(--font-title); font-size:clamp(2rem,4vw,3rem); letter-spacing:4px; color:var(--text-strong); line-height:1; margin-bottom:1.2rem; }
-.accent { background:linear-gradient(135deg,var(--green),var(--green-light)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.desc { font-size:.95rem; color:var(--muted); line-height:1.8; margin-bottom:2rem; }
-.values { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.value { display:flex; align-items:center; gap:10px; padding:12px; background:rgba(255,255,255,.04); border:1px solid var(--border-soft); border-radius:12px; }
-.valueIcon { font-size:1.4rem; }
-.valueText { font-size:.85rem; font-weight:700; color:var(--text); }
-.timeline { display:flex; flex-direction:column; gap:0; }
-.timelineItem { display:grid; grid-template-columns:60px 40px 1fr; gap:0 16px; align-items:start; padding-bottom:2rem; position:relative; }
-.timelineItem:not(:last-child)::after { content:''; position:absolute; left:78px; top:40px; bottom:0; width:2px; background:linear-gradient(180deg,rgba(34,197,94,.4),rgba(34,197,94,.1)); }
-.timelineYear { font-family:var(--font-title); font-size:1.3rem; letter-spacing:2px; color:var(--green); padding-top:8px; text-align:right; }
-.timelineDot { width:40px; height:40px; border-radius:50%; background:rgba(34,197,94,.15); border:2px solid rgba(34,197,94,.4); display:flex; align-items:center; justify-content:center; font-size:1.2rem; box-shadow:0 0 15px rgba(34,197,94,.2); }
-.timelineText { font-size:.9rem; color:var(--muted); line-height:1.6; padding-top:10px; }
-@media(max-width:768px) { .inner{grid-template-columns:1fr;gap:2.5rem} .values{grid-template-columns:1fr 1fr} }
+.section {
+  padding: 5.5rem 0;
+  background: var(--bg-alt);
+  border-top: 1.5px solid var(--border);
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--green-pale);
+  border: 1.5px solid rgba(34,197,94,.18);
+  color: var(--green-deep);
+  border-radius: var(--radius-full);
+  font-size: .75rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  margin-bottom: .8rem;
+}
+
+.title {
+  font-family: var(--font-title);
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: 4px;
+  color: var(--text-strong);
+  line-height: 1;
+  margin-bottom: 1.2rem;
+}
+
+.accent { color: var(--green-deep); }
+
+.desc {
+  font-size: .95rem;
+  color: var(--text-muted);
+  line-height: 1.8;
+  margin-bottom: 2rem;
+}
+
+.values {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+}
+
+.valueIcon { font-size: 1.4rem; }
+.valueText { font-size: .85rem; font-weight: 800; color: var(--text); }
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timelineItem {
+  display: grid;
+  grid-template-columns: 60px 40px 1fr;
+  gap: 0 16px;
+  align-items: start;
+  padding-bottom: 2rem;
+  position: relative;
+}
+
+.timelineItem:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 78px;
+  top: 40px;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(34,197,94,.28), transparent);
+}
+
+.timelineYear {
+  font-family: var(--font-title);
+  font-size: 1.3rem;
+  letter-spacing: 2px;
+  color: var(--green-deep);
+  padding-top: 8px;
+  text-align: right;
+}
+
+.timelineDot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--green-pale);
+  border: 2px solid rgba(34,197,94,.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.timelineText {
+  font-size: .9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding-top: 10px;
+}
+
+@media (max-width: 768px) {
+  .inner { grid-template-columns: 1fr; gap: 2.5rem; }
+  .values { grid-template-columns: 1fr 1fr; }
+}

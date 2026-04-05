@@ -3,6 +3,7 @@ import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { PageLoader } from './components/ui/Spinner'
+import Music from './components/Music'
 
 // Pages
 import Home        from './pages/Home'
@@ -12,7 +13,8 @@ import LegalPage   from './pages/Legal'
 import Blog        from './pages/Blog'
 import Profil      from './pages/Profil'
 import Admin       from './pages/Admin'
-import FandomPage  from './pages/Fandom'
+import FandomPage    from './pages/Fandom'
+import MembershipPage from './pages/Membership'
 
 // Guards
 function AdminRoute({ children }) {
@@ -30,6 +32,8 @@ function PrivateRoute({ children }) {
 
 export default function App() {
   return (
+    <>
+    <Music />
     <Routes>
       {/* Pages publiques */}
       <Route path="/"            element={<Home />} />
@@ -38,6 +42,7 @@ export default function App() {
       <Route path="/blog"        element={<Blog />} />
       <Route path="/legal"       element={<LegalPage />} />
       <Route path="/fandom"      element={<FandomPage />} />
+      <Route path="/membership"  element={<MembershipPage />} />
 
       {/* Pages privées */}
       <Route path="/profil" element={<Profil />} />
@@ -46,5 +51,6 @@ export default function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }

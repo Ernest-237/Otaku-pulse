@@ -1,7 +1,6 @@
 // src/pages/Home/index.jsx
 import { useEffect } from 'react'
 import Navbar              from '../../components/Navbar'
-import Music               from '../../components/Music'
 import FloatingCharacter   from '../../components/FloatingCharacter'
 import Hero                from './sections/Hero'
 import AnimeCategories     from './sections/AnimeCategories'
@@ -25,7 +24,6 @@ export default function Home() {
         <section id="apropos"><Apropos /></section>
       </main>
       <Footer />
-      <Music />
       <FloatingCharacter />
     </>
   )

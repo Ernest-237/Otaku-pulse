@@ -1,204 +1,375 @@
-// src/pages/Profil/index.jsx — Flow WhatsApp + Quartier + Suivi commande
-import { useState, useEffect } from 'react'
-import { Link, useNavigate }   from 'react-router-dom'
-import { useAuth }   from '../../contexts/AuthContext'
-import { useCart }   from '../../contexts/CartContext'
-import { useToast }  from '../../contexts/ToastContext'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  Check,
+  ChevronRight,
+  Heart,
+  LogOut,
+  MapPin,
+  MessageCircle,
+  Minus,
+  Package,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  ShoppingCart,
+  Trash2,
+  UserRound,
+  X,
+} from 'lucide-react'
+import { useLang } from '../../contexts/LangContext'
+import { useAuth } from '../../contexts/AuthContext'
+import { useCart } from '../../contexts/CartContext'
+import { useToast } from '../../contexts/ToastContext'
 import { useApi, useMutation } from '../../hooks/useApi'
 import { usersApi, ordersApi } from '../../api'
 import QUARTIERS from '../../data/quartiers'
-import Modal   from '../../components/ui/Modal'
-import Button  from '../../components/ui/Button'
-import Badge, { statusVariant, STATUS_LABELS } from '../../components/ui/Badge'
+import Navbar from '../../components/Navbar'
+import Footer from '../Home/sections/Footer'
+import Modal from '../../components/ui/Modal'
+import Button from '../../components/ui/Button'
+import Badge, { statusVariant } from '../../components/ui/Badge'
 import { PageLoader, EmptyState } from '../../components/ui/Spinner'
 import styles from './Profil.module.css'
 
-const STATUSES_STEPS = ['pending','confirmed','preparing','shipped','delivered']
-const STATUS_FR = {
-  pending:'⏳ En attente', confirmed:'✅ Confirmée', preparing:'📦 En préparation',
-  shipped:'🚚 En livraison', delivered:'🎉 Livrée', cancelled:'❌ Annulée', refunded:'💸 Remboursée',
-}
-const STATUS_DESC = {
-  pending:"Commande reçue, notre équipe va vous contacter sous peu.",
-  confirmed:"Votre commande est confirmée et le paiement validé.",
-  preparing:"Vos articles sont en cours de préparation.",
-  shipped:"Votre commande est en route vers vous !",
-  delivered:"Commande livrée ! Profite de tes goodies Otaku 🎌",
-  cancelled:"Cette commande a été annulée.",
-  refunded:"Remboursement effectué.",
+const STEP_ORDER = ['pending', 'confirmed', 'preparing', 'shipped', 'delivered']
+
+const copy = {
+  fr: {
+    title: 'Mon Profil — Otaku Pulse',
+    loginTitle: 'Ton panier t’attend',
+    loginText: 'Tu as des articles dans ton panier. Crée un compte ou connecte-toi pour finaliser ta commande et suivre tes achats.',
+    loginBtn: 'Se connecter / S’inscrire',
+    continueGuest: 'Continuer sans compte',
+    heroFallback: 'Compte invité',
+    profileTab: 'Profil',
+    cartTab: 'Panier',
+    wishlistTab: 'Favoris',
+    ordersTab: 'Commandes',
+    edit: 'Modifier',
+    logout: 'Déconnexion',
+    cartCount: 'Panier',
+    ordersCount: 'Commandes',
+    totalSpent: 'FCFA',
+    cartTitle: (count) => `Articles (${count})`,
+    summary: 'Récapitulatif',
+    subtotal: 'Sous-total',
+    shipping: 'Livraison',
+    freeShipping: 'Gratuite',
+    freeHint: 'Livraison gratuite dès 15 000 FCFA',
+    total: 'Total',
+    checkout: 'Finaliser l’achat',
+    loginPrompt: 'Connecte-toi pour finaliser ta commande',
+    note: 'Livraison sur tout le Cameroun • Paiement : MTN Money / Orange Money',
+    emptyCart: 'Ton panier est vide',
+    emptyCartMsg: 'Explore la boutique et ajoute des goodies.',
+    emptyWishlist: 'Aucun favori',
+    emptyWishlistMsg: 'Clique sur le cœur dans la boutique pour sauvegarder des articles.',
+    emptyOrders: 'Aucune commande',
+    emptyOrdersMsg: 'Tes commandes apparaîtront ici.',
+    wishlistTitle: (count) => `Mes Favoris (${count})`,
+    ordersTitle: (count) => `Mes Commandes (${count})`,
+    addToCart: 'Ajouter',
+    remove: 'Retirer',
+    save: 'Enregistrer',
+    password: 'Mot de passe',
+    currentPwd: 'Actuel',
+    newPwd: 'Nouveau (min 8)',
+    changePwd: 'Modifier le mot de passe',
+    firstName: 'Prénom',
+    lastName: 'Nom',
+    phone: 'Téléphone',
+    whatsapp: 'WhatsApp',
+    city: 'Ville',
+    quartier: 'Quartier habituel',
+    checkoutTitle: 'Finaliser la commande',
+    deliveryInfo: 'Informations de livraison',
+    whatsappRequired: 'Numéro WhatsApp requis',
+    quartierRequired: 'Quartier de livraison requis',
+    paymentInfo:
+      'Après confirmation, notre équipe vous contacte sur WhatsApp pour le paiement via MTN Money ou Orange Money, puis organise la livraison dans votre quartier.',
+    confirmOrder: 'Confirmer la commande',
+    cancel: 'Annuler',
+    orderSent: 'COMMANDE ENVOYÉE !',
+    orderSentText: 'Notre équipe va vous contacter sur WhatsApp pour confirmer et organiser la livraison.',
+    trackOrder: 'Suivre ma commande',
+    requiredFields: 'Numéro WhatsApp et quartier requis',
+    profileUpdated: '✅ Profil mis à jour !',
+    passwordUpdated: '✅ Mot de passe modifié !',
+    passwordShort: 'Minimum 8 caractères',
+    added: '✅ Ajouté au panier !',
+    removedWishlist: 'Retiré des favoris',
+    inStock: 'En stock',
+    outStock: 'Épuisé',
+    lowStock: (n) => `${n} restants`,
+    orderHistory: 'Historique',
+    orderedItems: 'Articles commandés',
+    deliveryDetails: 'Informations de livraison',
+    fromShop: 'Retour boutique',
+    status: {
+      pending: 'En attente',
+      confirmed: 'Confirmée',
+      preparing: 'En préparation',
+      shipped: 'En livraison',
+      delivered: 'Livrée',
+      cancelled: 'Annulée',
+      refunded: 'Remboursée',
+    },
+    statusDesc: {
+      pending: 'Commande reçue, notre équipe va vous contacter sous peu.',
+      confirmed: 'Votre commande est confirmée et le paiement validé.',
+      preparing: 'Vos articles sont en cours de préparation.',
+      shipped: 'Votre commande est en route vers vous.',
+      delivered: 'Commande livrée. Profite de tes goodies Otaku !',
+      cancelled: 'Cette commande a été annulée.',
+      refunded: 'Remboursement effectué.',
+    },
+  },
+  en: {
+    title: 'My Profile — Otaku Pulse',
+    loginTitle: 'Your cart is waiting',
+    loginText: 'You already have items in your cart. Create an account or log in to complete your order and track your purchases.',
+    loginBtn: 'Log in / Sign up',
+    continueGuest: 'Continue as guest',
+    heroFallback: 'Guest account',
+    profileTab: 'Profile',
+    cartTab: 'Cart',
+    wishlistTab: 'Wishlist',
+    ordersTab: 'Orders',
+    edit: 'Edit',
+    logout: 'Logout',
+    cartCount: 'Cart',
+    ordersCount: 'Orders',
+    totalSpent: 'FCFA',
+    cartTitle: (count) => `Items (${count})`,
+    summary: 'Summary',
+    subtotal: 'Subtotal',
+    shipping: 'Shipping',
+    freeShipping: 'Free',
+    freeHint: 'Free delivery from 15,000 FCFA',
+    total: 'Total',
+    checkout: 'Checkout',
+    loginPrompt: 'Log in to complete your order',
+    note: 'Delivery across Cameroon • Payment: MTN Money / Orange Money',
+    emptyCart: 'Your cart is empty',
+    emptyCartMsg: 'Explore the shop and add some goodies.',
+    emptyWishlist: 'No wishlist item',
+    emptyWishlistMsg: 'Click the heart in the shop to save items.',
+    emptyOrders: 'No order yet',
+    emptyOrdersMsg: 'Your orders will appear here.',
+    wishlistTitle: (count) => `My Wishlist (${count})`,
+    ordersTitle: (count) => `My Orders (${count})`,
+    addToCart: 'Add',
+    remove: 'Remove',
+    save: 'Save',
+    password: 'Password',
+    currentPwd: 'Current',
+    newPwd: 'New (min 8)',
+    changePwd: 'Change password',
+    firstName: 'First name',
+    lastName: 'Last name',
+    phone: 'Phone',
+    whatsapp: 'WhatsApp',
+    city: 'City',
+    quartier: 'Usual district',
+    checkoutTitle: 'Complete your order',
+    deliveryInfo: 'Delivery details',
+    whatsappRequired: 'WhatsApp number required',
+    quartierRequired: 'Delivery district required',
+    paymentInfo:
+      'After confirmation, our team contacts you on WhatsApp for payment via MTN Money or Orange Money, then arranges the delivery to your district.',
+    confirmOrder: 'Confirm order',
+    cancel: 'Cancel',
+    orderSent: 'ORDER SENT!',
+    orderSentText: 'Our team will contact you on WhatsApp to confirm and organize delivery.',
+    trackOrder: 'Track my order',
+    requiredFields: 'WhatsApp number and district are required',
+    profileUpdated: '✅ Profile updated!',
+    passwordUpdated: '✅ Password changed!',
+    passwordShort: 'Minimum 8 characters',
+    added: '✅ Added to cart!',
+    removedWishlist: 'Removed from wishlist',
+    inStock: 'In stock',
+    outStock: 'Out of stock',
+    lowStock: (n) => `${n} left`,
+    orderHistory: 'History',
+    orderedItems: 'Ordered items',
+    deliveryDetails: 'Delivery information',
+    fromShop: 'Back to shop',
+    status: {
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      preparing: 'Preparing',
+      shipped: 'Shipped',
+      delivered: 'Delivered',
+      cancelled: 'Cancelled',
+      refunded: 'Refunded',
+    },
+    statusDesc: {
+      pending: 'Order received, our team will contact you shortly.',
+      confirmed: 'Your order is confirmed and payment validated.',
+      preparing: 'Your items are currently being prepared.',
+      shipped: 'Your order is on the way.',
+      delivered: 'Order delivered. Enjoy your Otaku goodies!',
+      cancelled: 'This order has been cancelled.',
+      refunded: 'Refund completed.',
+    },
+  },
 }
 
-export default function Profil() {
+export default function ProfilPage() {
+  const { lang } = useLang()
+  const t = copy[lang]
   const { user, logout, updateUser } = useAuth()
   const { items, count, total, shipping, subtotal, addItem, removeItem, updateQty, clearCart } = useCart()
-  const toast    = useToast()
+  const toast = useToast()
   const navigate = useNavigate()
-  const [tab,         setTab]         = useState('cart')
-  const [checkoutOpen,setCheckoutOpen]= useState(false)
+
+  const [tab, setTab] = useState('cart')
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [successOpen, setSuccessOpen] = useState(false)
-  const [lastOrder,   setLastOrder]   = useState(null)
-  const [ordering,    setOrdering]    = useState(false)
+  const [lastOrder, setLastOrder] = useState(null)
   const [selectedOrder, setSelectedOrder] = useState(null)
-
-  useEffect(() => { document.title = 'Mon Profil — Otaku Pulse' }, [])
-
-  // Visiteur non connecté → modal login
   const [showLoginModal, setShowLoginModal] = useState(!user)
-  const isGuest = !user
 
-  // Si connecté après coup, fermer le modal
-  useEffect(() => { if (user) setShowLoginModal(false) }, [user])
+  useEffect(() => {
+    document.title = t.title
+  }, [t.title])
 
-  const handleLogout = async () => { await logout(); navigate('/') }
+  useEffect(() => {
+    if (user) setShowLoginModal(false)
+  }, [user])
 
-  const { data: ordersData, execute: refetchOrders } = useApi(() => ordersApi.getMy(), [], true)
+  const { data: ordersData, execute: refetchOrders } = useApi(() => (user ? ordersApi.getMy() : Promise.resolve({ orders: [] })), [user?.id], true)
   const ordersCount = ordersData?.orders?.length || 0
 
-  const TABS = [
-    { id:'cart',     icon:'🛒', label:'Panier'    },
-    { id:'wishlist', icon:'❤️', label:'Favoris'   },
-    { id:'orders',   icon:'📦', label:'Commandes' },
-    { id:'profil',   icon:'👤', label:'Profil'    },
+  const heroName = user?.pseudo || t.heroFallback
+
+  const tabs = [
+    { id: 'cart', label: t.cartTab, icon: <ShoppingCart size={16} />, badge: count },
+    { id: 'wishlist', label: t.wishlistTab, icon: <Heart size={16} /> },
+    { id: 'orders', label: t.ordersTab, icon: <Package size={16} />, badge: ordersCount },
+    { id: 'profil', label: t.profileTab, icon: <UserRound size={16} /> },
   ]
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/')
+  }
 
   return (
     <div className={styles.page}>
+      <Navbar />
 
-      {/* ── Modal login pour visiteurs ── */}
       {showLoginModal && !user && (
-        <div style={{
-          position:'fixed', inset:0, zIndex:2000,
-          background:'rgba(0,0,0,0.75)', backdropFilter:'blur(8px)',
-          display:'flex', alignItems:'center', justifyContent:'center', padding:'1.5rem',
-        }}>
-          <div style={{
-            background:'linear-gradient(135deg,#132035,#0a1628)',
-            border:'1px solid rgba(34,197,94,0.25)', borderRadius:20,
-            padding:'2.5rem 2rem', maxWidth:440, width:'100%', textAlign:'center',
-            boxShadow:'0 20px 60px rgba(0,0,0,0.6)',
-            animation:'fadeInModal .3s ease',
-          }}>
-            <style>{`@keyframes fadeInModal{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}`}</style>
-            <div style={{ fontSize:'3.5rem', marginBottom:'1rem' }}>🛒</div>
-            <h2 style={{ fontFamily:'var(--font-title)', fontSize:'1.8rem', letterSpacing:'3px', color:'#f0fdf4', marginBottom:'.8rem' }}>
-              TON PANIER T'ATTEND
-            </h2>
-            <p style={{ fontSize:'.9rem', color:'rgba(200,230,255,.65)', lineHeight:1.7, marginBottom:'1.8rem' }}>
-              Tu as des articles dans ton panier ! Crée un compte ou connecte-toi pour finaliser ta commande et suivre tes achats.
-            </p>
-            {/* Aperçu panier */}
+        <div className={styles.loginOverlay}>
+          <div className={styles.loginCard}>
+            <div className={styles.loginIcon}><ShoppingCart size={36} /></div>
+            <h2 className={styles.loginTitle}>{t.loginTitle}</h2>
+            <p className={styles.loginText}>{t.loginText}</p>
+
             {items.length > 0 && (
-              <div style={{ background:'rgba(34,197,94,.06)', border:'1px solid rgba(34,197,94,.15)', borderRadius:12, padding:'1rem', marginBottom:'1.5rem', textAlign:'left' }}>
-                <div style={{ fontSize:'.72rem', fontWeight:700, letterSpacing:1, color:'var(--green)', textTransform:'uppercase', marginBottom:8 }}>Ton panier ({count} article{count>1?'s':''})</div>
-                {items.slice(0,3).map(i => (
-                  <div key={i.id} style={{ display:'flex', justifyContent:'space-between', fontSize:'.84rem', color:'rgba(200,230,255,.75)', marginBottom:4 }}>
-                    <span>{i.emoji||'🎁'} {i.name}</span>
-                    <span style={{ color:'var(--green)', fontFamily:'var(--font-title)' }}>{(i.price*i.qty).toLocaleString()} F</span>
+              <div className={styles.loginSummary}>
+                <div className={styles.loginSummaryHead}>{t.cartTitle(count)}</div>
+                {items.slice(0, 3).map((item) => (
+                  <div key={item.id} className={styles.loginRow}>
+                    <span>{item.emoji || '🎁'} {item.name}</span>
+                    <strong>{(item.price * item.qty).toLocaleString()} F</strong>
                   </div>
                 ))}
-                {items.length > 3 && <div style={{ fontSize:'.75rem', color:'var(--muted)', marginTop:4 }}>+{items.length-3} autre(s)...</div>}
-                <div style={{ display:'flex', justifyContent:'space-between', fontFamily:'var(--font-title)', fontSize:'1.1rem', borderTop:'1px solid rgba(255,255,255,.08)', paddingTop:8, marginTop:8 }}>
-                  <span>Total</span><span style={{ color:'var(--green)' }}>{total.toLocaleString()} FCFA</span>
-                </div>
+                <div className={styles.loginTotal}><span>{t.total}</span><strong>{total.toLocaleString()} FCFA</strong></div>
               </div>
             )}
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              <Link to="/" style={{
-                padding:'13px 24px', borderRadius:50, textDecoration:'none',
-                background:'linear-gradient(135deg,#22c55e,#16a34a)',
-                color:'#071220', fontFamily:'var(--font-title)', fontSize:'1rem', letterSpacing:'2px',
-                display:'block', fontWeight:900,
-              }} onClick={() => sessionStorage.setItem('openLogin','1')}>
-                ⚡ Se connecter / S'inscrire
+
+            <div className={styles.loginActions}>
+              <Link to="/" className={styles.loginPrimary} onClick={() => sessionStorage.setItem('openLogin', '1')}>
+                {t.loginBtn}
               </Link>
-              <button onClick={() => setShowLoginModal(false)} style={{
-                padding:'11px 24px', borderRadius:50, border:'1px solid rgba(255,255,255,.12)',
-                background:'rgba(255,255,255,.05)', color:'rgba(200,230,255,.6)',
-                fontFamily:'var(--font-body)', fontSize:'.88rem', cursor:'pointer',
-              }}>
-                Continuer sans compte →
+              <button className={styles.loginSecondary} onClick={() => setShowLoginModal(false)}>
+                {t.continueGuest}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className={styles.topbar}>
-        <Link to="/" className={styles.logo}><span className={styles.bolt}>⚡</span><span className={styles.brand}>OTAKU PULSE</span></Link>
-        <nav className={styles.topNav}><Link to="/">← Accueil</Link><Link to="/blog">Blog</Link></nav>
-      </div>
-
-      {/* Hero profil */}
-      <div className={styles.profileHero}>
-        <div className={styles.heroInner}>
-          <div className={styles.avatarWrap}>
-            <div className={styles.avatar}>{user.avatar || '🎌'}</div>
-            <div className={styles.onlineDot} />
-          </div>
-          <div className={styles.heroInfo}>
-            <div className={styles.heroPseudo}>{user.pseudo}</div>
-            <div className={styles.heroEmail}>{user.email}</div>
-            <div className={styles.heroBadges}>
-              {user.role==='superadmin' && <Badge variant="red">👑 Super Admin</Badge>}
-              {user.role==='admin'      && <Badge variant="amber">⚙️ Admin</Badge>}
-              {user.role==='user'       && <Badge variant="gray">🎌 Otaku</Badge>}
-              {user.isVerified          && <Badge variant="green">✅ Vérifié</Badge>}
-              {user.city                && <Badge variant="blue">📍 {user.city}</Badge>}
+      <section className={styles.hero}>
+        <div className="container">
+          <div className={styles.heroInner}>
+            <div className={styles.avatarWrap}>
+              <div className={styles.avatar}>{user?.avatar || '🎌'}</div>
+              <div className={styles.onlineDot} />
             </div>
-            <div className={styles.quickStats}>
-              <div className={styles.qStat}><span className={styles.qStatVal}>{count}</span><span className={styles.qStatLbl}>Panier</span></div>
-              <div className={styles.qStat}><span className={styles.qStatVal}>{ordersCount}</span><span className={styles.qStatLbl}>Commandes</span></div>
-              <div className={styles.qStat}><span className={styles.qStatVal}>{total > 0 ? `${Math.round(total/1000)}K` : '0'}</span><span className={styles.qStatLbl}>FCFA</span></div>
+            <div className={styles.heroInfo}>
+              <div className={styles.heroPseudo}>{heroName}</div>
+              <div className={styles.heroEmail}>{user?.email || 'guest@otaku-pulse.com'}</div>
+              <div className={styles.heroBadges}>
+                {user?.role === 'superadmin' && <Badge variant="red">Super Admin</Badge>}
+                {user?.role === 'admin' && <Badge variant="amber">Admin</Badge>}
+                {user?.role === 'user' && <Badge variant="gray">Otaku</Badge>}
+                {user?.isVerified && <Badge variant="green">Vérifié</Badge>}
+                {user?.city && <Badge variant="blue">{user.city}</Badge>}
+              </div>
+              <div className={styles.quickStats}>
+                <div className={styles.qStat}><span className={styles.qStatVal}>{count}</span><span className={styles.qStatLbl}>{t.cartCount}</span></div>
+                <div className={styles.qStat}><span className={styles.qStatVal}>{ordersCount}</span><span className={styles.qStatLbl}>{t.ordersCount}</span></div>
+                <div className={styles.qStat}><span className={styles.qStatVal}>{Math.round(total / 1000) || 0}K</span><span className={styles.qStatLbl}>{t.totalSpent}</span></div>
+              </div>
             </div>
-          </div>
-          <div className={styles.heroActions}>
-            <Button variant="primary" onClick={() => setTab('cart')}>
-              🛒 Panier{count > 0 && <span className={styles.cartBadge}>{count}</span>}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setTab('profil')}>✏️ Modifier</Button>
-            <Button variant="danger" size="sm" onClick={handleLogout}>🚪</Button>
+            <div className={styles.heroActions}>
+              <Button variant="primary" onClick={() => setTab('cart')}>
+                <ShoppingCart size={16} />
+                {t.cartTab}
+              </Button>
+              <Button variant="ghost" onClick={() => setTab('profil')}>
+                <Pencil size={16} />
+                {t.edit}
+              </Button>
+              {user && (
+                <Button variant="danger" onClick={handleLogout}>
+                  <LogOut size={16} />
+                  {t.logout}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className={styles.content}>
-        {/* Tabs */}
-        <div className={styles.tabs}>
-          {TABS.map(t => (
-            <button key={t.id} className={`${styles.tab} ${tab===t.id?styles.tabActive:''}`} onClick={() => setTab(t.id)}>
-              <span className={styles.tabIcon}>{t.icon}</span>{t.label}
-              {t.id==='cart' && count > 0 && <span className={styles.tabBadge}>{count}</span>}
-              {t.id==='orders' && ordersCount > 0 && <span className={styles.tabBadge}>{ordersCount}</span>}
-            </button>
-          ))}
-        </div>
+      <section className={styles.content}>
+        <div className="container">
+          <div className={styles.tabs}>
+            {tabs.map((item) => (
+              <button key={item.id} className={`${styles.tab} ${tab === item.id ? styles.tabActive : ''}`} onClick={() => setTab(item.id)}>
+                <span className={styles.tabMain}>{item.icon}{item.label}</span>
+                {item.badge ? <span className={styles.tabBadge}>{item.badge}</span> : null}
+              </button>
+            ))}
+          </div>
 
-        {/* TAB PANIER */}
-        {tab === 'cart' && (
-          items.length === 0
-            ? <EmptyState icon="🛒" title="Ton panier est vide" message="Explore la boutique et ajoute des goodies !" />
-            : (
+          {tab === 'cart' && (
+            items.length === 0 ? (
+              <EmptyState icon="🛒" title={t.emptyCart} message={t.emptyCartMsg} />
+            ) : (
               <div className={styles.cartLayout}>
                 <div>
-                  <div className={styles.secTitle}>🛒 Articles ({count})</div>
+                  <div className={styles.secTitle}><ShoppingCart size={18} />{t.cartTitle(count)}</div>
                   <div className={styles.cartItems}>
-                    {items.map(item => (
+                    {items.map((item) => (
                       <div key={item.id} className={styles.cartCard}>
                         <div className={styles.cartThumb}>
-                          {item.imageUrl
-                            ? <img src={item.imageUrl} alt={item.name} />
-                            : <span className={styles.cartEmoji}>{item.emoji||'🎁'}</span>}
+                          {item.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <span>{item.emoji || '🎁'}</span>}
                         </div>
                         <div className={styles.cartInfo}>
                           <div className={styles.cartName}>{item.name}</div>
-                          <div className={styles.cartPrice}>{(item.price*item.qty).toLocaleString()} FCFA</div>
+                          <div className={styles.cartPrice}>{(item.price * item.qty).toLocaleString()} FCFA</div>
                           <div className={styles.cartActions}>
                             <div className={styles.qtyBox}>
-                              <button className={styles.qtyBtn} onClick={() => updateQty(item.id,-1)}>−</button>
+                              <button className={styles.qtyBtn} onClick={() => updateQty(item.id, -1)}><Minus size={16} /></button>
                               <span className={styles.qtyNum}>{item.qty}</span>
-                              <button className={styles.qtyBtn} onClick={() => updateQty(item.id,+1)}>+</button>
+                              <button className={styles.qtyBtn} onClick={() => updateQty(item.id, +1)}><Plus size={16} /></button>
                             </div>
-                            <button className={styles.rmBtn} onClick={() => removeItem(item.id)}>🗑️</button>
+                            <button className={styles.rmBtn} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
                           </div>
                         </div>
                       </div>
@@ -207,59 +378,40 @@ export default function Profil() {
                 </div>
 
                 <div className={styles.summary}>
-                  <div className={styles.summaryTitle}>📋 Récapitulatif</div>
-                  <div className={styles.summaryRow}><span>Sous-total</span><span>{subtotal.toLocaleString()} FCFA</span></div>
-                  <div className={styles.summaryRow}>
-                    <span>Livraison</span>
-                    <span style={{ color:shipping===0?'var(--green)':undefined }}>{shipping===0?'🎁 Gratuite':`${shipping.toLocaleString()} FCFA`}</span>
-                  </div>
-                  {shipping > 0 && <p style={{ fontSize:'.72rem', color:'var(--green)', textAlign:'center', marginBottom:'.5rem' }}>Gratuite dès 15 000 FCFA 🎌</p>}
-                  <div className={styles.summaryTotal}><span>Total</span><span>{total.toLocaleString()} FCFA</span></div>
+                  <div className={styles.summaryTitle}>{t.summary}</div>
+                  <div className={styles.summaryRow}><span>{t.subtotal}</span><span>{subtotal.toLocaleString()} FCFA</span></div>
+                  <div className={styles.summaryRow}><span>{t.shipping}</span><span>{shipping === 0 ? t.freeShipping : `${shipping.toLocaleString()} FCFA`}</span></div>
+                  {shipping > 0 && <p className={styles.freeHint}>{t.freeHint}</p>}
+                  <div className={styles.summaryTotal}><span>{t.total}</span><span>{total.toLocaleString()} FCFA</span></div>
                   {user ? (
-                    <button className={styles.orderBtn} onClick={() => setCheckoutOpen(true)}>
-                      ⚡ Finaliser l'achat
-                    </button>
+                    <button className={styles.orderBtn} onClick={() => setCheckoutOpen(true)}>{t.checkout}</button>
                   ) : (
                     <div className={styles.loginPrompt}>
-                      <p>🔐 Connecte-toi pour finaliser ta commande</p>
-                      <Link to="/" className={styles.loginPromptBtn}
-                        onClick={() => {
-                          // Trigger login modal via navigation avec state
-                          sessionStorage.setItem('openLogin', '1')
-                        }}>
-                        ⚡ Se connecter / S'inscrire
+                      <p>{t.loginPrompt}</p>
+                      <Link to="/" className={styles.loginPromptBtn} onClick={() => sessionStorage.setItem('openLogin', '1')}>
+                        {t.loginBtn}
                       </Link>
                     </div>
                   )}
-                  <p className={styles.orderNote}>
-                    Livraison sur tout le Cameroun 🇨🇲<br/>
-                    Paiement : MTN Money / Orange Money
-                  </p>
+                  <p className={styles.orderNote}>{t.note}</p>
                 </div>
               </div>
             )
-        )}
+          )}
 
-        {/* TAB FAVORIS */}
-        {tab === 'wishlist' && <WishlistTab toast={toast} addItem={addItem} setTab={setTab} />}
+          {tab === 'wishlist' && <WishlistTab t={t} toast={toast} addItem={addItem} setTab={setTab} />}
+          {tab === 'orders' && <OrdersTab t={t} orders={ordersData?.orders || []} loading={!ordersData} onSelect={setSelectedOrder} />}
+          {tab === 'profil' && <ProfilTab t={t} user={user} toast={toast} updateUser={updateUser} />}
+        </div>
+      </section>
 
-        {/* TAB COMMANDES */}
-        {tab === 'orders' && (
-          <OrdersTab
-            orders={ordersData?.orders || []}
-            loading={!ordersData}
-            onSelect={setSelectedOrder}
-          />
-        )}
-
-        {/* TAB PROFIL */}
-        {tab === 'profil' && <ProfilTab user={user} toast={toast} updateUser={updateUser} />}
-      </div>
-
-      {/* MODAL CHECKOUT — WhatsApp + Quartier */}
       {checkoutOpen && (
         <CheckoutModal
-          items={items} total={total} shipping={shipping} subtotal={subtotal}
+          t={t}
+          items={items}
+          total={total}
+          shipping={shipping}
+          subtotal={subtotal}
           user={user}
           onClose={() => setCheckoutOpen(false)}
           onSuccess={(order) => {
@@ -273,193 +425,157 @@ export default function Profil() {
         />
       )}
 
-      {/* Modal succès */}
-      <Modal isOpen={successOpen} onClose={() => { setSuccessOpen(false); setTab('orders') }}
-        footer={<Button variant="primary" onClick={() => { setSuccessOpen(false); setTab('orders') }}>📦 Suivre ma commande</Button>}
+      <Modal
+        isOpen={successOpen}
+        onClose={() => {
+          setSuccessOpen(false)
+          setTab('orders')
+        }}
+        footer={<Button variant="primary" onClick={() => { setSuccessOpen(false); setTab('orders') }}>{t.trackOrder}</Button>}
       >
-        <div style={{ textAlign:'center', padding:'2rem 0' }}>
-          <div style={{ fontSize:'4rem', marginBottom:'1rem' }}>✅</div>
-          <h2 style={{ fontFamily:'var(--font-title)', fontSize:'1.8rem', letterSpacing:'3px', color:'var(--green)', marginBottom:'1rem' }}>COMMANDE ENVOYÉE !</h2>
-          <p style={{ color:'var(--muted)', lineHeight:1.8, fontSize:'.92rem' }}>
-            {lastOrder && <><strong style={{ color:'var(--green)', fontFamily:'var(--font-title)', fontSize:'1.1rem' }}>{lastOrder.orderNumber}</strong><br/></>}
-            Notre équipe va vous contacter sur <strong>WhatsApp</strong> pour confirmer et organiser la livraison à <strong>{lastOrder?.quartier}</strong>. 🎌<br/><br/>
-            Paiement : <strong>MTN Money / Orange Money</strong>
+        <div className={styles.successModal}>
+          <ShieldCheck size={44} className={styles.successIcon} />
+          <h2 className={styles.successTitle}>{t.orderSent}</h2>
+          <p className={styles.successText}>
+            {lastOrder && <><strong>{lastOrder.orderNumber}</strong><br /></>}
+            {t.orderSentText}
           </p>
         </div>
       </Modal>
 
-      {/* Détail commande */}
-      {selectedOrder && (
-        <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-      )}
+      {selectedOrder && <OrderDetailModal t={t} order={selectedOrder} onClose={() => setSelectedOrder(null)} />}
+
+      <Footer />
     </div>
   )
 }
 
-// ── MODAL CHECKOUT ────────────────────────────────────
-function CheckoutModal({ items, total, shipping, subtotal, user, onClose, onSuccess, toast }) {
+function CheckoutModal({ t, items, total, user, onClose, onSuccess, toast }) {
   const [whatsapp, setWhatsapp] = useState(user?.whatsapp || user?.phone || '')
-  const [city,     setCity]     = useState(user?.city || 'Yaoundé')
+  const [city, setCity] = useState(user?.city || 'Yaoundé')
   const [quartier, setQuartier] = useState(user?.quartier || '')
-  const [manualQ,  setManualQ]  = useState(false)
-  const [paying,   setPaying]   = useState(false)
+  const [paying, setPaying] = useState(false)
 
   const quartiersForCity = QUARTIERS[city] || []
 
   const handleOrder = async () => {
-    if (!whatsapp.trim()) { toast.error('Numéro WhatsApp requis'); return }
-    if (!quartier.trim())  { toast.error('Quartier de livraison requis'); return }
+    if (!whatsapp.trim()) {
+      toast.error(t.whatsappRequired)
+      return
+    }
+    if (!quartier.trim()) {
+      toast.error(t.quartierRequired)
+      return
+    }
 
     setPaying(true)
     try {
       const result = await ordersApi.create({
-        items: items.map(i => ({ productId:i.id, quantity:i.qty })),
+        items: items.map((item) => ({ productId: item.id, quantity: item.qty })),
         paymentMethod: 'mtn_money',
         whatsappNumber: whatsapp,
         quartier,
         city,
       })
-      await ordersApi.notify({
-        orderId:       result?.order?.id,
-        orderNum:      result?.order?.orderNumber,
-        userEmail:     user.email,
-        userPhone:     user.phone,
-        userName:      user.pseudo,
-        whatsappNumber:whatsapp,
-        quartier,
-        city,
-        total,
-      }).catch(() => {})
       onSuccess(result?.order)
-    } catch(err) { toast.error(err.message) }
-    finally { setPaying(false) }
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setPaying(false)
+    }
   }
 
   return (
-    <Modal isOpen title="⚡ Finaliser l'achat" onClose={onClose} wide
+    <Modal
+      isOpen
+      title={t.checkoutTitle}
+      onClose={onClose}
+      wide
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>Annuler</Button>
-          <Button variant="primary" loading={paying} onClick={handleOrder}
-            style={{ background:'linear-gradient(135deg,#22c55e,#16a34a)', color:'#0c1a2e', padding:'12px 28px' }}>
-            ⚡ Confirmer la commande
-          </Button>
+          <Button variant="ghost" onClick={onClose}>{t.cancel}</Button>
+          <Button variant="primary" loading={paying} onClick={handleOrder}>{t.confirmOrder}</Button>
         </>
       }
     >
-      {/* Récap articles */}
-      <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem', marginBottom:'1.5rem' }}>
-        <div style={{ fontSize:'.72rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', textTransform:'uppercase', marginBottom:10 }}>📦 Récapitulatif</div>
-        {items.map(i => (
-          <div key={i.id} style={{ display:'flex', justifyContent:'space-between', fontSize:'.85rem', marginBottom:5 }}>
-            <span>{i.emoji||'🎁'} {i.name} ×{i.qty}</span>
-            <span style={{ color:'var(--green)', fontFamily:'var(--font-title)' }}>{(i.price*i.qty).toLocaleString()} F</span>
+      <div className={styles.checkoutSummary}>
+        {items.map((item) => (
+          <div key={item.id} className={styles.checkoutRow}>
+            <span>{item.emoji || '🎁'} {item.name} ×{item.qty}</span>
+            <strong>{(item.price * item.qty).toLocaleString()} F</strong>
           </div>
         ))}
-        <div style={{ borderTop:'1px solid var(--border)', paddingTop:8, marginTop:8, display:'flex', justifyContent:'space-between', fontFamily:'var(--font-title)', fontSize:'1.1rem' }}>
-          <span>Total</span><span style={{ color:'var(--green)' }}>{total.toLocaleString()} FCFA</span>
+        <div className={styles.checkoutTotal}><span>{t.total}</span><strong>{total.toLocaleString()} FCFA</strong></div>
+      </div>
+
+      <div className={styles.formGridCompact}>
+        <div>
+          <label className={styles.pLabel}>WhatsApp *</label>
+          <input className={styles.pInput} value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+237 6XX XXX XXX" />
         </div>
-      </div>
-
-      {/* Livraison */}
-      <div style={{ fontSize:'.72rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', textTransform:'uppercase', marginBottom:12 }}>🚚 Informations de livraison</div>
-
-      {/* WhatsApp */}
-      <div style={{ marginBottom:'1rem' }}>
-        <label style={{ display:'block', fontSize:'.72rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:5, textTransform:'uppercase' }}>
-          📱 Numéro WhatsApp * <span style={{ color:'var(--green)', fontSize:'.7rem' }}>(pour suivi de commande)</span>
-        </label>
-        <input
-          value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
-          placeholder="+237 6XX XXX XXX"
-          style={{ width:'100%', padding:'11px 14px', borderRadius:10, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.95rem', outline:'none', transition:'border-color .2s' }}
-          onFocus={e=>e.target.style.borderColor='#22c55e'} onBlur={e=>e.target.style.borderColor='rgba(255,255,255,.1)'}
-        />
-      </div>
-
-      {/* Ville */}
-      <div style={{ marginBottom:'1rem' }}>
-        <label style={{ display:'block', fontSize:'.72rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:5, textTransform:'uppercase' }}>Ville *</label>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          {['Yaoundé','Douala','Bafoussam','Autre'].map(c => (
-            <button key={c} onClick={() => { setCity(c); setQuartier(''); setManualQ(c==='Autre') }}
-              style={{ padding:'8px 18px', borderRadius:50, cursor:'pointer', fontFamily:'var(--font-body)', fontWeight:700, fontSize:'.85rem',
-                background: city===c ? 'rgba(34,197,94,.15)' : 'rgba(255,255,255,.04)',
-                border: `1px solid ${city===c ? '#22c55e' : 'rgba(255,255,255,.1)'}`,
-                color: city===c ? '#22c55e' : 'var(--muted)', transition:'all .2s',
-              }}>{c}</button>
-          ))}
+        <div>
+          <label className={styles.pLabel}>{t.city}</label>
+          <select className={styles.pInput} value={city} onChange={(e) => { setCity(e.target.value); setQuartier('') }}>
+            {['Yaoundé', 'Douala', 'Bafoussam', 'Autre'].map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
         </div>
-      </div>
-
-      {/* Quartier */}
-      <div style={{ marginBottom:'1.5rem' }}>
-        <label style={{ display:'block', fontSize:'.72rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:5, textTransform:'uppercase' }}>
-          📍 Quartier de livraison *
-        </label>
-        {!manualQ && quartiersForCity.length > 0 ? (
-          <>
-            <select
-              value={quartier} onChange={e => setQuartier(e.target.value)}
-              style={{ width:'100%', padding:'11px 14px', borderRadius:10, background:'rgba(255,255,255,.04)', border:`1px solid ${quartier?'#22c55e':'rgba(255,255,255,.1)'}`, color: quartier?'var(--text)':'var(--muted)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }}
-            >
-              <option value="">-- Choisir mon quartier --</option>
-              {quartiersForCity.map(q => <option key={q} value={q} style={{ background:'#0c1a2e' }}>{q}</option>)}
-              <option value="__manual__" style={{ background:'#0c1a2e' }}>Mon quartier n'est pas dans la liste...</option>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label className={styles.pLabel}>{t.quartier}</label>
+          {quartiersForCity.length ? (
+            <select className={styles.pInput} value={quartier} onChange={(e) => setQuartier(e.target.value)}>
+              <option value="">-- {t.quartier} --</option>
+              {quartiersForCity.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-            {quartier === '__manual__' && (
-              <input
-                autoFocus value="" onChange={e => setQuartier(e.target.value)}
-                placeholder="Entrer votre quartier manuellement"
-                style={{ width:'100%', padding:'11px 14px', borderRadius:10, background:'rgba(255,255,255,.04)', border:'1px solid #22c55e', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none', marginTop:8 }}
-              />
-            )}
-          </>
-        ) : (
-          <input
-            value={quartier} onChange={e => setQuartier(e.target.value)}
-            placeholder="Entrer votre quartier (ex: Akwa Nord, Biyem-Assi...)"
-            style={{ width:'100%', padding:'11px 14px', borderRadius:10, background:'rgba(255,255,255,.04)', border:`1px solid ${quartier?'#22c55e':'rgba(255,255,255,.1)'}`, color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none', transition:'border-color .2s' }}
-            onFocus={e=>e.target.style.borderColor='#22c55e'} onBlur={e=>e.target.style.borderColor=quartier?'#22c55e':'rgba(255,255,255,.1)'}
-          />
-        )}
+          ) : (
+            <input className={styles.pInput} value={quartier} onChange={(e) => setQuartier(e.target.value)} placeholder="Ex: Akwa Nord" />
+          )}
+        </div>
       </div>
 
-      {/* Info paiement */}
-      <div style={{ background:'rgba(34,197,94,.06)', border:'1px solid rgba(34,197,94,.15)', borderRadius:12, padding:'1rem', display:'flex', gap:12, alignItems:'flex-start' }}>
-        <span style={{ fontSize:'1.5rem', flexShrink:0 }}>💬</span>
-        <div style={{ fontSize:'.82rem', color:'var(--muted)', lineHeight:1.7 }}>
-          Après confirmation, notre équipe vous contacte sur <strong style={{ color:'var(--text)' }}>WhatsApp</strong> pour le paiement via <strong style={{ color:'#f97316' }}>MTN Money</strong> ou <strong style={{ color:'#f59e0b' }}>Orange Money</strong>, puis organise la livraison dans votre quartier.
-        </div>
+      <div className={styles.checkoutNote}>
+        <MessageCircle size={18} />
+        <p>{t.paymentInfo}</p>
       </div>
     </Modal>
   )
 }
 
-// ── WISHLIST TAB ──────────────────────────────────────
-function WishlistTab({ toast, addItem, setTab }) {
+function WishlistTab({ t, toast, addItem, setTab }) {
   const { data, loading, execute } = useApi(() => usersApi.getWishlist(), [], true)
   const wishlist = data?.wishlist || []
-  const handleAdd = p => { addItem(p); toast.success(`✅ ${p.nameF} ajouté !`); setTab('cart') }
-  const handleRm  = async pid => {
-    try { await usersApi.toggleWishlist(pid); execute(); toast.info('Retiré des favoris') }
-    catch(err) { toast.error(err.message) }
+
+  const addProduct = (product) => {
+    addItem(product)
+    toast.success(t.added)
+    setTab('cart')
   }
+
+  const removeProduct = async (productId) => {
+    try {
+      await usersApi.toggleWishlist(productId)
+      execute()
+      toast.info(t.removedWishlist)
+    } catch (err) {
+      toast.error(err.message)
+    }
+  }
+
   if (loading) return <PageLoader />
-  if (!wishlist.length) return <EmptyState icon="❤️" title="Aucun favori" message="Clique sur ❤️ dans la boutique." />
+  if (!wishlist.length) return <EmptyState icon="❤️" title={t.emptyWishlist} message={t.emptyWishlistMsg} />
+
   return (
     <>
-      <div className={styles.secTitle}>❤️ Mes Favoris ({wishlist.length})</div>
+      <div className={styles.secTitle}><Heart size={18} />{t.wishlistTitle(wishlist.length)}</div>
       <div className={styles.itemsGrid}>
-        {wishlist.map(p => (
-          <div key={p.id} className={styles.itemCard}>
-            <div className={styles.itemImg}>{p.emoji||'🎁'}</div>
+        {wishlist.map((product) => (
+          <div key={product.id} className={styles.itemCard}>
+            <div className={styles.itemImg}>{product.emoji || '🎁'}</div>
             <div className={styles.itemBody}>
-              <div className={styles.itemName}>{p.nameF}</div>
-              <div className={styles.itemPrice}>{p.price?.toLocaleString()} FCFA</div>
+              <div className={styles.itemName}>{product.nameF}</div>
+              <div className={styles.itemPrice}>{product.price?.toLocaleString()} FCFA</div>
               <div className={styles.itemBtns}>
-                <Button variant="primary" size="sm" onClick={() => handleAdd(p)}>🛒</Button>
-                <Button variant="danger"  size="sm" onClick={() => handleRm(p.id)}>❌</Button>
+                <Button variant="primary" size="sm" onClick={() => addProduct(product)}>{t.addToCart}</Button>
+                <Button variant="danger" size="sm" onClick={() => removeProduct(product.id)}>{t.remove}</Button>
               </div>
             </div>
           </div>
@@ -469,57 +585,48 @@ function WishlistTab({ toast, addItem, setTab }) {
   )
 }
 
-// ── ORDERS TAB ────────────────────────────────────────
-function OrdersTab({ orders, loading, onSelect }) {
+function OrdersTab({ t, orders, loading, onSelect }) {
   if (loading) return <PageLoader />
-  if (!orders.length) return <EmptyState icon="📦" title="Aucune commande" message="Tes commandes apparaîtront ici." />
+  if (!orders.length) return <EmptyState icon="📦" title={t.emptyOrders} message={t.emptyOrdersMsg} />
 
   return (
     <>
-      <div className={styles.secTitle}>📦 Mes Commandes ({orders.length})</div>
+      <div className={styles.secTitle}><Package size={18} />{t.ordersTitle(orders.length)}</div>
       <div className={styles.ordersList}>
-        {orders.map(o => {
-          const step  = STATUSES_STEPS.indexOf(o.status)
-          const isActive = !['cancelled','refunded'].includes(o.status)
+        {orders.map((order) => {
+          const currentStep = STEP_ORDER.indexOf(order.status)
+          const activeTrack = !['cancelled', 'refunded'].includes(order.status)
           return (
-            <div key={o.id} className={styles.orderCard} onClick={() => onSelect(o)} style={{ cursor:'pointer' }}>
+            <div key={order.id} className={styles.orderCard} onClick={() => onSelect(order)}>
               <div className={styles.orderTop}>
-                <span className={styles.orderNum}>{o.orderNumber}</span>
-                <Badge variant={statusVariant(o.status)} style={{ fontSize:'.72rem' }}>{STATUS_FR[o.status]||o.status}</Badge>
+                <span className={styles.orderNum}>{order.orderNumber}</span>
+                <Badge variant={statusVariant(order.status)}>{t.status[order.status] || order.status}</Badge>
               </div>
 
-              {/* Mini progress */}
-              {isActive && (
-                <div style={{ display:'flex', gap:0, marginBottom:'1rem', position:'relative' }}>
-                  <div style={{ position:'absolute', top:9, left:0, right:0, height:2, background:'rgba(255,255,255,.08)', borderRadius:2 }}>
-                    <div style={{ height:'100%', width:`${Math.max(0,(step/(STATUSES_STEPS.length-1))*100)}%`, background:'var(--green)', borderRadius:2, transition:'width .5s' }} />
-                  </div>
-                  {STATUSES_STEPS.map((s,i) => (
-                    <div key={s} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, zIndex:1 }}>
-                      <div style={{ width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'.65rem', fontWeight:700, background:i<=step?'var(--green)':'rgba(255,255,255,.1)', border:`2px solid ${i<=step?'var(--green)':'rgba(255,255,255,.2)'}` }}>
-                        {i<=step?'✓':i+1}
-                      </div>
-                      <span style={{ fontSize:'.55rem', color:i<=step?'var(--green)':'var(--muted)', fontWeight:700, textAlign:'center', whiteSpace:'nowrap' }}>
-                        {STATUS_FR[s]?.replace(/^[^a-zA-Z]+/,'').split(' ')[0]}
-                      </span>
+              {activeTrack && (
+                <div className={styles.progressWrap}>
+                  <div className={styles.progressLine}><div className={styles.progressFill} style={{ width: `${Math.max(0, (currentStep / (STEP_ORDER.length - 1)) * 100)}%` }} /></div>
+                  {STEP_ORDER.map((status, index) => (
+                    <div key={status} className={styles.progressStep}>
+                      <div className={`${styles.progressDot} ${index <= currentStep ? styles.progressDotActive : ''}`}>{index <= currentStep ? <Check size={12} /> : index + 1}</div>
+                      <span>{t.status[status]}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              <p style={{ fontSize:'.8rem', color:'var(--muted)', marginBottom:'.7rem', lineHeight:1.5 }}>{STATUS_DESC[o.status]}</p>
-
+              <p className={styles.orderDesc}>{t.statusDesc[order.status]}</p>
               <div className={styles.orderItems}>
-                {(Array.isArray(o.items)?o.items:[]).map((item,i) => (
-                  <span key={i} className={styles.orderChip}>{item.emoji||'🎁'} {item.nameF||item.name} ×{item.quantity}</span>
+                {(order.items || []).map((item, index) => (
+                  <span key={index} className={styles.orderChip}>{item.emoji || '🎁'} {item.nameF || item.name} ×{item.quantity}</span>
                 ))}
               </div>
               <div className={styles.orderBottom}>
                 <div>
-                  <span className={styles.orderDate}>{new Date(o.createdAt).toLocaleDateString('fr-FR',{dateStyle:'medium'})}</span>
-                  {o.quartier && <div style={{ fontSize:'.72rem', color:'var(--muted)' }}>📍 {o.quartier}, {o.city}</div>}
+                  <div className={styles.orderDate}>{new Date(order.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}</div>
+                  {order.quartier && <div className={styles.orderMeta}><MapPin size={14} />{order.quartier}, {order.city}</div>}
                 </div>
-                <span className={styles.orderTotal}>{o.total?.toLocaleString()} FCFA</span>
+                <span className={styles.orderTotal}>{order.total?.toLocaleString()} FCFA</span>
               </div>
             </div>
           )
@@ -529,69 +636,53 @@ function OrdersTab({ orders, loading, onSelect }) {
   )
 }
 
-// ── ORDER DETAIL MODAL ────────────────────────────────
-function OrderDetailModal({ order:o, onClose }) {
-  const step = STATUSES_STEPS.indexOf(o.status)
-  const isActive = !['cancelled','refunded'].includes(o.status)
+function OrderDetailModal({ t, order, onClose }) {
+  const currentStep = STEP_ORDER.indexOf(order.status)
+  const activeTrack = !['cancelled', 'refunded'].includes(order.status)
+
   return (
-    <Modal isOpen title={`📦 ${o.orderNumber}`} onClose={onClose}>
-      {/* Progress */}
-      {isActive && (
-        <div style={{ marginBottom:'1.5rem' }}>
-          <div style={{ display:'flex', position:'relative', justifyContent:'space-between', marginBottom:'.5rem' }}>
-            <div style={{ position:'absolute', top:14, left:0, right:0, height:3, background:'rgba(255,255,255,.08)', borderRadius:2 }}>
-              <div style={{ height:'100%', width:`${Math.max(0,(step/(STATUSES_STEPS.length-1))*100)}%`, background:'var(--green)', borderRadius:2, transition:'width .6s' }} />
+    <Modal isOpen title={order.orderNumber} onClose={onClose}>
+      {activeTrack && (
+        <div className={styles.detailProgress}>
+          <div className={styles.progressLine}><div className={styles.progressFill} style={{ width: `${Math.max(0, (currentStep / (STEP_ORDER.length - 1)) * 100)}%` }} /></div>
+          {STEP_ORDER.map((status, index) => (
+            <div key={status} className={styles.progressStep}>
+              <div className={`${styles.progressDot} ${index <= currentStep ? styles.progressDotActive : ''}`}>{index <= currentStep ? <Check size={12} /> : index + 1}</div>
+              <span>{t.status[status]}</span>
             </div>
-            {STATUSES_STEPS.map((s,i) => (
-              <div key={s} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, zIndex:1 }}>
-                <div style={{ width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'.8rem', fontWeight:700, background:i<=step?'var(--green)':'rgba(255,255,255,.1)', border:`2px solid ${i<=step?'var(--green)':'rgba(255,255,255,.2)'}`, boxShadow:i===step?'0 0 12px rgba(34,197,94,.5)':'none' }}>
-                  {i<=step?'✓':i+1}
-                </div>
-                <span style={{ fontSize:'.65rem', color:i<=step?'var(--green)':'var(--muted)', fontWeight:700, whiteSpace:'nowrap' }}>{STATUS_FR[s]?.replace(/^[^a-zA-Z]/,'').split(' ').slice(0,2).join(' ')}</span>
-              </div>
-            ))}
-          </div>
-          <p style={{ textAlign:'center', fontSize:'.88rem', color:'var(--muted)', marginTop:'1rem', lineHeight:1.6 }}>{STATUS_DESC[o.status]}</p>
+          ))}
         </div>
       )}
 
-      {/* Articles */}
-      <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem', marginBottom:'1rem' }}>
-        <div style={{ fontSize:'.72rem', fontWeight:700, color:'var(--muted)', letterSpacing:1, textTransform:'uppercase', marginBottom:10 }}>Articles commandés</div>
-        {(o.items||[]).map((item,i) => (
-          <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:'.85rem', marginBottom:5, paddingBottom:5, borderBottom:'1px solid rgba(255,255,255,.05)' }}>
-            <span>{item.emoji||'🎁'} {item.nameF} ×{item.quantity}</span>
-            <span style={{ fontFamily:'var(--font-title)', color:'var(--green)' }}>{item.lineTotal?.toLocaleString()} F</span>
+      <p className={styles.orderDesc}>{t.statusDesc[order.status]}</p>
+
+      <div className={styles.detailBox}>
+        <div className={styles.detailTitle}>{t.orderedItems}</div>
+        {(order.items || []).map((item, index) => (
+          <div key={index} className={styles.checkoutRow}>
+            <span>{item.emoji || '🎁'} {item.nameF || item.name} ×{item.quantity}</span>
+            <strong>{item.lineTotal?.toLocaleString()} F</strong>
           </div>
         ))}
-        <div style={{ display:'flex', justifyContent:'space-between', fontFamily:'var(--font-title)', fontSize:'1.1rem', paddingTop:8, borderTop:'1px solid var(--border)', marginTop:4 }}>
-          <span>Total</span><span style={{ color:'var(--green)' }}>{o.total?.toLocaleString()} FCFA</span>
-        </div>
+        <div className={styles.checkoutTotal}><span>{t.total}</span><strong>{order.total?.toLocaleString()} FCFA</strong></div>
       </div>
 
-      {/* Livraison */}
-      <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem', marginBottom:'1rem' }}>
-        <div style={{ fontSize:'.72rem', fontWeight:700, color:'var(--muted)', letterSpacing:1, textTransform:'uppercase', marginBottom:10 }}>Informations de livraison</div>
-        {[['WhatsApp',o.whatsappNumber||'—'],['Quartier',o.quartier||'—'],['Ville',o.city||'—'],['Paiement',o.paymentMethod]].map(([l,v])=>(
-          <div key={l} style={{ display:'flex', justifyContent:'space-between', fontSize:'.85rem', marginBottom:6 }}>
-            <span style={{ color:'var(--muted)' }}>{l}</span><strong>{v}</strong>
-          </div>
-        ))}
+      <div className={styles.detailBox}>
+        <div className={styles.detailTitle}>{t.deliveryDetails}</div>
+        <div className={styles.checkoutRow}><span>WhatsApp</span><strong>{order.whatsappNumber || '—'}</strong></div>
+        <div className={styles.checkoutRow}><span>{t.quartier}</span><strong>{order.quartier || '—'}</strong></div>
+        <div className={styles.checkoutRow}><span>{t.city}</span><strong>{order.city || '—'}</strong></div>
       </div>
 
-      {/* Historique */}
-      {o.statusHistory?.length > 0 && (
-        <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem' }}>
-          <div style={{ fontSize:'.72rem', fontWeight:700, color:'var(--muted)', letterSpacing:1, textTransform:'uppercase', marginBottom:10 }}>📋 Historique</div>
-          {o.statusHistory.map((h,i) => (
-            <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:8 }}>
-              <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--green)', flexShrink:0, marginTop:5 }} />
+      {order.statusHistory?.length > 0 && (
+        <div className={styles.detailBox}>
+          <div className={styles.detailTitle}>{t.orderHistory}</div>
+          {order.statusHistory.map((entry, index) => (
+            <div key={index} className={styles.historyRow}>
+              <div className={styles.historyDot} />
               <div>
-                <div style={{ fontSize:'.82rem', fontWeight:700 }}>{STATUS_FR[h.status]||h.status}</div>
-                <div style={{ fontSize:'.72rem', color:'var(--muted)' }}>
-                  {new Date(h.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',hour:'2-digit',minute:'2-digit'})}
-                  {h.note && ` — ${h.note}`}
-                </div>
+                <div className={styles.historyStatus}>{t.status[entry.status] || entry.status}</div>
+                <div className={styles.historyMeta}>{new Date(entry.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
               </div>
             </div>
           ))}
@@ -601,61 +692,80 @@ function OrderDetailModal({ order:o, onClose }) {
   )
 }
 
-// ── PROFIL FORM ───────────────────────────────────────
-function ProfilTab({ user, toast, updateUser }) {
-  const [form, setForm] = useState({ firstName:user.firstName||'', lastName:user.lastName||'', phone:user.phone||'', whatsapp:user.whatsapp||user.phone||'', city:user.city||'Yaoundé', quartier:user.quartier||'' })
+function ProfilTab({ t, user, toast, updateUser }) {
+  const [form, setForm] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    phone: user?.phone || '',
+    whatsapp: user?.whatsapp || user?.phone || '',
+    city: user?.city || 'Yaoundé',
+    quartier: user?.quartier || '',
+  })
   const [oldPwd, setOldPwd] = useState('')
   const [newPwd, setNewPwd] = useState('')
-  const s = (k,v) => setForm(f=>({...f,[k]:v}))
-  const { mutate:saveProfil, loading:lP } = useMutation(usersApi.updateProfile)
-  const { mutate:changePwd,  loading:lC } = useMutation(usersApi.changePassword)
+  const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
 
-  const handleSave = async () => {
+  const { mutate: saveProfil, loading: savingProfile } = useMutation(usersApi.updateProfile)
+  const { mutate: changePwd, loading: changingPwd } = useMutation(usersApi.changePassword)
+
+  const save = async () => {
     const { data, error } = await saveProfil(form)
-    if (error) { toast.error(error); return }
-    updateUser(data?.user || form); toast.success('✅ Profil mis à jour !')
+    if (error) {
+      toast.error(error)
+      return
+    }
+    updateUser(data?.user || form)
+    toast.success(t.profileUpdated)
   }
-  const handlePwd = async () => {
-    if (newPwd.length < 8) { toast.error('Minimum 8 caractères'); return }
-    const { error } = await changePwd({ currentPassword:oldPwd, newPassword:newPwd })
-    if (error) { toast.error(error); return }
-    setOldPwd(''); setNewPwd(''); toast.success('✅ Mot de passe modifié !')
+
+  const updatePassword = async () => {
+    if (newPwd.length < 8) {
+      toast.error(t.passwordShort)
+      return
+    }
+    const { error } = await changePwd({ currentPassword: oldPwd, newPassword: newPwd })
+    if (error) {
+      toast.error(error)
+      return
+    }
+    setOldPwd('')
+    setNewPwd('')
+    toast.success(t.passwordUpdated)
   }
 
   return (
-    <div className={styles.profilLayout}>
-      <div className={styles.profilCard}>
-        <h3 className={styles.profilCardTitle}>✏️ Mes informations</h3>
-        <div className={styles.profilGrid}>
-          {[['Prénom','firstName'],['Nom','lastName']].map(([l,k]) => (
-            <div key={k}><label className={styles.pLabel}>{l}</label><input className={styles.pInput} value={form[k]} onChange={e=>s(k,e.target.value)} /></div>
-          ))}
-          <div><label className={styles.pLabel}>Téléphone</label><input className={styles.pInput} value={form.phone} onChange={e=>s('phone',e.target.value)} placeholder="+237 6XX XXX XXX" /></div>
-          <div><label className={styles.pLabel}>WhatsApp</label><input className={styles.pInput} value={form.whatsapp} onChange={e=>s('whatsapp',e.target.value)} placeholder="+237 6XX XXX XXX" /></div>
+    <div className={styles.profileForms}>
+      <div className={styles.formCard}>
+        <div className={styles.secTitle}><UserRound size={18} />{t.profileTab}</div>
+        <div className={styles.formGrid}>
+          <div><label className={styles.pLabel}>{t.firstName}</label><input className={styles.pInput} value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} /></div>
+          <div><label className={styles.pLabel}>{t.lastName}</label><input className={styles.pInput} value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} /></div>
+          <div><label className={styles.pLabel}>{t.phone}</label><input className={styles.pInput} value={form.phone} onChange={(e) => setField('phone', e.target.value)} /></div>
+          <div><label className={styles.pLabel}>{t.whatsapp}</label><input className={styles.pInput} value={form.whatsapp} onChange={(e) => setField('whatsapp', e.target.value)} /></div>
           <div>
-            <label className={styles.pLabel}>Ville</label>
-            <select className={styles.pInput} value={form.city} onChange={e=>s('city',e.target.value)}>
-              {['Yaoundé','Douala','Bafoussam','Autre'].map(c=><option key={c} value={c} style={{ background:'#0c1a2e' }}>{c}</option>)}
+            <label className={styles.pLabel}>{t.city}</label>
+            <select className={styles.pInput} value={form.city} onChange={(e) => setField('city', e.target.value)}>
+              {['Yaoundé', 'Douala', 'Bafoussam', 'Autre'].map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </div>
           <div>
-            <label className={styles.pLabel}>Quartier habituel</label>
-            <select className={styles.pInput} value={form.quartier} onChange={e=>s('quartier',e.target.value)}>
-              <option value="">-- Choisir --</option>
-              {(QUARTIERS[form.city]||[]).map(q=><option key={q} value={q} style={{ background:'#0c1a2e' }}>{q}</option>)}
-              <option value="" disabled>──────────</option>
+            <label className={styles.pLabel}>{t.quartier}</label>
+            <select className={styles.pInput} value={form.quartier} onChange={(e) => setField('quartier', e.target.value)}>
+              <option value="">-- {t.quartier} --</option>
+              {(QUARTIERS[form.city] || []).map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </div>
         </div>
-        <Button variant="primary" loading={lP} onClick={handleSave}>💾 Enregistrer</Button>
+        <Button variant="primary" loading={savingProfile} onClick={save}>{t.save}</Button>
       </div>
-      <div className={styles.profilCard}>
-        <h3 className={styles.profilCardTitle}>🔒 Mot de passe</h3>
-        <div className={styles.profilGrid}>
-          <div><label className={styles.pLabel}>Actuel</label><input type="password" className={styles.pInput} value={oldPwd} onChange={e=>setOldPwd(e.target.value)} /></div>
-          <div><label className={styles.pLabel}>Nouveau (min 8)</label><input type="password" className={styles.pInput} value={newPwd} onChange={e=>setNewPwd(e.target.value)} /></div>
+
+      <div className={styles.formCard}>
+        <div className={styles.secTitle}><ShieldCheck size={18} />{t.password}</div>
+        <div className={styles.formGrid}>
+          <div><label className={styles.pLabel}>{t.currentPwd}</label><input type="password" className={styles.pInput} value={oldPwd} onChange={(e) => setOldPwd(e.target.value)} /></div>
+          <div><label className={styles.pLabel}>{t.newPwd}</label><input type="password" className={styles.pInput} value={newPwd} onChange={(e) => setNewPwd(e.target.value)} /></div>
         </div>
-        <Button variant="ghost" loading={lC} onClick={handlePwd}>🔒 Modifier</Button>
+        <Button variant="ghost" loading={changingPwd} onClick={updatePassword}>{t.changePwd}</Button>
       </div>
     </div>
   )

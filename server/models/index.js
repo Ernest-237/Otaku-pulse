@@ -17,7 +17,12 @@ const User = sequelize.define('User', {
   whatsapp:            { type: DataTypes.STRING(20) },
   city:                { type: DataTypes.ENUM('Yaoundé','Douala','Bafoussam','Autre'), defaultValue:'Yaoundé' },
   quartier:            { type: DataTypes.STRING(100) },
-  avatar:              { type: DataTypes.STRING(500), defaultValue:'' },
+  avatar:              { type: DataTypes.TEXT, defaultValue:'' },     // base64 ou URL
+  bio:                 { type: DataTypes.STRING(280), defaultValue:'' },
+  membershipPlan:      { type: DataTypes.ENUM('basic','plus','elite'), allowNull: true },
+  membershipStatus:    { type: DataTypes.STRING(20), allowNull: true },  // active, expired
+  membershipExpiry:    { type: DataTypes.DATE, allowNull: true },
+  membershipCardId:    { type: DataTypes.STRING(50), allowNull: true },
   lang:                { type: DataTypes.ENUM('fr','en'), defaultValue:'fr' },
   role:                { type: DataTypes.ENUM('user','admin','superadmin'), defaultValue:'user' },
   isVerified:          { type: DataTypes.BOOLEAN, defaultValue: false },
@@ -249,6 +254,22 @@ const Newsletter = sequelize.define('Newsletter', {
   lang:     { type: DataTypes.ENUM('fr','en'), defaultValue: 'fr' },
 }, { tableName: 'newsletter', timestamps: true })
 
+// ══ MEMBERSHIP REQUESTS ══════════════════════════════
+const MembershipRequest = sequelize.define('MembershipRequest', {
+  id:         { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:     { type: DataTypes.UUID, allowNull: false },
+  plan:       { type: DataTypes.ENUM('basic','plus','elite'), allowNull: false },
+  nom:        { type: DataTypes.STRING(100), allowNull: false },
+  email:      { type: DataTypes.STRING(255) },
+  phone:      { type: DataTypes.STRING(30) },
+  ville:      { type: DataTypes.STRING(50), defaultValue: 'Yaoundé' },
+  message:    { type: DataTypes.TEXT },
+  status:     { type: DataTypes.ENUM('pending','contacted','active','cancelled','expired'), defaultValue: 'pending' },
+  adminNotes: { type: DataTypes.TEXT },
+  cardId:     { type: DataTypes.STRING(50) },
+  expiresAt:  { type: DataTypes.DATE },
+}, { tableName: 'MembershipRequests', timestamps: true })
+
 // ══ ASSOCIATIONS ══════════════════════════════════════
 User.hasMany(Order,    { foreignKey:'userId', as:'orders' })
 Order.belongsTo(User,  { foreignKey:'userId', as:'user' })
@@ -262,6 +283,8 @@ EventRegistration.belongsTo(User,  { foreignKey:'userId', as:'user' })
 User.hasMany(EventRegistration,    { foreignKey:'userId', as:'eventRegistrations' })
 
 Supplier.hasMany(Product,    { foreignKey:'supplierId', as:'products' })
+MembershipRequest.belongsTo(User, { as: 'user', foreignKey: 'userId' })
+User.hasMany(MembershipRequest,   { as: 'membershipRequests', foreignKey: 'userId' })
 Product.belongsTo(Supplier,  { foreignKey:'supplierId', as:'supplier' })
 
 // ══ SYNC ══════════════════════════════════════════════
@@ -273,5 +296,5 @@ const syncDatabase = async (force = false) => {
 module.exports = {
   sequelize, syncDatabase,
   User, Product, Order, Event, EventRegistration,
-  Contact, Wishlist, Newsletter, Supplier, HeroConfig,
+  Contact, Wishlist, Newsletter, Supplier, HeroConfig, MembershipRequest,
 }

@@ -1,6 +1,3 @@
-/* FloatingCharacter.module.css */
-
-/* Conteneur global — coin bas gauche */
 .wrapper {
   position: fixed;
   bottom: 0;
@@ -10,22 +7,21 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0;
-  pointer-events: none; /* le conteneur ne bloque pas les clics */
+  pointer-events: none;
   animation: slideInChar .6s cubic-bezier(.34,1.2,.64,1) forwards;
 }
+
 @keyframes slideInChar {
   from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(0); opacity: 1; }
 }
 
-/* Mode minimisé */
-.minimized .charImg { filter: brightness(.8); }
+.minimized .charImg { filter: brightness(.88); }
 
-/* ── BULLE DE DIALOGUE ── */
 .bubble {
   position: relative;
-  background: rgba(8,16,32,0.96);
-  border: 1px solid rgba(34,197,94,0.35);
+  background: rgba(10, 16, 22, 0.95);
+  border: 1px solid rgba(34,197,94,0.3);
   border-radius: 16px;
   padding: 1rem 1.1rem;
   max-width: 270px;
@@ -33,57 +29,116 @@
   margin-bottom: -4px;
   margin-left: 10px;
   pointer-events: all;
-  box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 0 20px rgba(34,197,94,.08);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35), 0 0 18px rgba(34,197,94,.06);
   backdrop-filter: blur(16px);
 }
 
-/* Animation bulle */
 .bubbleIn  { animation: bubbleAppear .35s ease forwards; }
 .bubbleOut { animation: bubbleDisappear .25s ease forwards; }
-@keyframes bubbleAppear    { from{opacity:0;transform:translateY(8px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
-@keyframes bubbleDisappear { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(4px)} }
 
-/* Queue de la bulle → pointe vers le bas-gauche (vers le perso) */
+@keyframes bubbleAppear {
+  from { opacity: 0; transform: translateY(8px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes bubbleDisappear {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(4px); }
+}
+
 .bubbleTail {
   position: absolute;
-  bottom: -10px; left: 28px;
-  width: 0; height: 0;
+  bottom: -10px;
+  left: 28px;
+  width: 0;
+  height: 0;
   border-left: 10px solid transparent;
   border-right: 4px solid transparent;
-  border-top: 10px solid rgba(8,16,32,0.96);
+  border-top: 10px solid rgba(10,16,22,0.95);
   filter: drop-shadow(0 2px 4px rgba(0,0,0,.3));
 }
 
-/* Close button */
 .closeBtn {
-  position: absolute; top: 8px; right: 8px;
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
-  border-radius: 50%; width: 22px; height: 22px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .65rem; color: rgba(200,230,255,.5); cursor: pointer; transition: all .2s;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(226,232,240,.7);
+  cursor: pointer;
+  transition: all .2s ease;
 }
-.closeBtn:hover { background: rgba(239,68,68,.15); color: #f87171; border-color: rgba(239,68,68,.3); }
 
-/* Quote */
-.quoteIcon { font-size: 2rem; color: rgba(34,197,94,.4); line-height: .5; margin-bottom: .4rem; font-family: Georgia,serif; }
+.closeBtn:hover {
+  background: rgba(239,68,68,.15);
+  color: #fca5a5;
+  border-color: rgba(239,68,68,.25);
+}
+
+.quoteIcon {
+  color: rgba(74,222,128,.7);
+  line-height: 1;
+  margin-bottom: .45rem;
+  display: inline-flex;
+}
+
 .quoteText {
-  font-size: .82rem; color: rgba(220,240,255,.85); line-height: 1.6;
-  margin-bottom: .7rem; font-style: italic;
-  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: .82rem;
+  color: rgba(240,249,255,.88);
+  line-height: 1.6;
+  margin-bottom: .7rem;
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.quoteMeta { display: flex; flex-direction: column; gap: 1px; margin-bottom: .7rem; }
-.charName  { font-family: var(--font-title,sans-serif); font-size: .78rem; letter-spacing: 1px; color: #22c55e; }
-.animeName { font-size: .68rem; color: rgba(200,230,255,.4); letter-spacing: .5px; }
 
-/* Next button */
+.quoteMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: .7rem;
+}
+
+.charName {
+  font-family: var(--font-title, sans-serif);
+  font-size: .78rem;
+  letter-spacing: 1px;
+  color: #86efac;
+}
+
+.animeName {
+  font-size: .68rem;
+  color: rgba(203,213,225,.52);
+  letter-spacing: .5px;
+}
+
 .nextBtn {
-  background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.2);
-  color: #22c55e; border-radius: 20px; padding: 4px 12px;
-  font-size: .72rem; font-weight: 700; cursor: pointer; transition: all .2s;
+  background: rgba(34,197,94,.1);
+  border: 1px solid rgba(34,197,94,.18);
+  color: #86efac;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
-.nextBtn:hover { background: rgba(34,197,94,.2); transform: translateX(2px); }
 
-/* ── PERSONNAGE ── */
+.nextBtn:hover {
+  background: rgba(34,197,94,.16);
+  transform: translateX(2px);
+}
+
 .character {
   position: relative;
   width: 110px;
@@ -92,9 +147,10 @@
   user-select: none;
   animation: charFloat 4s ease-in-out infinite;
 }
+
 @keyframes charFloat {
   0%,100% { transform: translateY(0); }
-  50%      { transform: translateY(-10px); }
+  50%     { transform: translateY(-10px); }
 }
 
 .charImg {
@@ -103,49 +159,63 @@
   max-height: 180px;
   object-fit: contain;
   object-position: bottom;
-  filter: drop-shadow(0 8px 20px rgba(34,197,94,.25));
+  filter: drop-shadow(0 8px 20px rgba(34,197,94,.22));
   display: block;
 }
 
-/* Fallback emoji si image absente */
 .charEmojiDefault {
-  font-size: 5rem; text-align: center; line-height: 1;
-  display: none; /* caché par défaut — montré par JS via classe */
+  font-size: 5rem;
+  text-align: center;
+  line-height: 1;
+  display: none;
+  color: rgba(134,239,172,.9);
 }
+
 .charFallback .charEmojiDefault { display: block; }
 .charFallback .charImg { display: none !important; }
 
-/* Badge */
 .charBadge {
-  position: absolute; top: 8px; right: 0px;
-  background: linear-gradient(135deg,#22c55e,#16a34a);
-  color: #071220; font-size: .7rem; font-weight: 900;
-  width: 22px; height: 22px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 8px rgba(34,197,94,.4);
+  position: absolute;
+  top: 8px;
+  right: 0;
+  background: var(--green);
+  color: #071220;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(34,197,94,.35);
   animation: badgePulse 2s ease-in-out infinite;
 }
-@keyframes badgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
 
-/* Ombre au sol */
-.charShadow {
-  width: 70px; height: 12px; margin: 0 auto;
-  background: radial-gradient(ellipse, rgba(34,197,94,.25) 0%, transparent 70%);
-  border-radius: 50%; margin-top: -4px;
+@keyframes badgePulse {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.12); }
 }
 
-/* ══ RESPONSIVE ══ */
+.charShadow {
+  width: 70px;
+  height: 12px;
+  margin: 0 auto;
+  background: radial-gradient(ellipse, rgba(34,197,94,.22) 0%, transparent 70%);
+  border-radius: 50%;
+  margin-top: -4px;
+}
+
 @media (max-width: 768px) {
   .wrapper { left: .8rem; }
-  .bubble  { max-width: 210px; min-width: 180px; padding: .8rem .9rem; }
+  .bubble { max-width: 210px; min-width: 180px; padding: .8rem .9rem; }
   .quoteText { font-size: .78rem; -webkit-line-clamp: 3; }
   .character { width: 85px; }
-  .charImg   { width: 85px; max-height: 140px; }
+  .charImg { width: 85px; max-height: 140px; }
 }
+
 @media (max-width: 420px) {
   .wrapper { left: .5rem; }
-  .bubble  { max-width: 185px; min-width: 160px; }
+  .bubble { max-width: 185px; min-width: 160px; }
   .character { width: 70px; }
-  .charImg   { width: 70px; max-height: 115px; }
+  .charImg { width: 70px; max-height: 115px; }
   .quoteText { font-size: .74rem; }
 }
