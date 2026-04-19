@@ -12,7 +12,10 @@ const { syncDatabase } = require('./models/index')
 
 const app = express()
 
-app.use(helmet({ crossOriginEmbedderPolicy: false }))
+app.use(helmet({
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}))
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'))
 app.use(cors({
   origin: [
@@ -38,7 +41,6 @@ app.use('/api/events',     require('./routes/events'))
 app.use('/api/contact',    require('./routes/contact'))
 app.use('/api/newsletter', require('./routes/newsletter'))
 app.use('/api/admin',      require('./routes/admin'))
-app.use('/api/membership', require('./routes/membership'))
 app.use('/api/payment',    require('./routes/payment'))
 app.use('/api/blog',       require('./routes/blog'))
 app.use('/api/hero',       require('./routes/hero'))        // NOUVEAU
