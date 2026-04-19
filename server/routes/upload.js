@@ -24,6 +24,8 @@ router.post('/product/:id', protect, restrictTo('admin','superadmin'), async (re
 // GET /api/upload/product/:id/image — sert l'image du produit
 router.get('/product/:id/image', async (req, res) => {
   try {
+    // Header CORP pour autoriser le chargement cross-origin des images
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin')
     const product = await Product.findByPk(req.params.id, { attributes:['imageData','imageMime','imageUrl'] })
     if (!product) return res.status(404).json({ error: 'Produit introuvable' })
 
@@ -52,6 +54,7 @@ router.post('/supplier/:id', protect, restrictTo('admin','superadmin'), async (r
 // GET /api/upload/supplier/:id/logo
 router.get('/supplier/:id/logo', async (req, res) => {
   try {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin')
     const s = await Supplier.findByPk(req.params.id, { attributes:['logoData','logoMime'] })
     if (!s?.logoData) return res.status(404).json({ error: 'Pas de logo' })
     const buf = Buffer.from(s.logoData, 'base64')

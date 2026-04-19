@@ -27,6 +27,12 @@ app.use(cors({
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
 }))
+// Header CORP global — autorise le chargement d'images cross-origin
+app.use((req, res, next) => {
+  res.set('Cross-Origin-Resource-Policy', 'cross-origin')
+  next()
+})
+
 app.use('/api/',      rateLimit({ windowMs:15*60*1000, max:300, standardHeaders:true }))
 app.use('/api/auth/', rateLimit({ windowMs:15*60*1000, max:25,  standardHeaders:true }))
 app.use(express.json({ limit: '20mb' }))  // 20MB pour les images base64

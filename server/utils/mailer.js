@@ -3,25 +3,29 @@ const nodemailer = require('nodemailer')
 
 const ADMIN_EMAILS = [
   'contact@otaku-pulse.com',
-  'contactotakufusion@gmail.com',
 ]
-const FROM = '"Otaku Pulse ⚡" <contactotakufusion@gmail.com>'
+const FROM = '"Otaku Pulse ⚡" <contact@otaku-pulse.com>'
 
 function createTransporter() {
-  // Vérification config
   if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
     console.warn('⚠️  MAIL_USER ou MAIL_PASS non défini — emails désactivés')
     return null
   }
+  // SMTP professionnel Hostinger (ou autre hébergeur du domaine otaku-pulse.com)
+  // Variables Render à configurer :
+  //   MAIL_HOST = smtp.hostinger.com   (ou mail.otaku-pulse.com)
+  //   MAIL_PORT = 465
+  //   MAIL_USER = contact@otaku-pulse.com
+  //   MAIL_PASS = [mot de passe de la boîte mail professionnelle]
   return nodemailer.createTransport({
-    host:   process.env.MAIL_HOST || 'smtp.gmail.com',
-    port:   parseInt(process.env.MAIL_PORT || '587'),
-    secure: process.env.MAIL_PORT === '465',
+    host:   process.env.MAIL_HOST || 'smtp.hostinger.com',
+    port:   parseInt(process.env.MAIL_PORT || '465'),
+    secure: parseInt(process.env.MAIL_PORT || '465') === 465,
     auth: {
-      user: process.env.MAIL_USER,
-      pass: process.env.MAIL_PASS,
+      user: process.env.MAIL_USER,  // contact@otaku-pulse.com
+      pass: process.env.MAIL_PASS,  // mot de passe boîte mail
     },
-    tls: { rejectUnauthorized: false }, // évite les erreurs de cert sur Render
+    tls: { rejectUnauthorized: false },
   })
 }
 

@@ -131,13 +131,13 @@ export default function DashboardSection({ toast, setSection }) {
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}>📈 Chiffre d'affaires & Commandes (6 mois)</span>
         </div>
-        <div style={{ padding:'1rem', height:260 }}>
+        <div style={{ padding:'1rem', height:260, minHeight:260, minWidth:0 }}>
           {mergedData.length === 0 ? (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--muted)', fontSize:'.85rem' }}>
               Aucune donnée de vente pour l'instant
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <AreaChart data={mergedData} margin={{ top:5, right:10, left:0, bottom:5 }}>
                 <defs>
                   <linearGradient id="gradCA" x1="0" y1="0" x2="0" y2="1">
@@ -168,11 +168,11 @@ export default function DashboardSection({ toast, setSection }) {
         {/* Commandes par statut */}
         <div className={styles.card}>
           <div className={styles.cardHeader}><span className={styles.cardTitle}>🛒 Statuts</span></div>
-          <div style={{ padding:'1rem', height:220 }}>
+          <div style={{ padding:'1rem', height:220, minHeight:220, minWidth:0 }}>
             {statusData.length === 0 ? (
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--muted)', fontSize:'.82rem' }}>Aucune commande</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <PieChart>
                   <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
                     {statusData.map((entry,i) => <Cell key={i} fill={entry.color} />)}
@@ -188,11 +188,11 @@ export default function DashboardSection({ toast, setSection }) {
         {/* Produits par catégorie */}
         <div className={styles.card}>
           <div className={styles.cardHeader}><span className={styles.cardTitle}>📦 Catégories</span></div>
-          <div style={{ padding:'1rem', height:220 }}>
+          <div style={{ padding:'1rem', height:220, minHeight:220, minWidth:0 }}>
             {catData.length === 0 ? (
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--muted)', fontSize:'.82rem' }}>Aucun produit</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={catData} layout="vertical" margin={{ left:0, right:10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} horizontal={false} />
                   <XAxis type="number" tick={{ fill:chartTheme.text, fontSize:10 }} axisLine={false} tickLine={false} />
@@ -210,11 +210,11 @@ export default function DashboardSection({ toast, setSection }) {
         {/* Nouveaux membres */}
         <div className={styles.card}>
           <div className={styles.cardHeader}><span className={styles.cardTitle}>👥 Membres</span></div>
-          <div style={{ padding:'1rem', height:220 }}>
+          <div style={{ padding:'1rem', height:220, minHeight:220, minWidth:0 }}>
             {usersData.length === 0 ? (
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--muted)', fontSize:'.82rem' }}>Aucun nouveau membre</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={usersData} margin={{ top:5, right:10, left:0, bottom:5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
                   <XAxis dataKey="name" tick={{ fill:chartTheme.text, fontSize:11 }} axisLine={false} tickLine={false} />
