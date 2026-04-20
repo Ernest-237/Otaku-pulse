@@ -204,10 +204,162 @@ async function sendMembershipActivated(request) {
   })
 }
 
+
+// ── 6. Confirmation commande — client ──
+async function sendOrderConfirmation(order, user) {
+  const itemsHtml = (order.items || []).map(i => `
+    <div class="row">
+      <span class="label">${i.emoji || '🎁'} ${i.nameF || i.name} <span style="color:#94a3b8">×${i.quantity}</span></span>
+      <span class="value" style="color:#16a34a">${i.lineTotal?.toLocaleString()} FCFA</span>
+    </div>`).join('')
+
+  const payLabel = { mtn_money:'MTN Mobile Money', orange_money:'Orange Money', cash:'Paiement à la livraison' }
+
+  return sendMail({
+    to: user.email,
+    subject: `✅ Commande confirmée ${order.orderNumber} — Otaku Pulse`,
+    html: baseTemplate(`
+      <div class="title">🎌 Commande reçue avec succès !</div>
+      <p class="text">Bonjour <strong>${user.pseudo}</strong>,<br>
+      Merci pour votre confiance ! Votre commande <strong>${order.orderNumber}</strong> a bien été enregistrée.
+      Notre équipe vous contactera sur WhatsApp sous <strong>24h</strong> pour confirmer le paiement et organiser la livraison.</p>
+
+      <div class="box" style="border-left:4px solid #16a34a">
+        <div style="font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#16a34a;margin-bottom:10px">📦 Récapitulatif de commande</div>
+        ${itemsHtml}
+        <div class="row" style="margin-top:8px;padding-top:10px;border-top:2px solid #e2e0f0">
+          <span class="label">Livraison</span>
+          <span class="value" style="color:${order.shipping === 0 ? '#16a34a' : '#1e1b4b'}">${order.shipping === 0 ? '🎁 Gratuite' : order.shipping?.toLocaleString() + ' FCFA'}</span>
+        </div>
+        <div class="row" style="padding:10px 0 0">
+          <span class="label" style="font-size:.95rem;font-weight:900;color:#0f0e24">TOTAL À PAYER</span>
+          <span style="font-size:1.3rem;font-weight:900;color:#16a34a">${order.total?.toLocaleString()} FCFA</span>
+        </div>
+      </div>
+
+      <div class="box">
+        <div style="font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:10px">🚚 Informations de livraison</div>
+        <div class="row"><span class="label">N° commande</span><span class="value" style="font-family:monospace;letter-spacing:2px;color:#6d28d9">${order.orderNumber}</span></div>
+        <div class="row"><span class="label">Quartier</span><span class="value">${order.quartier}, ${order.city}</span></div>
+        <div class="row"><span class="label">WhatsApp</span><span class="value">${order.whatsappNumber}</span></div>
+        <div class="row"><span class="label">Paiement</span><span class="value">${payLabel[order.paymentMethod] || order.paymentMethod}</span></div>
+      </div>
+
+      <div style="background:#fffbeb;border:1.5px solid rgba(217,119,6,.2);border-radius:10px;padding:14px 18px;margin:16px 0">
+        <p style="font-size:.85rem;color:#92400e;margin:0;line-height:1.6">
+          ⚠️ <strong>Important :</strong> Notre équipe vous contactera sur WhatsApp au numéro <strong>${order.whatsappNumber}</strong> pour valider le paiement.
+          Conservez ce numéro accessible.
+        </p>
+      </div>
+
+      <a href="https://otaku-pulse.com/profil" class="cta">📦 Suivre ma commande en ligne</a>
+
+      <p class="text" style="font-size:.8rem;text-align:center">
+        Des questions ? Contactez-nous directement :<br>
+        <a href="https://wa.me/237675712739" style="color:#16a34a;font-weight:700">💬 WhatsApp : +237 6 75 71 27 39</a>
+      </p>
+    `)
+  })
+}
+
+// ── 7. Notification admins — nouvelle commande ──
+async function sendOrderNotifAdmin(order, user) {
+  const itemsHtml = (order.items || []).map(i => `
+    <div class="row">
+      <span class="label">${i.emoji || '🎁'} ${i.nameF || i.name} ×${i.quantity}</span>
+      <span class="value" style="color:#16a34a">${i.lineTotal?.toLocaleString()} FCFA</span>
+    </div>`).join('')
+
+  // Message WhatsApp pré-rempli cliquable
+  const itemsList = (order.items || []).map(i => `• ${i.emoji || ''} ${i.nameF || i.name} ×${i.quantity} — ${i.lineTotal?.toLocaleString()} FCFA`).join('%0A')
+  const waText = encodeURIComponent(
+    `🎌 *OTAKU PULSE — Commande ${order.orderNumber}*
+
+` +
+    `👤 Client: ${user.pseudo}
+📱 WhatsApp: ${order.whatsappNumber}
+📍 ${order.quartier}, ${order.city}
+
+` +
+    `Confirmer la commande ?`
+  )
+  const waLink = `https://wa.me/${order.whatsappNumber?.replace(/[\s+]/g,'')}?text=${waText}`
+
+  return sendMail({
+    to: ADMIN_EMAILS.join(', '),
+    replyTo: user.email,
+    subject: `🛒 NOUVELLE COMMANDE ${order.orderNumber} — ${user.pseudo} (${order.total?.toLocaleString()} FCFA)`,
+    html: baseTemplate(`
+      <div style="background:#dcfce7;border:2px solid #16a34a;border-radius:12px;padding:16px 20px;margin-bottom:16px;text-align:center">
+        <div style="font-size:2rem;margin-bottom:4px">🛒</div>
+        <div style="font-size:1.1rem;font-weight:900;color:#16a34a">NOUVELLE COMMANDE</div>
+        <div style="font-family:monospace;font-size:1.3rem;letter-spacing:3px;color:#0f0e24;font-weight:800">${order.orderNumber}</div>
+        <div style="font-size:1.4rem;font-weight:900;color:#16a34a;margin-top:6px">${order.total?.toLocaleString()} FCFA</div>
+      </div>
+
+      <div class="box">
+        <div style="font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:10px">👤 Client</div>
+        <div class="row"><span class="label">Pseudo</span><span class="value">${user.pseudo}</span></div>
+        <div class="row"><span class="label">Email</span><span class="value">${user.email}</span></div>
+        <div class="row"><span class="label">WhatsApp</span><span class="value" style="color:#16a34a;font-weight:800">${order.whatsappNumber}</span></div>
+        <div class="row"><span class="label">Livraison</span><span class="value">${order.quartier}, ${order.city}</span></div>
+        <div class="row"><span class="label">Paiement</span><span class="value">${order.paymentMethod?.replace('_',' ').toUpperCase()}</span></div>
+      </div>
+
+      <div class="box">
+        <div style="font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:10px">📦 Articles</div>
+        ${itemsHtml}
+        <div class="row" style="margin-top:8px;padding-top:10px;border-top:2px solid #e2e0f0">
+          <span style="font-size:.95rem;font-weight:900;color:#0f0e24">TOTAL</span>
+          <span style="font-size:1.2rem;font-weight:900;color:#16a34a">${order.total?.toLocaleString()} FCFA</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0">
+        <a href="${waLink}" style="display:block;text-align:center;padding:13px;background:#25d366;color:#fff;text-decoration:none;border-radius:99px;font-weight:800;font-size:.9rem">
+          💬 Contacter sur WhatsApp
+        </a>
+        <a href="https://otaku-pulse.com/admin" style="display:block;text-align:center;padding:13px;background:#16a34a;color:#fff;text-decoration:none;border-radius:99px;font-weight:800;font-size:.9rem">
+          ⚙️ Ouvrir l'Admin
+        </a>
+      </div>
+    `)
+  })
+}
+
+// ── 8. Mise à jour statut commande — client ──
+async function sendOrderStatusUpdate(order, user, status, note) {
+  const statusLabels = {
+    confirmed: { emoji:'✅', label:'Confirmée',        msg:'Votre commande a été confirmée ! Nous la préparons.' },
+    preparing: { emoji:'📦', label:'En préparation',   msg:'Nous préparons soigneusement votre commande.' },
+    shipped:   { emoji:'🚚', label:'En livraison',     msg:'Votre commande est en route vers vous !' },
+    delivered: { emoji:'🎉', label:'Livrée',           msg:'Votre commande a été livrée. Merci ! 🎌' },
+    cancelled: { emoji:'❌', label:'Annulée',           msg:'Votre commande a été annulée. Contactez-nous pour plus d'infos.' },
+  }
+  const s = statusLabels[status] || { emoji:'📋', label:status, msg:note || 'Statut mis à jour.' }
+  return sendMail({
+    to: user.email,
+    subject: `${s.emoji} Commande ${order.orderNumber} — ${s.label}`,
+    html: baseTemplate(`
+      <div class="title">${s.emoji} Commande ${s.label}</div>
+      <p class="text">Bonjour <strong>${user.pseudo}</strong>,<br>${note || s.msg}</p>
+      <div class="box">
+        <div class="row"><span class="label">N° commande</span><span class="value" style="font-family:monospace">${order.orderNumber}</span></div>
+        <div class="row"><span class="label">Statut</span><span class="value"><span class="badge badge-green">${s.label}</span></span></div>
+        <div class="row"><span class="label">Total</span><span class="value" style="color:#16a34a">${order.total?.toLocaleString()} FCFA</span></div>
+      </div>
+      <a href="https://otaku-pulse.com/profil" class="cta">📦 Voir ma commande</a>
+    `)
+  })
+}
+
 module.exports = {
   sendReservationConfirmation,
   sendReservationNotifAdmin,
   sendMembershipConfirmation,
   sendMembershipNotifAdmin,
   sendMembershipActivated,
+  sendOrderConfirmation,
+  sendOrderNotifAdmin,
+  sendOrderStatusUpdate,
 }

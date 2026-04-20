@@ -48,10 +48,8 @@ router.get('/my', protect, async (req, res) => {
 })
 
 // ── ADMIN ──
-router.use(protect, restrictTo('admin','superadmin'))
-
 // GET /api/membership
-router.get('/', async (req, res) => {
+router.get('/', protect, restrictTo('admin','superadmin'), async (req, res) => {
   try {
     const { status, page=1, limit=50 } = req.query
     const where = {}
@@ -68,7 +66,7 @@ router.get('/', async (req, res) => {
 })
 
 // PATCH /api/membership/:id
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', protect, restrictTo('admin','superadmin'), async (req, res) => {
   try {
     const m = await MembershipRequest.findByPk(req.params.id)
     if (!m) return res.status(404).json({ error: 'Demande introuvable' })
