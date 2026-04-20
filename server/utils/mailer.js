@@ -353,6 +353,53 @@ async function sendOrderStatusUpdate(order, user, status, note) {
   })
 }
 
+
+// ── 9. Email bienvenue (inscription) ──
+async function sendWelcome(user) {
+  return sendMail({
+    to: user.email,
+    subject: '🎌 Bienvenue dans la communauté Otaku Pulse !',
+    html: baseTemplate(`
+      <div class="title">🎌 Bienvenue, ${user.pseudo} !</div>
+      <p class="text">Tu fais maintenant partie de la première communauté otaku du Cameroun.<br>
+      Explore notre boutique, réserve ton événement et rejoins le mouvement !</p>
+      <div class="box">
+        <div class="row"><span class="label">Ton pseudo</span><span class="value">${user.pseudo}</span></div>
+        <div class="row"><span class="label">Email</span><span class="value">${user.email}</span></div>
+      </div>
+      <a href="https://otaku-pulse.com/boutique" class="cta">🛒 Explorer la boutique</a>
+      <p class="text" style="font-size:.8rem;text-align:center">
+        Des questions ? <a href="https://wa.me/237675712739" style="color:#16a34a;font-weight:700">WhatsApp : +237 6 75 71 27 39</a>
+      </p>
+    `)
+  })
+}
+
+// ── 10. Reset mot de passe — code 6 chiffres ──
+async function sendPasswordReset(user, code) {
+  return sendMail({
+    to: user.email,
+    subject: '🔑 Code de réinitialisation — Otaku Pulse',
+    html: baseTemplate(`
+      <div class="title">🔑 Réinitialisation du mot de passe</div>
+      <p class="text">Bonjour <strong>${user.pseudo}</strong>,<br>
+      Voici ton code de réinitialisation. Il est valable <strong>15 minutes</strong>.</p>
+      <div style="text-align:center;margin:24px 0">
+        <div style="display:inline-block;background:#f1f0f9;border:2px dashed #6d28d9;border-radius:16px;padding:20px 40px">
+          <div style="font-size:.72rem;font-weight:800;letter-spacing:2px;color:#6d28d9;text-transform:uppercase;margin-bottom:8px">Code de vérification</div>
+          <div style="font-size:2.8rem;font-weight:900;letter-spacing:12px;color:#0f0e24;font-family:monospace">${code}</div>
+        </div>
+      </div>
+      <p class="text">Entre ce code dans l'application pour choisir un nouveau mot de passe.</p>
+      <div style="background:#fef2f2;border:1.5px solid rgba(220,38,38,.2);border-radius:10px;padding:12px 16px;margin-top:16px">
+        <p style="font-size:.82rem;color:#dc2626;margin:0">
+          ⚠️ Si tu n'as pas demandé cette réinitialisation, ignore cet email. Ton mot de passe reste inchangé.
+        </p>
+      </div>
+    `)
+  })
+}
+
 module.exports = {
   sendReservationConfirmation,
   sendReservationNotifAdmin,
@@ -362,4 +409,6 @@ module.exports = {
   sendOrderConfirmation,
   sendOrderNotifAdmin,
   sendOrderStatusUpdate,
+  sendWelcome,
+  sendPasswordReset,
 }
