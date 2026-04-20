@@ -334,7 +334,7 @@ async function sendOrderStatusUpdate(order, user, status, note) {
     preparing: { emoji:'📦', label:'En préparation',   msg:'Nous préparons soigneusement votre commande.' },
     shipped:   { emoji:'🚚', label:'En livraison',     msg:'Votre commande est en route vers vous !' },
     delivered: { emoji:'🎉', label:'Livrée',           msg:'Votre commande a été livrée. Merci ! 🎌' },
-    cancelled: { emoji:'❌', label:'Annulée',           msg:'Votre commande a été annulée. Contactez-nous pour plus d'infos.' },
+    cancelled: { emoji:'❌', label:'Annulée',           msg:'Votre commande a été annulée. Contactez-nous pour plus d\'infos.' },
   }
   const s = statusLabels[status] || { emoji:'📋', label:status, msg:note || 'Statut mis à jour.' }
   return sendMail({
