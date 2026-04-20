@@ -216,32 +216,71 @@ export default function Navbar() {
         {/* Menu mobile */}
         {menuOpen && (
           <div className={styles.mobileMenu}>
-            {navLinks.map((l,i) => (
-              l.href
-                ? <Link key={i} to={l.href} className={styles.mobileLink}>{l.label}</Link>
-                : <button key={i} className={styles.mobileLink} onClick={l.action}>{l.label}</button>
-            ))}
-            {/* Lang toggle dans menu mobile */}
-            <div className={styles.mobileLang}>
-              <button className={`${styles.mobileLangBtn} ${lang==='fr'?styles.mobileLangActive:''}`}
-                onClick={() => setLang('fr')}>🇫🇷 Français</button>
-              <button className={`${styles.mobileLangBtn} ${lang==='en'?styles.mobileLangActive:''}`}
-                onClick={() => setLang('en')}>🇬🇧 English</button>
-            </div>
-            {!user && (
-              <div className={styles.mobileAuth}>
-                <Button variant="ghost" size="sm" style={{ flex:1 }}
-                  onClick={() => { setAuthTab('login'); setAuthModal(true); setMenuOpen(false) }}>
-                  {T.login}
-                </Button>
-                <Button variant="primary" size="sm" style={{ flex:1 }}
-                  onClick={() => { setAuthTab('signup'); setAuthModal(true); setMenuOpen(false) }}>
-                  {T.signup}
-                </Button>
+            {/* User connecté */}
+            {user && (
+              <div className={styles.mobileUserInfo}>
+                <div className={styles.mobileAvatar}>{user.avatar || '🎌'}</div>
+                <div>
+                  <div className={styles.mobilePseudo}>
+                    {user.pseudo}
+                    {user.membershipStatus === 'active' && ' 🎴'}
+                  </div>
+                  <div className={styles.mobileEmail}>{user.email}</div>
+                </div>
               </div>
+            )}
+
+            {/* Liens nav */}
+            {navLinks.map((link, i) => (
+              link.href ? (
+                <Link key={i} to={link.href}
+                  className={`${styles.mobileLink} ${location.pathname === link.href ? styles.mobileLinkActive : ''}`}
+                  onClick={() => setMenuOpen(false)}>
+                  {link.label}
+                </Link>
+              ) : (
+                <button key={i} className={styles.mobileLink}
+                  onClick={() => { link.action?.(); setMenuOpen(false) }}>
+                  {link.label}
+                </button>
+              )
+            ))}
+
+            <div className={styles.mobileDivider} />
+
+            {/* Langue */}
+            <div className={styles.mobileLang}>
+              {['fr','en'].map(l => (
+                <button key={l} className={`${styles.mobileLangBtn} ${lang===l?styles.mobileLangActive:''}`}
+                  onClick={() => { setLang(l); setMenuOpen(false) }}>
+                  {l === 'fr' ? '🇫🇷 Français' : '🇬🇧 English'}
+                </button>
+              ))}
+            </div>
+
+            {/* Auth */}
+            {!user ? (
+              <div className={styles.mobileAuth}>
+                <button className={`${styles.mobileAuthBtn} ${styles.mobileAuthPrimary}`}
+                  onClick={() => { setAuthTab('login'); setAuthModal(true); setMenuOpen(false) }}>
+                  🔐 Se connecter
+                </button>
+                <button className={`${styles.mobileAuthBtn} ${styles.mobileAuthSecondary}`}
+                  onClick={() => { setAuthTab('signup'); setAuthModal(true); setMenuOpen(false) }}>
+                  ✨ Créer un compte
+                </button>
+              </div>
+            ) : (
+              <>
+                <button className={styles.mobileLogout}
+                  onClick={async () => { await logout(); navigate('/'); setMenuOpen(false) }}>
+                  🚪 Déconnexion
+                </button>
+              </>
             )}
           </div>
         )}
+
       </nav>
 
       {/* Auth Modal */}
