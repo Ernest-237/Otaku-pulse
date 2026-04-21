@@ -407,7 +407,9 @@ export default function Navbar() {
                   <button className={styles.authSubmit} onClick={handleReset} disabled={authLoading}>
                     {authLoading ? '⏳...' : '✅ Modifier le mot de passe'}
                   </button>
-                  <button type="button" style={{ background:'none', border:'none', color:'var(--text-light)', fontSize:'.8rem', cursor:'pointer', marginTop:8, width:'100%' }}
+                  <button type="button"
+                    className={styles.authSubmit}
+                    style={{ background:'var(--bg-soft)', color:'var(--text-muted)', boxShadow:'none', border:'1.5px solid var(--border)', marginTop:8 }}
                     onClick={() => setResetSent(false)}>
                     ← Changer d'email
                   </button>

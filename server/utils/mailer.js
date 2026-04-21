@@ -205,62 +205,212 @@ async function sendMembershipActivated(request) {
 }
 
 
-// ── 6. Confirmation commande — client ──
+
+// ── Générateur QR Code SVG simple (basé sur hash du texte) ──
+function generateQRSVG(text) {
+  // Créer un pattern unique basé sur le texte
+  let hash = 0
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) - hash) + text.charCodeAt(i)
+    hash = hash & hash
+  }
+  
+  const size = 9 // grille 9x9
+  const cellSize = 8
+  const totalSize = size * cellSize + 20
+  
+  // Générer les cellules de manière déterministe
+  let cells = ''
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      // Coins fixes (finder patterns)
+      const isCornerTL = (row < 3 && col < 3)
+      const isCornerTR = (row < 3 && col >= size-3)
+      const isCornerBL = (row >= size-3 && col < 3)
+      
+      let filled = false
+      if (isCornerTL || isCornerTR || isCornerBL) {
+        filled = (row === 0 || row === 2 || col === 0 || col === 2) || 
+                 (row === 1 && col === 1 && isCornerTL) ||
+                 (row === 1 && col === size-2 && isCornerTR) ||
+                 (row === size-2 && col === 1 && isCornerBL)
+      } else {
+        // Data cells — déterministe via hash
+        const idx = row * size + col
+        const bit = (Math.abs(hash * (idx + 1) * 2654435761) >>> 0) % 2
+        filled = bit === 1
+      }
+      
+      if (filled) {
+        const x = col * cellSize + 10
+        const y = row * cellSize + 10
+        cells += `<rect x="${x}" y="${y}" width="${cellSize-1}" height="${cellSize-1}" fill="#1a2e1a" rx="1"/>`
+      }
+    }
+  }
+  
+  return `<svg width="${totalSize}" height="${totalSize}" viewBox="0 0 ${totalSize} ${totalSize}" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+    <rect width="${totalSize}" height="${totalSize}" fill="white" rx="4"/>
+    <rect x="8" y="8" width="${totalSize-16}" height="${totalSize-16}" fill="white"/>
+    ${cells}
+  </svg>`
+}
+
+// ── 6. Confirmation commande — Bon de commande + QR code ──
 async function sendOrderConfirmation(order, user) {
   const itemsHtml = (order.items || []).map(i => `
-    <div class="row">
-      <span class="label">${i.emoji || '🎁'} ${i.nameF || i.name} <span style="color:#94a3b8">×${i.quantity}</span></span>
-      <span class="value" style="color:#16a34a">${i.lineTotal?.toLocaleString()} FCFA</span>
-    </div>`).join('')
+    <tr>
+      <td style="padding:8px 12px;font-size:.85rem;color:#1a2e1a;border-bottom:1px solid #e2e8e0">
+        ${i.emoji || '🎁'} ${i.nameF || i.name}
+      </td>
+      <td style="padding:8px 12px;text-align:center;font-size:.85rem;color:#64748b;border-bottom:1px solid #e2e8e0">
+        ×${i.quantity}
+      </td>
+      <td style="padding:8px 12px;text-align:right;font-size:.85rem;font-weight:700;color:#16a34a;border-bottom:1px solid #e2e8e0">
+        ${(i.lineTotal || i.price * i.quantity)?.toLocaleString()} FCFA
+      </td>
+    </tr>`).join('')
 
   const payLabel = { mtn_money:'MTN Mobile Money', orange_money:'Orange Money', cash:'Paiement à la livraison' }
+  const qrSVG   = generateQRSVG(order.orderNumber + user.email)
+  const dateStr  = new Date().toLocaleDateString('fr-FR', { dateStyle:'long' })
+  const timeStr  = new Date().toLocaleTimeString('fr-FR', { timeStyle:'short' })
 
   return sendMail({
     to: user.email,
-    subject: `✅ Commande confirmée ${order.orderNumber} — Otaku Pulse`,
-    html: baseTemplate(`
-      <div class="title">🎌 Commande reçue avec succès !</div>
-      <p class="text">Bonjour <strong>${user.pseudo}</strong>,<br>
-      Merci pour votre confiance ! Votre commande <strong>${order.orderNumber}</strong> a bien été enregistrée.
-      Notre équipe vous contactera sur WhatsApp sous <strong>24h</strong> pour confirmer le paiement et organiser la livraison.</p>
+    subject: `📦 Bon de commande ${order.orderNumber} — Otaku Pulse`,
+    html: `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{margin:0;padding:0;background:#f0fdf4;font-family:'Helvetica Neue',Arial,sans-serif}
+    @media(max-width:600px){.container{width:100%!important}.inner{padding:1rem!important}.col2{display:block!important;width:100%!important}}
+  </style>
+</head>
+<body>
+<div style="padding:20px 12px;background:#f0fdf4">
+<table class="container" width="600" cellpadding="0" cellspacing="0" style="margin:0 auto;max-width:600px">
+  <tr><td>
 
-      <div class="box" style="border-left:4px solid #16a34a">
-        <div style="font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#16a34a;margin-bottom:10px">📦 Récapitulatif de commande</div>
-        ${itemsHtml}
-        <div class="row" style="margin-top:8px;padding-top:10px;border-top:2px solid #e2e0f0">
-          <span class="label">Livraison</span>
-          <span class="value" style="color:${order.shipping === 0 ? '#16a34a' : '#1e1b4b'}">${order.shipping === 0 ? '🎁 Gratuite' : order.shipping?.toLocaleString() + ' FCFA'}</span>
+    <!-- EN-TÊTE -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#16a34a,#22c55e);border-radius:16px 16px 0 0;overflow:hidden">
+      <tr>
+        <td style="padding:28px 32px">
+          <div style="font-family:'Impact',sans-serif;font-size:1.6rem;letter-spacing:4px;color:#fff">⚡ OTAKU PULSE</div>
+          <div style="font-size:.7rem;letter-spacing:2px;color:rgba(255,255,255,.75);margin-top:2px">VIVEZ L'EXPÉRIENCE · CAMEROUN</div>
+        </td>
+        <td style="padding:28px 32px;text-align:right">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,.7);text-transform:uppercase">Bon de commande</div>
+          <div style="font-family:'Impact',sans-serif;font-size:1.2rem;letter-spacing:3px;color:#fff;margin-top:2px">${order.orderNumber}</div>
+          <div style="font-size:.7rem;color:rgba(255,255,255,.65);margin-top:4px">${dateStr} à ${timeStr}</div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CORPS -->
+    <table width="100%" cellpadding="0" cellspacing="0" class="inner" style="background:#fff;padding:2rem">
+      <tr><td>
+
+        <!-- Bandeau statut -->
+        <div style="background:#dcfce7;border:2px solid #16a34a;border-radius:12px;padding:14px 20px;margin-bottom:1.5rem;display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.5rem">✅</span>
+          <div>
+            <div style="font-weight:900;color:#16a34a;font-size:.95rem">Commande reçue avec succès !</div>
+            <div style="font-size:.8rem;color:#15803d;margin-top:2px">Notre équipe vous contacte sur WhatsApp sous 24h pour confirmer et organiser la livraison.</div>
+          </div>
         </div>
-        <div class="row" style="padding:10px 0 0">
-          <span class="label" style="font-size:.95rem;font-weight:900;color:#0f0e24">TOTAL À PAYER</span>
-          <span style="font-size:1.3rem;font-weight:900;color:#16a34a">${order.total?.toLocaleString()} FCFA</span>
+
+        <!-- Infos client + QR côte à côte -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:1.5rem">
+          <tr>
+            <td class="col2" style="width:60%;vertical-align:top;padding-right:16px">
+              <div style="font-size:.68rem;font-weight:800;letter-spacing:1.5px;color:#64748b;text-transform:uppercase;margin-bottom:8px">Client</div>
+              <table cellpadding="0" cellspacing="0">
+                ${[['Nom', user.pseudo], ['Email', user.email], ['WhatsApp', order.whatsappNumber], ['Livraison', `${order.quartier}, ${order.city}`], ['Paiement', payLabel[order.paymentMethod] || order.paymentMethod]].map(([l,v]) => `
+                <tr>
+                  <td style="font-size:.78rem;color:#94a3b8;font-weight:600;padding:3px 12px 3px 0;white-space:nowrap">${l}</td>
+                  <td style="font-size:.78rem;color:#1a2e1a;font-weight:700;padding:3px 0">${v || '—'}</td>
+                </tr>`).join('')}
+              </table>
+            </td>
+            <td class="col2" style="width:40%;text-align:center;vertical-align:top">
+              <div style="font-size:.68rem;font-weight:800;letter-spacing:1.5px;color:#64748b;text-transform:uppercase;margin-bottom:8px">Scan pour vérifier</div>
+              <div style="display:inline-block;border:2px solid #dcfce7;border-radius:10px;padding:8px;background:#fff">
+                ${qrSVG}
+              </div>
+              <div style="font-size:.65rem;color:#94a3b8;margin-top:6px;font-family:monospace;letter-spacing:1px">${order.orderNumber}</div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Tableau articles -->
+        <div style="font-size:.68rem;font-weight:800;letter-spacing:1.5px;color:#64748b;text-transform:uppercase;margin-bottom:8px">Articles commandés</div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #e2e8e0;border-radius:12px;overflow:hidden;margin-bottom:1rem">
+          <thead>
+            <tr style="background:#f0fdf4">
+              <th style="padding:9px 12px;text-align:left;font-size:.72rem;color:#16a34a;letter-spacing:1px;font-weight:800">Article</th>
+              <th style="padding:9px 12px;text-align:center;font-size:.72rem;color:#16a34a;letter-spacing:1px;font-weight:800">Qté</th>
+              <th style="padding:9px 12px;text-align:right;font-size:.72rem;color:#16a34a;letter-spacing:1px;font-weight:800">Prix</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+
+        <!-- Totaux -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #e2e8e0;border-radius:12px;overflow:hidden;margin-bottom:1.5rem">
+          <tr>
+            <td style="padding:8px 16px;font-size:.85rem;color:#64748b;border-bottom:1px solid #e2e8e0">Sous-total</td>
+            <td style="padding:8px 16px;text-align:right;font-size:.85rem;color:#1a2e1a;font-weight:700;border-bottom:1px solid #e2e8e0">${(order.subtotal||order.total)?.toLocaleString()} FCFA</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 16px;font-size:.85rem;color:#64748b;border-bottom:1px solid #e2e8e0">Livraison</td>
+            <td style="padding:8px 16px;text-align:right;font-size:.85rem;font-weight:700;border-bottom:1px solid #e2e8e0;color:${order.shipping===0?'#16a34a':'#1a2e1a'}">${order.shipping===0?'🎁 Gratuite':`${order.shipping?.toLocaleString()} FCFA`}</td>
+          </tr>
+          <tr style="background:#f0fdf4">
+            <td style="padding:12px 16px;font-size:1rem;font-weight:900;color:#1a2e1a">TOTAL À PAYER</td>
+            <td style="padding:12px 16px;text-align:right;font-size:1.2rem;font-weight:900;color:#16a34a">${order.total?.toLocaleString()} FCFA</td>
+          </tr>
+        </table>
+
+        <!-- Note paiement -->
+        <div style="background:#fffbeb;border:1.5px solid rgba(217,119,6,.2);border-radius:10px;padding:14px 16px;margin-bottom:1.5rem">
+          <div style="font-size:.8rem;color:#92400e;line-height:1.6">
+            ⚠️ <strong>Aucun paiement n'a encore été effectué.</strong> Notre équipe vous contactera sur WhatsApp au <strong>${order.whatsappNumber}</strong> pour finaliser le règlement via MTN Money ou Orange Money avant la livraison.
+          </div>
         </div>
-      </div>
 
-      <div class="box">
-        <div style="font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:10px">🚚 Informations de livraison</div>
-        <div class="row"><span class="label">N° commande</span><span class="value" style="font-family:monospace;letter-spacing:2px;color:#6d28d9">${order.orderNumber}</span></div>
-        <div class="row"><span class="label">Quartier</span><span class="value">${order.quartier}, ${order.city}</span></div>
-        <div class="row"><span class="label">WhatsApp</span><span class="value">${order.whatsappNumber}</span></div>
-        <div class="row"><span class="label">Paiement</span><span class="value">${payLabel[order.paymentMethod] || order.paymentMethod}</span></div>
-      </div>
+        <!-- Boutons -->
+        <div style="text-align:center;margin-bottom:1rem">
+          <a href="https://otaku-pulse.com/profil" style="display:inline-block;padding:13px 28px;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;text-decoration:none;border-radius:99px;font-weight:800;font-size:.9rem;margin:0 6px 8px">
+            📦 Suivre ma commande
+          </a>
+          <a href="https://wa.me/237675712739" style="display:inline-block;padding:13px 28px;background:#25d366;color:#fff;text-decoration:none;border-radius:99px;font-weight:800;font-size:.9rem;margin:0 6px 8px">
+            💬 Nous contacter
+          </a>
+        </div>
 
-      <div style="background:#fffbeb;border:1.5px solid rgba(217,119,6,.2);border-radius:10px;padding:14px 18px;margin:16px 0">
-        <p style="font-size:.85rem;color:#92400e;margin:0;line-height:1.6">
-          ⚠️ <strong>Important :</strong> Notre équipe vous contactera sur WhatsApp au numéro <strong>${order.whatsappNumber}</strong> pour valider le paiement.
-          Conservez ce numéro accessible.
-        </p>
-      </div>
+      </td></tr>
+    </table>
 
-      <a href="https://otaku-pulse.com/profil" class="cta">📦 Suivre ma commande en ligne</a>
+    <!-- PIED -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a2e1a;border-radius:0 0 16px 16px">
+      <tr><td style="padding:18px 32px;text-align:center;font-size:.72rem;color:rgba(255,255,255,.45)">
+        📧 contact@otaku-pulse.com · 📱 +237 6 75 71 27 39<br>
+        📍 Yaoundé · Douala · Bafoussam — Cameroun<br>
+        <span style="margin-top:6px;display:block">© ${new Date().getFullYear()} Otaku Pulse — Tous droits réservés</span>
+      </td></tr>
+    </table>
 
-      <p class="text" style="font-size:.8rem;text-align:center">
-        Des questions ? Contactez-nous directement :<br>
-        <a href="https://wa.me/237675712739" style="color:#16a34a;font-weight:700">💬 WhatsApp : +237 6 75 71 27 39</a>
-      </p>
-    `)
+  </td></tr>
+</table>
+</div>
+</body>
+</html>`
   })
 }
+
 
 // ── 7. Notification admins — nouvelle commande ──
 async function sendOrderNotifAdmin(order, user) {

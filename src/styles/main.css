@@ -1,69 +1,104 @@
 /* ═══════════════════════════════════════════════════════
-   OTAKU PULSE v4 — Light anime, textes uniformes
+   OTAKU PULSE v6 — Palette Néon Otaku
+   Style: Papier washi + Néon #33ff33 + Accents nippons
    ═══════════════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* ── Couleurs brand ── */
-  --green:         #16a34a;
-  --green-mid:     #22c55e;
-  --green-light:   #4ade80;
-  --green-pale:    #dcfce7;
-  --green-ultra:   #f0fdf4;
-  --purple:        #6d28d9;
-  --purple-mid:    #7c3aed;
-  --purple-light:  #a78bfa;
-  --purple-pale:   #ede9fe;
-  --purple-ultra:  #f5f3ff;
+  /* ══ COULEUR SIGNATURE ══ */
+  --neon:          #33ff33;
+  --neon-glow:     rgba(51, 255, 51, .35);
+  --neon-soft:     rgba(51, 255, 51, .10);
+
+  /* ══ ÉCHELLE VERT ══ */
+  --green-50:      #f0fff4;
+  --green-100:     #dcfce7;
+  --green-200:     #bbf7d0;
+  --green-300:     #86efac;
+  --green-400:     #4ade80;
+  --green-500:     #22c55e;
+  --green-600:     #16a34a;
+  --green-700:     #15803d;   /* Action principale */
+  --green-800:     #166534;
+  --green-900:     #14532d;
+  --green-950:     #052e14;
+
+  /* Alias sémantiques (compat ancien code) */
+  --green:         var(--green-700);
+  --green-mid:     var(--green-500);
+  --green-light:   var(--green-400);
+  --green-pale:    var(--green-100);
+  --green-ultra:   var(--green-50);
+  --green-deep:    var(--green-800);
+
+  /* ══ ACCENTS NIPPONS (secondaires, dosés) ══ */
+  --sakura:        #ec4899;
+  --sakura-pale:   #fdf2f8;
+  --gold:          #eab308;
+  --gold-pale:     #fefce8;
+  --ink:           #0a0a0a;
+
+  /* ══ COMPAT — anciennes variables violettes mappées vers vert ══ */
+  --purple:        var(--green-700);
+  --purple-mid:    var(--green-600);
+  --purple-pale:   var(--green-100);
+  --teal:          var(--green-600);
+  --teal-pale:     var(--green-100);
+
+  /* ══ ALERTS ══ */
   --red:           #dc2626;
   --red-pale:      #fef2f2;
   --amber:         #d97706;
   --amber-pale:    #fffbeb;
   --blue:          #2563eb;
   --blue-pale:     #eff6ff;
-  --pink:          #db2777;
-  --pink-pale:     #fdf2f8;
 
-  /* ── Fond light ── */
-  --bg:            #f8f7ff;
+  /* ══ FOND PAPIER MANGA ══ */
+  --bg:            #fafaf7;
   --bg-alt:        #ffffff;
-  --bg-soft:       #f1f0f9;
+  --bg-soft:       #f4f4f2;
   --bg-card:       #ffffff;
 
-  /* ── Texte — UNIFORME, une seule couleur principale ── */
-  --text:          #1e1b4b;   /* violet très sombre, TOUTES les textes normales */
-  --text-strong:   #0f0e24;   /* titres & emphase */
-  --text-muted:    #64748b;   /* sous-titres, descriptions */
-  --text-light:    #94a3b8;   /* placeholders, hints */
-  --muted:         #64748b;   /* alias pour compatibilité */
+  /* ══ TEXTE ══ */
+  --text-strong:   #0a0a0a;
+  --text:          #171717;
+  --text-muted:    #525252;
+  --text-light:    #a3a3a3;
+  --muted:         #525252;
 
-  /* ── Bordures ── */
-  --border:        #e2e0f0;
-  --border-soft:   #ede9fe;
-  --border-focus:  #7c3aed;
+  /* ══ BORDURES ══ */
+  --border:        #e7e5e4;
+  --border-soft:   #f4f4f2;
+  --border-strong: #d6d3d1;
+  --border-focus:  var(--green-700);
 
-  /* ── Ombres ── */
-  --shadow-xs:  0 1px 3px rgba(30,27,75,0.06);
-  --shadow-sm:  0 2px 8px rgba(30,27,75,0.08), 0 1px 3px rgba(30,27,75,0.04);
-  --shadow-md:  0 4px 16px rgba(30,27,75,0.10), 0 2px 6px rgba(30,27,75,0.05);
-  --shadow-lg:  0 10px 30px rgba(30,27,75,0.12), 0 4px 10px rgba(30,27,75,0.06);
-  --shadow-xl:  0 20px 50px rgba(30,27,75,0.15);
-  --shadow-green:  0 4px 18px rgba(22,163,74,0.22);
-  --shadow-purple: 0 4px 18px rgba(109,40,217,0.2);
+  /* ══ OMBRES — neutres, nettes ══ */
+  --shadow-xs:     0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm:     0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:     0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg:     0 12px 28px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --shadow-xl:     0 24px 48px rgba(0, 0, 0, 0.10);
 
-  /* ── Radius ── */
-  --radius-sm:   8px;
-  --radius-md:   14px;
-  --radius-lg:   20px;
-  --radius-xl:   28px;
-  --radius-full: 9999px;
+  /* ══ OMBRES VERTES (interactions) ══ */
+  --shadow-green-sm:  0 2px 8px rgba(22, 163, 74, 0.15);
+  --shadow-green:     0 4px 14px rgba(22, 163, 74, 0.22);
+  --shadow-green-lg:  0 8px 24px rgba(22, 163, 74, 0.28);
+  --shadow-neon:      0 0 0 3px rgba(51, 255, 51, 0.25);
+  --shadow-neon-glow: 0 0 20px rgba(51, 255, 51, 0.45);
 
-  /* ── Typo ── */
-  --font-title: 'Bebas Neue', sans-serif;
-  --font-body:  'Nunito', 'M PLUS Rounded 1c', sans-serif;
-  --font-alt:   'M PLUS Rounded 1c', 'Nunito', sans-serif;
+  /* ══ RADIUS ══ */
+  --radius-sm:     8px;
+  --radius-md:     14px;
+  --radius-lg:     20px;
+  --radius-xl:     28px;
+  --radius-full:   9999px;
+
+  /* ══ TYPO ══ */
+  --font-title:    'Bebas Neue', sans-serif;
+  --font-body:     'Nunito', 'M PLUS Rounded 1c', sans-serif;
+  --font-alt:      'M PLUS Rounded 1c', 'Nunito', sans-serif;
 }
 
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
@@ -78,38 +113,35 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Texture subtile */
+/* Texture discrète (très subtile) */
 body::before {
   content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
   background-image:
-    radial-gradient(ellipse at 10% 20%, rgba(109,40,217,0.035) 0%, transparent 50%),
-    radial-gradient(ellipse at 90% 80%, rgba(22,163,74,0.025) 0%, transparent 45%);
-  background-attachment: fixed;
+    radial-gradient(circle at 15% 10%, var(--neon-soft) 0%, transparent 40%),
+    radial-gradient(circle at 85% 90%, rgba(236,72,153,0.03) 0%, transparent 35%);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 5px; height: 5px; }
+/* Scrollbar néon */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-soft); }
-::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--purple-light), var(--green-mid)); border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: var(--green-700); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--green-800); }
 
-/* Reset éléments */
-a { color: var(--purple); text-decoration: none; transition: color .2s; }
-a:hover { color: var(--green); }
+/* Base */
+a { color: var(--green-700); text-decoration: none; transition: color .2s; }
+a:hover { color: var(--green-800); }
 button { font-family: var(--font-body); cursor: pointer; }
 img { max-width: 100%; height: auto; display: block; }
 
 input, textarea, select {
-  font-family: var(--font-body);
-  color: var(--text);
-  background: var(--bg-alt);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
-  outline: none;
+  font-family: var(--font-body); color: var(--text);
+  background: var(--bg-alt); border: 1.5px solid var(--border);
+  border-radius: var(--radius-md); outline: none;
   transition: border-color .2s, box-shadow .2s;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+  border-color: var(--green-700);
+  box-shadow: var(--shadow-neon);
 }
 input::placeholder, textarea::placeholder { color: var(--text-light); }
 select option { background: white; color: var(--text); }
@@ -117,32 +149,35 @@ select option { background: white; color: var(--text); }
 /* Layout */
 .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
 
-/* ── Composants globaux ── */
+/* Tag section — uniforme partout */
 .section-tag {
   display: inline-flex; align-items: center; gap: 6px;
-  background: var(--purple-pale); border: 1.5px solid rgba(109,40,217,0.2);
-  color: var(--purple); border-radius: var(--radius-full);
-  font-family: var(--font-body); font-size: .75rem; font-weight: 800;
-  letter-spacing: .5px; padding: 4px 14px; margin-bottom: .8rem;
+  background: var(--green-pale);
+  border: 1.5px solid var(--green-200);
+  color: var(--green-700);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: .75rem; font-weight: 800;
+  letter-spacing: .5px; padding: 4px 14px;
+  margin-bottom: .8rem;
 }
 
-/* Animations */
-@keyframes fadeInUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-@keyframes fadeIn     { from{opacity:0} to{opacity:1} }
-@keyframes scaleIn    { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
-@keyframes float      { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-@keyframes pulse-soft { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.9)} }
+/* Animations globales */
+@keyframes fadeInUp    { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn      { from{opacity:0} to{opacity:1} }
+@keyframes scaleIn     { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+@keyframes float       { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes pulse-soft  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.9)} }
+@keyframes spin        { to{transform:rotate(360deg)} }
+@keyframes bounce      { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes neonPulse   { 0%,100%{box-shadow:0 0 0 0 var(--neon-glow)} 50%{box-shadow:0 0 20px 4px var(--neon-glow)} }
 
-/* Focus */
-:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; border-radius: var(--radius-sm); }
+/* Focus accessible néon */
+:focus-visible {
+  outline: 2px solid var(--neon);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
 
-/* Responsive */
 @media (max-width: 768px) { .container { padding: 0 1rem; } }
-
-/* ── Responsive global ── */
-@media (max-width: 768px) {
-  .container { padding: 0 1rem; }
-}
-@media (max-width: 480px) {
-  html { font-size: 15px; }
-}
+@media (max-width: 480px) { html { font-size: 15px; } }
