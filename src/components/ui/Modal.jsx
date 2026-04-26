@@ -1,4 +1,4 @@
-// src/components/ui/Modal.jsx
+// src/components/ui/Modal.jsx — Light néon otaku
 import { useEffect } from 'react'
 import styles from './Modal.module.css'
 
@@ -25,13 +25,25 @@ export default function Modal({ isOpen, onClose, title, children, footer, wide =
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className={`${styles.modal} ${wide ? styles.wide : ''}`}>
-        {title && (
+        {title ? (
           <div className={styles.header}>
             <span className={styles.title}>{title}</span>
-            <button className={styles.close} onClick={onClose}>✕</button>
+            <button className={styles.close} onClick={onClose} aria-label="Fermer" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
           </div>
+        ) : (
+          <button className={`${styles.close} ${styles.closeFloat}`} onClick={onClose} aria-label="Fermer" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
         )}
+
         <div className={styles.body}>{children}</div>
+
         {footer && <div className={styles.footer}>{footer}</div>}
       </div>
     </div>

@@ -111,6 +111,8 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+   width: 100%;            
+  max-width: 100vw;
 }
 
 /* Texture discrète (très subtile) */
@@ -147,7 +149,13 @@ input::placeholder, textarea::placeholder { color: var(--text-light); }
 select option { background: white; color: var(--text); }
 
 /* Layout */
-.container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+.container { 
+  max-width: 1200px;
+   margin: 0 auto; 
+   padding: 0 1.5rem;
+     width: 100%;            
+  box-sizing: border-box;
+   }
 
 /* Tag section — uniforme partout */
 .section-tag {
