@@ -1,192 +1,467 @@
-// src/pages/Manga/index.jsx — Placeholder catalogue (Étape 1)
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { BookOpen, Sparkles, Crown, Clock, Users, ArrowRight, Pen } from 'lucide-react'
+// src/pages/Manga/index.jsx — Catalogue complet
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  BookOpen, Crown, Search, Star, Clock, TrendingUp,
+  Lock, Play, Filter, X, ChevronRight, Sparkles, Eye,
+} from 'lucide-react'
 import { useLang } from '../../contexts/LangContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { useApi } from '../../hooks/useApi'
 import { mangaApi } from '../../api'
 import Navbar from '../../components/Navbar'
 import Footer from '../Home/sections/Footer'
-import { useApi } from '../../hooks/useApi'
+import { PageLoader, EmptyState } from '../../components/ui/Spinner'
 import styles from './Manga.module.css'
+
+// Genres disponibles (peut être étendu)
+const GENRES = [
+  { id: 'all',          labelF: 'Tous',         labelE: 'All' },
+  { id: 'action',       labelF: 'Action',       labelE: 'Action' },
+  { id: 'aventure',     labelF: 'Aventure',     labelE: 'Adventure' },
+  { id: 'romance',      labelF: 'Romance',      labelE: 'Romance' },
+  { id: 'fantasy',      labelF: 'Fantasy',      labelE: 'Fantasy' },
+  { id: 'sci-fi',       labelF: 'Sci-Fi',       labelE: 'Sci-Fi' },
+  { id: 'shonen',       labelF: 'Shōnen',       labelE: 'Shōnen' },
+  { id: 'seinen',       labelF: 'Seinen',       labelE: 'Seinen' },
+  { id: 'slice of life',labelF: 'Slice of Life',labelE: 'Slice of Life' },
+  { id: 'mystery',      labelF: 'Mystère',      labelE: 'Mystery' },
+  { id: 'drame',        labelF: 'Drame',        labelE: 'Drama' },
+]
+
+const SORT_OPTIONS = [
+  { id: 'recent',   labelF: 'Récent',     labelE: 'Recent',     icon: Clock },
+  { id: 'popular',  labelF: 'Populaire',  labelE: 'Popular',    icon: TrendingUp },
+  { id: 'rating',   labelF: 'Mieux notés',labelE: 'Top rated',  icon: Star },
+  { id: 'alphabet', labelF: 'A-Z',        labelE: 'A-Z',        icon: BookOpen },
+]
 
 const copy = {
   fr: {
-    title: 'Otaku Pulse Manga',
-    badge: 'BIENTÔT DISPONIBLE',
-    h1part1: 'PLONGE DANS',
-    h1part2: 'L\'UNIVERS',
-    h1accent: 'MANGA',
-    sub: "La première plateforme de lecture manga camerounaise. Découvre, lis et soutiens les créateurs locaux et internationaux. Lecture illimitée à partir de 200 FCFA.",
-    cta: 'Voir les abonnements',
-    becomePub: 'Devenir éditeur',
-    feat1Title: 'Catalogue immersif',
-    feat1Desc: 'Des centaines de mangas en français et anglais, du shōnen aux webtoons.',
-    feat2Title: 'Lecture fluide',
-    feat2Desc: 'Mode vertical webtoon, reprise automatique, optimisé mobile et desktop.',
-    feat3Title: 'Soutiens les éditeurs',
-    feat3Desc: 'Abonnement à partir de 200 FCFA — directement vers les créateurs locaux.',
-    plansTitle: 'Plans pensés pour le Cameroun',
-    soonStats: 'Mangas en attente',
-    bottomTitle: 'Tu es créateur de manga ?',
-    bottomSub: 'Rejoins notre programme éditeur et publie tes œuvres sur la première plateforme manga du Cameroun.',
-    bottomCta: 'Postuler maintenant',
-    workInProgress: 'Plateforme en construction',
-    workSub: 'Le catalogue ouvre très bientôt. Restes connecté !',
+    title: 'Catalogue Manga',
+    subtitle: 'Découvre les meilleurs mangas — locaux et internationaux',
+    continueReading: 'Reprendre la lecture',
+    seeAll: 'Tout voir',
+    searchPlaceholder: 'Rechercher un manga, un auteur...',
+    filtersTitle: 'Filtres',
+    genres: 'Genres',
+    status: 'Statut',
+    access: 'Accès',
+    sort: 'Trier par',
+    statusOngoing: 'En cours',
+    statusCompleted: 'Terminé',
+    statusHiatus: 'En pause',
+    accessAll: 'Tous',
+    accessFree: 'Gratuit',
+    accessPremium: 'Premium',
+    chapters: (n) => `${n} chap.`,
+    free: 'Gratuit',
+    premium: 'Premium',
+    new: 'Nouveau',
+    featured: 'Vedette',
+    noResults: 'Aucun manga trouvé',
+    noResultsSub: 'Essaye d\'autres filtres ou termes de recherche.',
+    clearFilters: 'Effacer les filtres',
+    loading: 'Chargement du catalogue...',
+    resultsCount: (n) => `${n} manga${n > 1 ? 's' : ''}`,
+    chapter: 'Chapitre',
+    page: 'page',
+    resume: 'Reprendre',
   },
   en: {
-    title: 'Otaku Pulse Manga',
-    badge: 'COMING SOON',
-    h1part1: 'DIVE INTO',
-    h1part2: 'THE MANGA',
-    h1accent: 'UNIVERSE',
-    sub: "Cameroon's first manga reading platform. Discover, read and support local and international creators. Unlimited reading from 200 FCFA.",
-    cta: 'View plans',
-    becomePub: 'Become publisher',
-    feat1Title: 'Immersive catalog',
-    feat1Desc: 'Hundreds of manga in French and English, from shōnen to webtoons.',
-    feat2Title: 'Smooth reading',
-    feat2Desc: 'Vertical webtoon mode, auto-resume, mobile and desktop optimized.',
-    feat3Title: 'Support publishers',
-    feat3Desc: 'Subscription from 200 FCFA — direct support to local creators.',
-    plansTitle: 'Plans designed for Cameroon',
-    soonStats: 'Manga pending',
-    bottomTitle: 'Are you a manga creator?',
-    bottomSub: 'Join our publisher program and release your work on Cameroon\'s first manga platform.',
-    bottomCta: 'Apply now',
-    workInProgress: 'Platform under construction',
-    workSub: 'The catalog opens very soon. Stay tuned!',
+    title: 'Manga Catalog',
+    subtitle: 'Discover the best manga — local and international',
+    continueReading: 'Continue reading',
+    seeAll: 'See all',
+    searchPlaceholder: 'Search manga, author...',
+    filtersTitle: 'Filters',
+    genres: 'Genres',
+    status: 'Status',
+    access: 'Access',
+    sort: 'Sort by',
+    statusOngoing: 'Ongoing',
+    statusCompleted: 'Completed',
+    statusHiatus: 'On hiatus',
+    accessAll: 'All',
+    accessFree: 'Free',
+    accessPremium: 'Premium',
+    chapters: (n) => `${n} ch.`,
+    free: 'Free',
+    premium: 'Premium',
+    new: 'New',
+    featured: 'Featured',
+    noResults: 'No manga found',
+    noResultsSub: 'Try other filters or search terms.',
+    clearFilters: 'Clear filters',
+    loading: 'Loading catalog...',
+    resultsCount: (n) => `${n} manga${n > 1 ? 's' : ''}`,
+    chapter: 'Chapter',
+    page: 'page',
+    resume: 'Resume',
   },
 }
 
-const PLANS = [
-  { id: 'daily',   labelF: 'Day Pass',    labelE: 'Day Pass',    duration: '24h',     price: 200,   accent: false },
-  { id: 'weekly',  labelF: 'Hebdo',       labelE: 'Weekly',      duration: '7 jours', price: 500,   accent: false },
-  { id: 'monthly', labelF: 'Mensuel',     labelE: 'Monthly',     duration: '30 jours',price: 1500,  accent: true  },
-  { id: 'yearly',  labelF: 'Annuel',      labelE: 'Yearly',      duration: '365 jours',price: 10000,accent: false },
-]
-
-export default function MangaPage() {
+export default function MangaCatalogPage() {
   const { lang } = useLang()
   const t = copy[lang]
-  const { user } = useAuth()
+  const { user, isLoggedIn } = useAuth()
+  const navigate = useNavigate()
+
+  // Filtres
+  const [search, setSearch] = useState('')
+  const [genre, setGenre] = useState('all')
+  const [status, setStatus] = useState('all')
+  const [accessTier, setAccessTier] = useState('all')
+  const [sort, setSort] = useState('recent')
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => { document.title = `📚 ${t.title} — Otaku Pulse` }, [t.title])
 
-  const { data } = useApi(() => mangaApi.getAll({ limit: 1 }), [], true)
-  const totalPending = data?.total ?? 0
+  // Fetch mangas
+  const params = useMemo(() => {
+    const p = { sort, limit: 48, page: 1 }
+    if (search.trim())          p.search = search.trim()
+    if (genre !== 'all')        p.genre = genre
+    if (status !== 'all')       p.status = status
+    if (accessTier !== 'all')   p.accessTier = accessTier
+    return p
+  }, [search, genre, status, accessTier, sort])
+
+  const { data, loading } = useApi(
+    () => mangaApi.getAll(params),
+    [JSON.stringify(params)],
+    true
+  )
+  const mangas = data?.mangas || []
+  const total = data?.total ?? 0
+
+  // Continue Reading (uniquement si connecté)
+  const { data: progressData } = useApi(
+    () => isLoggedIn ? mangaApi.continueReading() : Promise.resolve({ progress: [] }),
+    [isLoggedIn],
+    isLoggedIn
+  )
+  const progressList = progressData?.progress || []
+
+  const clearFilters = () => {
+    setSearch(''); setGenre('all'); setStatus('all'); setAccessTier('all'); setSort('recent')
+  }
+
+  const hasActiveFilters = search || genre !== 'all' || status !== 'all' || accessTier !== 'all' || sort !== 'recent'
 
   return (
     <div className={styles.page}>
       <Navbar />
 
-      {/* ── HERO ── */}
-      <section className={styles.hero}>
+      {/* ── HERO COMPACT ── */}
+      <section className={styles.heroBar}>
         <div className={styles.heroGlow} />
-        <div className={styles.heroGrid} />
         <div className="container">
-          <div className={styles.heroInner}>
-            <span className={styles.badge}>
-              <Sparkles size={12} /> {t.badge}
-            </span>
-            <h1 className={styles.h1}>
-              <span>{t.h1part1}</span>
-              <span>{t.h1part2}</span>
-              <span className={styles.h1accent}>{t.h1accent}</span>
-            </h1>
-            <p className={styles.sub}>{t.sub}</p>
-            <div className={styles.heroCtas}>
-              <a href="#plans" className={styles.btnPrimary}>
-                <Crown size={16} /> {t.cta}
-              </a>
-              <Link to="/manga" className={styles.btnGhost}>
-                <Pen size={16} /> {t.becomePub}
-              </Link>
+          <div className={styles.heroBarInner}>
+            <div className={styles.heroLeft}>
+              <span className={styles.heroBadge}>
+                <Sparkles size={12} /> CATALOGUE
+              </span>
+              <h1 className={styles.heroTitle}>
+                {t.title.split(' ')[0]}{' '}
+                <span className={styles.heroAccent}>{t.title.split(' ')[1]}</span>
+              </h1>
+              <p className={styles.heroSub}>{t.subtitle}</p>
             </div>
-
-            {/* Stats / Status bar */}
-            <div className={styles.statusBar}>
-              <div className={styles.statusDot} />
-              <div className={styles.statusText}>
-                <strong>{t.workInProgress}</strong>
-                <span>{t.workSub}</span>
-              </div>
-              <div className={styles.statusCount}>
-                <span className={styles.countNum}>{totalPending}</span>
-                <span className={styles.countLbl}>{t.soonStats}</span>
+            <div className={styles.heroRight}>
+              <div className={styles.heroStat}>
+                <span className={styles.heroStatNum}>{total}</span>
+                <span className={styles.heroStatLbl}>{t.resultsCount(total)}</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── FEATURES ── */}
-      <section className={styles.features}>
-        <div className="container">
-          <div className={styles.featuresGrid}>
-            <div className={styles.feature}>
-              <div className={styles.featIcon}><BookOpen size={26} /></div>
-              <h3 className={styles.featTitle}>{t.feat1Title}</h3>
-              <p className={styles.featDesc}>{t.feat1Desc}</p>
+      {/* ── CONTINUE READING ── */}
+      {isLoggedIn && progressList.length > 0 && (
+        <section className={styles.continueSection}>
+          <div className="container">
+            <div className={styles.continueHeader}>
+              <h2 className={styles.continueTitle}>
+                <Play size={18} /> {t.continueReading}
+              </h2>
             </div>
-            <div className={`${styles.feature} ${styles.featureHighlight}`}>
-              <div className={styles.featIcon}><Sparkles size={26} /></div>
-              <h3 className={styles.featTitle}>{t.feat2Title}</h3>
-              <p className={styles.featDesc}>{t.feat2Desc}</p>
-            </div>
-            <div className={styles.feature}>
-              <div className={styles.featIcon}><Users size={26} /></div>
-              <h3 className={styles.featTitle}>{t.feat3Title}</h3>
-              <p className={styles.featDesc}>{t.feat3Desc}</p>
+            <div className={styles.continueRow}>
+              {progressList.map(p => (
+                <ContinueCard key={p.id} progress={p} t={t} lang={lang} />
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* ── PLANS PREVIEW ── */}
-      <section id="plans" className={styles.plansSection}>
+      {/* ── SEARCH + FILTERS BAR ── */}
+      <section className={styles.toolsBar}>
         <div className="container">
-          <h2 className={styles.sectionTitle}>{t.plansTitle}</h2>
-          <div className={styles.plansGrid}>
-            {PLANS.map(p => (
-              <div key={p.id} className={`${styles.planCard} ${p.accent ? styles.planAccent : ''}`}>
-                {p.accent && <div className={styles.planRibbon}>POPULAIRE</div>}
-                <div className={styles.planLabel}>{lang === 'fr' ? p.labelF : p.labelE}</div>
-                <div className={styles.planDuration}>{p.duration}</div>
-                <div className={styles.planPriceWrap}>
-                  <span className={styles.planPrice}>{p.price.toLocaleString()}</span>
-                  <span className={styles.planCurrency}>FCFA</span>
+          <div className={styles.toolsInner}>
+            <div className={styles.searchWrap}>
+              <Search size={18} className={styles.searchIcon} />
+              <input
+                className={styles.searchInput}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t.searchPlaceholder}
+              />
+              {search && (
+                <button className={styles.searchClear} onClick={() => setSearch('')}>
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <button
+              className={`${styles.filterToggle} ${filtersOpen ? styles.filterToggleOpen : ''}`}
+              onClick={() => setFiltersOpen(o => !o)}
+            >
+              <Filter size={15} />
+              <span>{t.filtersTitle}</span>
+              {hasActiveFilters && <span className={styles.filterDot} />}
+            </button>
+
+            <div className={styles.sortChips}>
+              {SORT_OPTIONS.map(s => (
+                <button
+                  key={s.id}
+                  className={`${styles.sortChip} ${sort === s.id ? styles.sortChipActive : ''}`}
+                  onClick={() => setSort(s.id)}
+                  title={lang === 'fr' ? s.labelF : s.labelE}
+                >
+                  <s.icon size={14} />
+                  <span>{lang === 'fr' ? s.labelF : s.labelE}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Filtres détaillés */}
+          {filtersOpen && (
+            <div className={styles.filtersPanel}>
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>{t.genres}</label>
+                <div className={styles.chipsRow}>
+                  {GENRES.map(g => (
+                    <button
+                      key={g.id}
+                      className={`${styles.chip} ${genre === g.id ? styles.chipActive : ''}`}
+                      onClick={() => setGenre(g.id)}
+                    >
+                      {lang === 'fr' ? g.labelF : g.labelE}
+                    </button>
+                  ))}
                 </div>
-                <div className={styles.planSoon}>
-                  <Clock size={12} /> {lang === 'fr' ? 'Ouverture imminente' : 'Coming soon'}
+              </div>
+
+              <div className={styles.filterRow}>
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterLabel}>{t.access}</label>
+                  <div className={styles.chipsRow}>
+                    {[
+                      { id: 'all',     label: t.accessAll },
+                      { id: 'free',    label: t.accessFree },
+                      { id: 'premium', label: t.accessPremium },
+                    ].map(a => (
+                      <button
+                        key={a.id}
+                        className={`${styles.chip} ${accessTier === a.id ? styles.chipActive : ''}`}
+                        onClick={() => setAccessTier(a.id)}
+                      >
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={styles.filterGroup}>
+                  <label className={styles.filterLabel}>{t.status}</label>
+                  <div className={styles.chipsRow}>
+                    {[
+                      { id: 'all',       label: t.accessAll },
+                      { id: 'ongoing',   label: t.statusOngoing },
+                      { id: 'completed', label: t.statusCompleted },
+                      { id: 'hiatus',    label: t.statusHiatus },
+                    ].map(s => (
+                      <button
+                        key={s.id}
+                        className={`${styles.chip} ${status === s.id ? styles.chipActive : ''}`}
+                        onClick={() => setStatus(s.id)}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {hasActiveFilters && (
+                <button className={styles.clearBtn} onClick={clearFilters}>
+                  <X size={14} /> {t.clearFilters}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ── BOTTOM CTA — Devenir éditeur ── */}
-      <section className={styles.bottomCta}>
+      {/* ── GRID MANGAS ── */}
+      <section className={styles.catalog}>
         <div className="container">
-          <div className={styles.bottomCard}>
-            <div className={styles.bottomLeft}>
-              <span className={styles.bottomBadge}><Pen size={11} /> ÉDITEURS</span>
-              <h2 className={styles.bottomTitle}>{t.bottomTitle}</h2>
-              <p className={styles.bottomSub}>{t.bottomSub}</p>
+          {loading && !data ? (
+            <div className={styles.skeletonGrid}>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className={styles.skeletonCard}>
+                  <div className={styles.skeletonCover} />
+                  <div className={styles.skeletonLine} />
+                  <div className={styles.skeletonLineSmall} />
+                </div>
+              ))}
             </div>
-            <div className={styles.bottomRight}>
-              <a href="https://wa.me/237675712739?text=Je%20souhaite%20devenir%20%C3%A9diteur%20manga%20sur%20Otaku%20Pulse"
-                target="_blank" rel="noreferrer"
-                className={styles.btnPrimary}>
-                {t.bottomCta} <ArrowRight size={16} />
-              </a>
+          ) : mangas.length === 0 ? (
+            <EmptyState icon="📚" title={t.noResults} message={t.noResultsSub} />
+          ) : (
+            <div className={styles.mangaGrid}>
+              {mangas.map(m => (
+                <MangaCard key={m.id} manga={m} t={t} lang={lang} />
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
       <Footer />
     </div>
   )
+}
+
+/* ══ MANGA CARD ══════════════════════════════════════ */
+function MangaCard({ manga, t, lang }) {
+  const title = lang === 'fr' ? manga.titleF : (manga.titleE || manga.titleF)
+  const synopsis = lang === 'fr' ? manga.synopsisF : (manga.synopsisE || manga.synopsisF)
+  const isPremium = manga.accessTier === 'premium'
+  const isNew = manga.publishedAt &&
+    (Date.now() - new Date(manga.publishedAt).getTime()) < 14 * 24 * 60 * 60 * 1000
+
+  return (
+    <Link to={`/manga/${manga.slug}`} className={styles.mangaCard}>
+      <div className={styles.coverWrap}>
+        {manga.coverUrl ? (
+          <img
+            src={`${import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'}${manga.coverUrl}`}
+            alt={title}
+            className={styles.coverImg}
+            loading="lazy"
+          />
+        ) : (
+          <div className={styles.coverPlaceholder}>
+            <BookOpen size={32} />
+          </div>
+        )}
+
+        {/* Badges en coin */}
+        <div className={styles.badges}>
+          {manga.isFeatured && (
+            <span className={`${styles.badge} ${styles.badgeFeatured}`}>
+              <Crown size={10} /> {t.featured}
+            </span>
+          )}
+          {isNew && (
+            <span className={`${styles.badge} ${styles.badgeNew}`}>
+              ✨ {t.new}
+            </span>
+          )}
+        </div>
+        <div className={styles.badgesRight}>
+          {isPremium ? (
+            <span className={`${styles.badge} ${styles.badgePremium}`}>
+              <Lock size={10} /> {t.premium}
+            </span>
+          ) : (
+            <span className={`${styles.badge} ${styles.badgeFree}`}>
+              {t.free}
+            </span>
+          )}
+        </div>
+
+        {/* Hover overlay (desktop) */}
+        <div className={styles.cardOverlay}>
+          <div className={styles.overlaySynopsis}>
+            {synopsis?.substring(0, 140)}{synopsis?.length > 140 ? '…' : ''}
+          </div>
+          <div className={styles.overlayBtn}>
+            <Play size={14} /> Lire
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.cardBody}>
+        <h3 className={styles.cardTitle}>{title}</h3>
+        <div className={styles.cardMeta}>
+          <span className={styles.cardAuthor}>{manga.author?.pseudo || manga.authorName || '—'}</span>
+          <div className={styles.cardStats}>
+            {manga.averageRating > 0 && (
+              <span className={styles.cardStat}>
+                <Star size={11} fill="currentColor" /> {manga.averageRating.toFixed(1)}
+              </span>
+            )}
+            {manga.viewCount > 0 && (
+              <span className={styles.cardStat}>
+                <Eye size={11} /> {formatCount(manga.viewCount)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+/* ══ CONTINUE CARD (Reprendre) ═══════════════════════ */
+function ContinueCard({ progress, t, lang }) {
+  const m = progress.manga
+  const c = progress.chapter
+  if (!m) return null
+  const title = lang === 'fr' ? m.titleF : (m.titleE || m.titleF)
+  const pct = c?.pageCount > 0 ? Math.round((progress.pageIndex / c.pageCount) * 100) : 0
+
+  return (
+    <Link
+      to={`/manga/${m.slug}`}
+      className={styles.continueCard}
+    >
+      <div className={styles.continueCover}>
+        {m.coverUrl ? (
+          <img
+            src={`${import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'}${m.coverUrl}`}
+            alt={title}
+            loading="lazy"
+          />
+        ) : (
+          <div className={styles.coverPlaceholder}><BookOpen size={28} /></div>
+        )}
+        <div className={styles.continuePlay}>
+          <Play size={18} fill="currentColor" />
+        </div>
+      </div>
+      <div className={styles.continueBody}>
+        <div className={styles.continueTitleText}>{title}</div>
+        <div className={styles.continueChapter}>
+          {t.chapter} {c?.chapterNumber} • {t.page} {progress.pageIndex + 1}
+        </div>
+        <div className={styles.continueProgress}>
+          <div className={styles.continueProgressBar} style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+function formatCount(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'k'
+  return n.toString()
 }

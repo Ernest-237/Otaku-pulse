@@ -1,4 +1,4 @@
-// src/App.jsx — Toutes les routes + Manga Platform
+// src/App.jsx — Toutes les routes + Manga Platform (étape 2)
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { PageLoader } from './components/ui/Spinner'
@@ -16,7 +16,8 @@ import FandomPage    from './pages/Fandom'
 import MembershipPage from './pages/Membership'
 
 // ── Manga Platform ──
-import MangaIndex    from './pages/Manga'
+import MangaCatalog from './pages/Manga'
+import MangaDetail  from './pages/Manga/detail'
 
 // Guards
 function AdminRoute({ children }) {
@@ -29,13 +30,6 @@ function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <PageLoader />
   if (!user) return <Navigate to="/" replace />
-  return children
-}
-function PublisherRoute({ children }) {
-  const { user, loading } = useAuth()
-  if (loading) return <PageLoader />
-  if (!user) return <Navigate to="/" replace />
-  if (!['publisher','admin','superadmin'].includes(user.role)) return <Navigate to="/manga" replace />
   return children
 }
 
@@ -53,10 +47,10 @@ export default function App() {
       <Route path="/fandom"      element={<FandomPage />} />
       <Route path="/membership"  element={<MembershipPage />} />
 
-      {/* Manga Platform — l'ordre compte ! */}
-      <Route path="/manga" element={<MangaIndex />} />
-      {/* Les routes manga additionnelles (detail, reader, library, plans, publisher)
-          seront ajoutées à l'étape 2 une fois les pages livrées */}
+      {/* Manga Platform — étape 2 */}
+      <Route path="/manga"        element={<MangaCatalog />} />
+      <Route path="/manga/:slug"  element={<MangaDetail />} />
+      {/* /manga/:slug/chapter/:chapterNumber → étape 3 (Reader) */}
 
       {/* Pages privées */}
       <Route path="/profil" element={<Profil />} />

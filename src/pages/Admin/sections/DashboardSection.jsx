@@ -53,6 +53,18 @@ export default function DashboardSection({ toast, setSection }) {
 
   const { stats, recentOrders=[], recentContacts=[], revenueByMonth=[], usersByMonth=[], ordersByStatus=[], productsByCategory=[] } = data
 
+  // Alertes manga (intégrées au dashboard global)
+  const mangaAlerts = []
+  if (stats.manga?.pending > 0) {
+    mangaAlerts.push({ icon:'📚', count: stats.manga.pending, label:'manga(s) en attente de modération', section:'manga' })
+  }
+  if (stats.subscriptions?.pending > 0) {
+    mangaAlerts.push({ icon:'💎', count: stats.subscriptions.pending, label:'abonnement(s) à valider', section:'subs' })
+  }
+  if (stats.publishers?.pendingApps > 0) {
+    mangaAlerts.push({ icon:'✍️', count: stats.publishers.pendingApps, label:'candidature(s) éditeur', section:'publishers' })
+  }
+
   // Formater données graphiques
   const revenueData = revenueByMonth.map(d => ({
     name: MONTHS_FR[d.month?.split('-')[1]] || d.month,
@@ -110,7 +122,31 @@ export default function DashboardSection({ toast, setSection }) {
           <Button variant="ghost" size="sm" onClick={() => setSection('orders')}>Voir →</Button>
         </div>
       )}
+      
+      {/* Alertes Manga Platform */}
+      {mangaAlerts.length > 0 && (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {mangaAlerts.map((a, i) => (
+            <div key={i} style={{
+              background:'rgba(124,58,237,.08)',
+              border:'1px solid rgba(124,58,237,.2)',
+              borderRadius:12, padding:'1rem 1.3rem',
+              display:'flex', alignItems:'center', gap:12,
+            }}>
+              <span style={{ fontSize:'1.4rem' }}>{a.icon}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontWeight:700, color:'#a78bfa', fontSize:'.9rem' }}>
+                  {a.count} {a.label}
+                </div>
+                <div style={{ fontSize:'.78rem', color:'var(--muted)' }}>Action requise dans la plateforme manga</div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setSection(a.section)}>Gérer →</Button>
+            </div>
+          ))}
+        </div>
+      )}
 
+      
       {/* KPI Grid */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
         {kpis.map((k,i) => (

@@ -16,20 +16,30 @@ import MembershipSection from './sections/MembershipSection'
 import SuppliersSection  from './sections/SuppliersSection'
 import OrdersSection     from './sections/OrdersSection'
 import styles from './Admin.module.css'
+import MangaSection         from './sections/MangaSection'
+import PublishersSection    from './sections/PublishersSection'
+import SubscriptionsSection from './sections/SubscriptionsSection'
+import MangaCommentsSection from './sections/MangaCommentsSection'
 
 const ALL_CATS = ['posters','stickers','accessoires','kits','manga','livre','dessin','nutrition','echange','jeux']
 
 const SECTIONS = [
-  { id:'dashboard',  icon:'📊', label:'Dashboard'     },
-  { id:'orders',     icon:'🛒', label:'Commandes'      },
-  { id:'products',   icon:'📦', label:'Produits'       },
-  { id:'suppliers',  icon:'🤝', label:'Fournisseurs'   },
-  { id:'events',     icon:'🎌', label:'Événements'     },
-  { id:'blog',       icon:'📝', label:'Blog & Promos'  },
-  { id:'hero',       icon:'🖼️', label:'Hero dynamique' },
-  { id:'contacts',   icon:'📬', label:'Réservations'   },
-  { id:'users',      icon:'👥', label:'Membres'        },
-  { id:'membership', icon:'🎴', label:'Carte Membre'   },
+  { id:'dashboard',   icon:'📊', label:'Dashboard'      },
+  { id:'orders',      icon:'🛒', label:'Commandes'      },
+  { id:'products',    icon:'📦', label:'Produits'       },
+  { id:'suppliers',   icon:'🤝', label:'Fournisseurs'   },
+  { id:'events',      icon:'🎌', label:'Événements'     },
+  { id:'blog',        icon:'📝', label:'Blog & Promos'  },
+  { id:'hero',        icon:'🖼️', label:'Hero dynamique' },
+  { id:'contacts',    icon:'📬', label:'Réservations'   },
+  { id:'users',       icon:'👥', label:'Membres'        },
+  { id:'membership',  icon:'🎴', label:'Carte Membre'   },
+  // ── Manga Platform ──
+  { id:'__manga_sep', icon:'',   label:'MANGA PLATFORM', divider:true },
+  { id:'manga',       icon:'📚', label:'Mangas'         },
+  { id:'publishers',  icon:'✍️', label:'Éditeurs'       },
+  { id:'subs',        icon:'💎', label:'Abonnements'    },
+  { id:'mangaComm',   icon:'💬', label:'Commentaires'   },
 ]
 
 export default function Admin() {
@@ -50,14 +60,26 @@ export default function Admin() {
           <span className={styles.sbBadge}>ADMIN</span>
         </div>
         <nav className={styles.sbNav}>
-          {SECTIONS.map(s => (
-            <button key={s.id}
-              className={`${styles.navItem} ${section===s.id?styles.navActive:''}`}
-              onClick={() => setSection(s.id)}>
-              <span className={styles.navIcon}>{s.icon}</span>{s.label}
-            </button>
-          ))}
-        </nav>
+  {SECTIONS.map(s => s.divider ? (
+    <div key={s.id} style={{
+      padding:'12px 1rem 6px',
+      fontSize:'.6rem',
+      color:'rgba(124,58,237,.5)',
+      letterSpacing:'2px',
+      fontWeight:800,
+      textTransform:'uppercase',
+      borderTop:'1px solid rgba(255,255,255,.05)',
+      marginTop:'8px',
+      marginBottom:'4px',
+    }}>{s.label}</div>
+  ) : (
+    <button key={s.id}
+      className={`${styles.navItem} ${section===s.id?styles.navActive:''}`}
+      onClick={() => setSection(s.id)}>
+      <span className={styles.navIcon}>{s.icon}</span>{s.label}
+    </button>
+  ))}
+</nav>
         <div className={styles.sbFooter}>
           <div className={styles.sbUser}>
             <span style={{ fontSize:'1.4rem' }}>{user?.role==='superadmin'?'👑':'⚙️'}</span>
@@ -73,9 +95,9 @@ export default function Admin() {
       <main className={styles.main}>
         <div className={styles.topbar}>
           <h1 className={styles.topbarTitle}>
-            {SECTIONS.find(s=>s.id===section)?.icon}{' '}
-            {SECTIONS.find(s=>s.id===section)?.label}
-          </h1>
+  {SECTIONS.find(s => s.id === section && !s.divider)?.icon}{' '}
+  {SECTIONS.find(s => s.id === section && !s.divider)?.label || section}
+</h1>
           <div style={{ display:'flex', gap:10, alignItems:'center' }}>
             <span style={{ fontSize:'.75rem', color:'rgba(180,190,220,.5)' }}>
               {new Date().toLocaleDateString('fr-FR',{ dateStyle:'medium' })}
@@ -94,6 +116,11 @@ export default function Admin() {
           {section==='contacts'   && <ContactsSection   toast={toast} />}
           {section==='users'      && <UsersSection      toast={toast} />}
           {section==='membership' && <MembershipSection toast={toast} />}
+          {/* Manga Platform */}
+{section==='manga'       && <MangaSection          toast={toast} />}
+{section==='publishers'  && <PublishersSection     toast={toast} />}
+{section==='subs'        && <SubscriptionsSection  toast={toast} />}
+{section==='mangaComm'   && <MangaCommentsSection  toast={toast} />}
         </div>
       </main>
     </div>

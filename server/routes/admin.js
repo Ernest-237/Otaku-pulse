@@ -31,6 +31,16 @@ router.get('/dashboard', async (req, res, next) => {
       Event.count({ where: { status: 'upcoming' } }),
     ])
 
+    // ── MANGA STATS (compact pour dashboard global) ──
+    const { Manga, Subscription, PublisherApplication } = require('../models/index')
+    const [mangaTotal, mangaPending, subActive, subPending, pubAppsPending] = await Promise.all([
+      Manga.count({ where: { moderationStatus: 'approved' } }),
+      Manga.count({ where: { moderationStatus: 'pending' } }),
+      Subscription.count({ where: { status: 'active', expiresAt: { [Op.gt]: new Date() } } }),
+      Subscription.count({ where: { status: 'pending' } }),
+      PublisherApplication.count({ where: { status: 'pending' } }),
+    ])
+
     const revenueAll   = await Order.sum('total', { where: { paymentStatus: 'paid' } }) || 0
     const revenueMonth = await Order.sum('total', {
       where: { paymentStatus: 'paid', createdAt: { [Op.gte]: month } }
@@ -97,6 +107,10 @@ router.get('/dashboard', async (req, res, next) => {
         products: { total: totalProducts, lowStock },
         contacts: { total: totalContacts, newMonth: newContactsMonth },
         events:   { upcoming: upcomingEvents },
+        manga:    { total: mangaTotal, pending: mangaPending },
+        subscriptions: { active: subActive, pending: subPending },
+        publishers:    { pendingApps: pubAppsPending },
+        
       },
       recentOrders:    recentOrders.map(o => o.toJSON()),
       recentContacts:  recentContacts.map(c => c.toJSON()),

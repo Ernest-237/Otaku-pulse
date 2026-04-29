@@ -212,6 +212,29 @@ export const commentsApi = {
   hide:          (id, isHidden)   => request('PATCH', `/api/comments/${id}/hide`, { isHidden }),
 }
 
+// ── ADMIN MANGA ──────────────────────────────────────
+export const adminMangaApi = {
+  getDashboard:     ()              => request('GET', '/api/admin/manga/dashboard'),
+  getMangas:        (p = {})        => request('GET', `/api/admin/manga/list?${new URLSearchParams(p)}`),
+  updateManga:      (id, data)      => request('PATCH', `/api/admin/manga/manga/${id}`, data),
+  deleteManga:      (id)            => request('DELETE', `/api/admin/manga/manga/${id}`),
+  // Comments
+  getComments:      (p = {})        => request('GET', `/api/admin/manga/comments/list?${new URLSearchParams(p)}`),
+  deleteComment:    (id)            => request('DELETE', `/api/admin/manga/comments/${id}`),
+  hideComment:      (id, isHidden)  => request('PATCH', `/api/comments/${id}/hide`, { isHidden }),
+  // Publishers
+  getPublishers:    ()              => request('GET', '/api/admin/manga/publishers/list'),
+  togglePublisher:  (userId, revoke)=> request('PATCH', `/api/admin/manga/publishers/${userId}`, { revoke }),
+  // Reuse from public namespace
+  moderateManga:    (id, status, notes) => request('PATCH', `/api/manga/${id}/moderate`, { status, notes }),
+  getPubApps:       (p = {})        => request('GET', `/api/publishers?${new URLSearchParams(p)}`),
+  reviewPubApp:     (id, status, notes) => request('PATCH', `/api/publishers/${id}/review`, { status, adminNotes: notes }),
+  getSubscriptions: (p = {})        => request('GET', `/api/subscriptions?${new URLSearchParams(p)}`),
+  activateSub:      (id, data = {}) => request('PATCH', `/api/subscriptions/${id}/activate`, data),
+  updateSub:        (id, data)      => request('PATCH', `/api/subscriptions/${id}`, data),
+}
+
+
 export const checkHealth = async () => {
   try { const res = await fetch(`${API_BASE}/api/health`); return res.ok } catch { return false }
 }

@@ -86,3 +86,25 @@
 @media(max-width:1024px) { .statsGrid{grid-template-columns:repeat(2,1fr)} .dash2col{grid-template-columns:1fr} }
 @media(max-width:768px)  { .sidebar{width:200px} .main{margin-left:200px} .statsGrid{grid-template-columns:1fr 1fr} .detailGrid{grid-template-columns:1fr} .formGrid2{grid-template-columns:1fr} }
 @media(max-width:600px)  { .layout{flex-direction:column} .sidebar{width:100%;height:auto;position:relative} .main{margin-left:0} .content{padding:1rem} .statsGrid{grid-template-columns:1fr} }
+
+/* Inline select dans tables */
+.inlineSelect {
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  color: #e2e8f0;
+  font-family: var(--font-body);
+  font-size: .78rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  transition: border-color .2s;
+}
+.inlineSelect:focus, .inlineSelect:hover {
+  border-color: rgba(124,58,237,.4);
+}
+.inlineSelect option {
+  background: #11142a;
+  color: #e2e8f0;
+}
