@@ -13,6 +13,7 @@ import styles from './Navbar.module.css'
 const i18n = {
   fr: {
     shop:'Boutique', events:'Événements', fandom:'Fandom', about:'À Propos', blog:'Blog & Actus',
+    manga:'📚 Manga',
     login:'Connexion', signup:"S'inscrire", logout:'Déconnexion',
     profile:'Mon Profil', admin:'Admin',
     announce:'⚡ OTAKU PULSE — Goodies Anime livrés au Cameroun\u00a0•\u00a0 🎌 Mangas, Posters, Accessoires\u00a0•\u00a0 🚚 Livraison Yaoundé · Douala · Bafoussam\u00a0•\u00a0',
@@ -24,6 +25,7 @@ const i18n = {
   },
   en: {
     shop:'Shop', events:'Events', fandom:'Fandom', about:'About', blog:'Blog & News',
+    manga:'📚 Manga',
     login:'Login', signup:'Sign Up', logout:'Logout',
     profile:'My Profile', admin:'Admin',
     announce:'⚡ OTAKU PULSE — Anime Goods Delivered in Cameroon\u00a0•\u00a0 🎌 Manga, Posters, Accessories\u00a0•\u00a0 🚚 Delivery Yaoundé · Douala · Bafoussam\u00a0•\u00a0',
@@ -109,6 +111,7 @@ export default function Navbar() {
     { label: T.shop,   action: () => navigate('/boutique') },
     { label: T.events, action: () => navigate('/reservation') },
     { label: T.fandom, href: '/fandom' },
+    { label: T.manga,  href: '/manga' },   
     { label: T.about,  action: () => scrollTo('apropos')  },
     { label: T.blog,   href: '/blog' },
     { label: lang==='fr'?'🎴 Carte Membre':'🎴 Membership', href: '/membership' },

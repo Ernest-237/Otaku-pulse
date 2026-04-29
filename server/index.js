@@ -52,6 +52,13 @@ app.use('/api/blog',       require('./routes/blog'))
 app.use('/api/hero',       require('./routes/hero'))        // NOUVEAU
 app.use('/api/suppliers',  require('./routes/suppliers'))   // NOUVEAU
 app.use('/api/upload',     require('./routes/upload'))      // NOUVEAU
+app.use('/api/manga',         require('./routes/manga'))
+app.use('/api/chapters',      require('./routes/chapters'))
+app.use('/api/reading',       require('./routes/reading'))
+app.use('/api/library',       require('./routes/library'))
+app.use('/api/subscriptions', require('./routes/subscriptions'))
+app.use('/api/publishers',    require('./routes/publishers'))
+app.use('/api/comments',      require('./routes/comments'))
 
 // Health
 app.get('/api/health', async (req, res) => {

@@ -550,6 +550,148 @@ async function sendPasswordReset(user, code) {
   })
 }
 
+// ╔═══════════════════════════════════════════════════════════╗
+// ║              MANGA PLATFORM — EMAILS                       ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+const PLAN_LABELS = {
+  daily:   { fr: 'Day Pass — 24h',      en: 'Day Pass — 24h' },
+  weekly:  { fr: 'Hebdomadaire — 7j',   en: 'Weekly — 7d' },
+  monthly: { fr: 'Mensuel — 30j',       en: 'Monthly — 30d' },
+  yearly:  { fr: 'Annuel — 365j',       en: 'Yearly — 365d' },
+}
+
+// ── 11. Demande d'abonnement reçue (client) ──
+async function sendSubscriptionRequest(user, sub, plan) {
+  return sendMail({
+    to: user.email,
+    subject: `📚 Demande d'abonnement Manga reçue — Otaku Pulse`,
+    html: baseTemplate(`
+      <div class="title">📚 Demande d'abonnement Manga reçue !</div>
+      <p class="text">Bonjour <strong>${user.pseudo}</strong>,<br>
+      Votre demande d'abonnement <strong>${PLAN_LABELS[sub.planType]?.fr || sub.planType}</strong> a bien été reçue. Notre équipe vous contacte sur WhatsApp sous <strong>24h</strong> pour finaliser le paiement via MTN Money ou Orange Money.</p>
+      <div class="box">
+        <div class="row"><span class="label">Plan</span><span class="value"><span class="badge badge-green">${PLAN_LABELS[sub.planType]?.fr}</span></span></div>
+        <div class="row"><span class="label">Montant</span><span class="value" style="color:#16a34a;font-weight:900">${sub.amount.toLocaleString()} FCFA</span></div>
+        <div class="row"><span class="label">WhatsApp</span><span class="value">${sub.whatsappNumber || '—'}</span></div>
+        <div class="row"><span class="label">Statut</span><span class="value"><span class="badge badge-amber">En attente de paiement</span></span></div>
+      </div>
+      <div style="background:#fffbeb;border:1.5px solid rgba(217,119,6,.2);border-radius:10px;padding:14px 16px;margin-bottom:1rem">
+        <div style="font-size:.83rem;color:#92400e;line-height:1.6">
+          ⚡ <strong>Étape suivante :</strong> envoyez <strong>${sub.amount.toLocaleString()} FCFA</strong> au <strong>+237 6 75 71 27 39</strong> via MTN Money ou Orange Money, puis envoyez-nous le code de transaction sur WhatsApp.
+        </div>
+      </div>
+      <a href="https://wa.me/237675712739" class="cta">💬 Contacter sur WhatsApp</a>
+    `)
+  })
+}
+
+// ── 12. Notification admin — nouvelle demande ──
+async function sendSubscriptionAdminNotif(user, sub, plan) {
+  return sendMail({
+    to: ADMIN_EMAILS.join(', '),
+    replyTo: user.email,
+    subject: `📚 Nouvelle demande abonnement Manga — ${user.pseudo} (${sub.amount.toLocaleString()} FCFA)`,
+    html: baseTemplate(`
+      <div class="title">📚 Nouvelle demande abonnement Manga</div>
+      <div class="box">
+        <div class="row"><span class="label">Utilisateur</span><span class="value">${user.pseudo}</span></div>
+        <div class="row"><span class="label">Email</span><span class="value">${user.email}</span></div>
+        <div class="row"><span class="label">WhatsApp</span><span class="value" style="color:#16a34a;font-weight:800">${sub.whatsappNumber || '—'}</span></div>
+        <div class="row"><span class="label">Plan</span><span class="value"><span class="badge badge-purple">${PLAN_LABELS[sub.planType]?.fr}</span></span></div>
+        <div class="row"><span class="label">Montant</span><span class="value" style="color:#16a34a;font-weight:900">${sub.amount.toLocaleString()} FCFA</span></div>
+      </div>
+      <a href="https://otaku-pulse.com/admin" class="cta">⚙️ Activer dans l'Admin</a>
+    `)
+  })
+}
+
+// ── 13. Abonnement activé ──
+async function sendSubscriptionActivated(user, sub, plan) {
+  const expiry = new Date(sub.expiresAt).toLocaleDateString('fr-FR', { dateStyle: 'long' })
+  return sendMail({
+    to: user.email,
+    subject: `✅ Votre abonnement Manga est activé !`,
+    html: baseTemplate(`
+      <div class="title">✅ Abonnement Manga activé !</div>
+      <p class="text">Félicitations <strong>${user.pseudo}</strong> ! Tu peux maintenant lire tout le catalogue manga d'Otaku Pulse.</p>
+      <div class="box">
+        <div class="row"><span class="label">Plan</span><span class="value"><span class="badge badge-green">${PLAN_LABELS[sub.planType]?.fr}</span></span></div>
+        <div class="row"><span class="label">Valide jusqu'au</span><span class="value">${expiry}</span></div>
+        <div class="row"><span class="label">Montant payé</span><span class="value">${sub.amount.toLocaleString()} FCFA</span></div>
+      </div>
+      <a href="https://otaku-pulse.com/manga" class="cta">📖 Lire des mangas</a>
+    `)
+  })
+}
+
+// ── 14. Notification admin — nouvelle candidature publisher ──
+async function sendPublisherAdminNotif(user, application) {
+  return sendMail({
+    to: ADMIN_EMAILS.join(', '),
+    replyTo: user.email,
+    subject: `✍️ Nouvelle candidature Éditeur Manga — ${user.pseudo}`,
+    html: baseTemplate(`
+      <div class="title">✍️ Nouvelle candidature Éditeur</div>
+      <div class="box">
+        <div class="row"><span class="label">Pseudo</span><span class="value">${user.pseudo}</span></div>
+        <div class="row"><span class="label">Email</span><span class="value">${user.email}</span></div>
+        ${application.realName ? `<div class="row"><span class="label">Nom réel</span><span class="value">${application.realName}</span></div>` : ''}
+        ${application.phone ? `<div class="row"><span class="label">Téléphone</span><span class="value">${application.phone}</span></div>` : ''}
+      </div>
+      <div class="box">
+        <div style="font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px">📝 Bio</div>
+        <p class="text" style="margin:0">${application.bio}</p>
+      </div>
+      ${application.portfolioLinks?.length ? `
+        <div class="box">
+          <div style="font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px">🔗 Portfolio</div>
+          ${application.portfolioLinks.map(l => `<div style="font-size:.85rem;margin:4px 0"><a href="${l}" style="color:#16a34a">${l}</a></div>`).join('')}
+        </div>
+      ` : ''}
+      <a href="https://otaku-pulse.com/admin" class="cta">⚙️ Examiner la candidature</a>
+    `)
+  })
+}
+
+// ── 15. Candidature approuvée ──
+async function sendPublisherApproved(user) {
+  return sendMail({
+    to: user.email,
+    subject: `🎉 Votre candidature Éditeur a été approuvée !`,
+    html: baseTemplate(`
+      <div class="title">🎉 Bienvenue dans l'équipe Éditeurs !</div>
+      <p class="text">Félicitations <strong>${user.pseudo}</strong> ! Ta candidature a été approuvée. Tu peux maintenant publier tes mangas sur Otaku Pulse.</p>
+      <div class="box">
+        <div class="row"><span class="label">Statut</span><span class="value"><span class="badge badge-green">Éditeur validé</span></span></div>
+        <div class="row"><span class="label">Espace éditeur</span><span class="value">/manga/publisher</span></div>
+      </div>
+      <a href="https://otaku-pulse.com/manga/publisher" class="cta">✍️ Accéder à mon espace éditeur</a>
+      <p class="text" style="font-size:.82rem">Chaque manga que tu publies sera modéré avant d'apparaître dans le catalogue. Crée ton premier manga dès maintenant !</p>
+    `)
+  })
+}
+
+// ── 16. Candidature rejetée ──
+async function sendPublisherRejected(user, reason) {
+  return sendMail({
+    to: user.email,
+    subject: `Candidature Éditeur — Otaku Pulse`,
+    html: baseTemplate(`
+      <div class="title">📋 Mise à jour de ta candidature</div>
+      <p class="text">Bonjour <strong>${user.pseudo}</strong>,<br>
+      Merci pour ton intérêt à devenir éditeur sur Otaku Pulse. Après examen, ta candidature n'a pas pu être retenue cette fois.</p>
+      ${reason ? `
+        <div class="box">
+          <div style="font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px">📝 Note de l'équipe</div>
+          <p class="text" style="margin:0">${reason}</p>
+        </div>
+      ` : ''}
+      <p class="text">Tu peux soumettre une nouvelle candidature plus tard, en renforçant ton portfolio.</p>
+      <a href="https://wa.me/237675712739" class="cta">💬 Nous contacter</a>
+    `)
+  })
+}
 module.exports = {
   sendReservationConfirmation,
   sendReservationNotifAdmin,
@@ -561,4 +703,11 @@ module.exports = {
   sendOrderStatusUpdate,
   sendWelcome,
   sendPasswordReset,
+  // Manga Platform
+  sendSubscriptionRequest,
+  sendSubscriptionAdminNotif,
+  sendSubscriptionActivated,
+  sendPublisherAdminNotif,
+  sendPublisherApproved,
+  sendPublisherRejected,
 }

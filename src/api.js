@@ -151,6 +151,67 @@ export function fileToBase64(file) {
   })
 }
 
+// ── MANGA PLATFORM ────────────────────────────────────
+export const mangaApi = {
+  getAll:        (p = {})         => request('GET', `/api/manga?${new URLSearchParams(p)}`, null, false),
+  getBySlug:     (slug)           => request('GET', `/api/manga/${slug}`, null, false),
+  continueReading:()              => request('GET', '/api/manga/continue-reading'),
+  create:        (data)           => request('POST',  '/api/manga', data),
+  update:        (id, data)       => request('PATCH', `/api/manga/${id}`, data),
+  moderate:      (id, status, notes) => request('PATCH', `/api/manga/${id}/moderate`, { status, notes }),
+  delete:        (id)             => request('DELETE', `/api/manga/${id}`),
+  rate:          (id, rating, review) => request('POST', `/api/manga/${id}/rate`, { rating, review }),
+  getCoverUrl:   (id)             => `${API_BASE}/api/manga/${id}/cover`,
+  getBannerUrl:  (id)             => `${API_BASE}/api/manga/${id}/banner`,
+}
+
+export const chaptersApi = {
+  getByManga:    (mangaId)        => request('GET', `/api/chapters/by-manga/${mangaId}`, null, false),
+  getById:       (id)             => request('GET', `/api/chapters/${id}`, null, true), // optionalAuth side
+  create:        (data)           => request('POST', '/api/chapters', data),
+  update:        (id, data)       => request('PATCH', `/api/chapters/${id}`, data),
+  delete:        (id)             => request('DELETE', `/api/chapters/${id}`),
+}
+
+export const readingApi = {
+  saveProgress:  (data)           => request('POST', '/api/reading/progress', data),
+  getProgress:   (mangaId)        => request('GET',  `/api/reading/progress/${mangaId}`),
+  resetProgress: (mangaId)        => request('DELETE', `/api/reading/progress/${mangaId}`),
+}
+
+export const libraryApi = {
+  getAll:    (p = {})             => request('GET', `/api/library?${new URLSearchParams(p)}`),
+  add:       (mangaId, status)    => request('POST', `/api/library/${mangaId}`, { status }),
+  remove:    (mangaId)            => request('DELETE', `/api/library/${mangaId}`),
+}
+
+export const subscriptionsApi = {
+  getPlans:    ()                 => request('GET', '/api/subscriptions/plans', null, false),
+  getActive:   ()                 => request('GET', '/api/subscriptions/active'),
+  getMy:       ()                 => request('GET', '/api/subscriptions/my'),
+  request:     (data)             => request('POST', '/api/subscriptions/request', data),
+  // Admin
+  getAll:      (p = {})           => request('GET', `/api/subscriptions?${new URLSearchParams(p)}`),
+  activate:    (id, data)         => request('PATCH', `/api/subscriptions/${id}/activate`, data),
+  update:      (id, data)         => request('PATCH', `/api/subscriptions/${id}`, data),
+}
+
+export const publishersApi = {
+  apply:       (data)             => request('POST', '/api/publishers/apply', data),
+  getMy:       ()                 => request('GET',  '/api/publishers/my'),
+  // Admin
+  getAll:      (p = {})           => request('GET', `/api/publishers?${new URLSearchParams(p)}`),
+  review:      (id, status, notes)=> request('PATCH', `/api/publishers/${id}/review`, { status, adminNotes: notes }),
+}
+
+export const commentsApi = {
+  getForManga:   (mangaId, p={})  => request('GET', `/api/comments/manga/${mangaId}?${new URLSearchParams(p)}`, null, false),
+  getForChapter: (chapterId)      => request('GET', `/api/comments/chapter/${chapterId}`, null, false),
+  create:        (data)           => request('POST', '/api/comments', data),
+  delete:        (id)             => request('DELETE', `/api/comments/${id}`),
+  hide:          (id, isHidden)   => request('PATCH', `/api/comments/${id}/hide`, { isHidden }),
+}
+
 export const checkHealth = async () => {
   try { const res = await fetch(`${API_BASE}/api/health`); return res.ok } catch { return false }
 }
