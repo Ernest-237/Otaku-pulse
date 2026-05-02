@@ -259,3 +259,152 @@
   .cartBtn  { width:36px; height:36px; font-size:.95rem; }
   .mobileMenu { top: 58px; max-height: calc(100vh - 58px); }
 }
+
+/* ══ ICÔNE USER NÉON (remplace les boutons Connexion/S'inscrire) ══ */
+.iconBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-card, #fff);
+  border: 1.5px solid var(--green-200, #bbf7d0);
+  color: var(--green-700, #15803d);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all .25s ease;
+  overflow: visible;
+  padding: 0;
+}
+.iconBtn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(51,255,51,.18) 0%, transparent 65%);
+  opacity: 0;
+  transition: opacity .3s;
+  z-index: -1;
+}
+.iconBtn:hover {
+  border-color: var(--neon, #33ff33);
+  box-shadow: 0 0 0 3px rgba(51,255,51,.12), 0 4px 12px rgba(22,163,74,.2);
+  transform: translateY(-1px);
+}
+.iconBtn:hover::before { opacity: 1; }
+
+.iconBtnActive {
+  border-color: var(--neon, #33ff33) !important;
+  background: var(--green-pale, #f0fdf4) !important;
+  box-shadow: 0 0 0 3px rgba(51,255,51,.18), 0 0 12px rgba(51,255,51,.3) !important;
+}
+
+/* Variante : guest (pas connecté) — icône user lucide */
+.iconBtnGuest {
+  background: linear-gradient(135deg, var(--green-700, #15803d) 0%, var(--green-600, #16a34a) 100%);
+  border-color: var(--green-700, #15803d);
+  color: #fff;
+}
+.iconBtnGuest:hover {
+  background: linear-gradient(135deg, var(--green-600, #16a34a) 0%, var(--green-500, #22c55e) 100%);
+  border-color: var(--neon, #33ff33);
+  box-shadow:
+    0 0 0 3px rgba(51,255,51,.2),
+    0 0 16px rgba(51,255,51,.4),
+    0 6px 16px rgba(22,163,74,.3);
+}
+
+/* Avatar emoji à l'intérieur de l'icône user (logged in) */
+.iconUserAvatar {
+  font-size: 1.05rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Petit badge en bas-droite (carte membre active) */
+.iconBadge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  background: var(--bg-card, #fff);
+  border: 1.5px solid var(--neon, #33ff33);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .65rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+
+/* ══ DROPDOWN HEADER (info user en haut du menu) ══ */
+.dropHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 8px;
+}
+.dropHeadAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--green-pale, #f0fdf4);
+  border: 1.5px solid var(--green-200, #bbf7d0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.dropHeadInfo {
+  flex: 1;
+  min-width: 0;
+}
+.dropHeadName {
+  font-weight: 800;
+  color: var(--text-strong, #0a0a0a);
+  font-size: .92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dropHeadEmail {
+  font-size: .72rem;
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+.dropDivider {
+  height: 1px;
+  background: var(--border, #e5e7eb);
+  margin: 4px 6px;
+}
+.dropIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ══ MOBILE — admin link variant ══ */
+.mobileLinkAdmin {
+  color: #a78bfa !important;
+  background: rgba(124,58,237,.08) !important;
+}
+
+/* ══ RESPONSIVE — taille icône légèrement plus compacte sur mobile ══ */
+@media (max-width: 768px) {
+  .iconBtn {
+    width: 38px;
+    height: 38px;
+  }
+}

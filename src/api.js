@@ -163,6 +163,27 @@ export const mangaApi = {
   rate:          (id, rating, review) => request('POST', `/api/manga/${id}/rate`, { rating, review }),
   getCoverUrl:   (id)             => `${API_BASE}/api/manga/${id}/cover`,
   getBannerUrl:  (id)             => `${API_BASE}/api/manga/${id}/banner`,
+
+  // Dans mangaApi
+getMy:           (p = {})        => request('GET', `/api/manga/my/list?${new URLSearchParams(p)}`),
+create:          (data)          => request('POST', '/api/manga', data),
+
+// Dans libraryApi (à compléter)
+getMyLibrary:    (p = {})        => request('GET', `/api/library?${new URLSearchParams(p)}`),
+getCounts:       ()              => request('GET', '/api/library/counts'),
+
+// Dans chaptersApi
+create:          (mangaId, data) => request('POST', `/api/manga/${mangaId}/chapters`, data),
+getById:         (id)            => request('GET', `/api/chapters/${id}`),
+
+// Dans publishersApi
+getMyApplication: ()             => request('GET', '/api/publishers/my-application'),
+apply:            (data)         => request('POST', '/api/publishers/apply', data),
+
+// Dans subscriptionsApi
+getPlans:        ()              => request('GET', '/api/subscriptions/plans'),
+request:         (data)          => request('POST', '/api/subscriptions/request', data),
+getMy:           ()              => request('GET', '/api/subscriptions/my'),
 }
 
 export const chaptersApi = {
@@ -183,6 +204,27 @@ export const libraryApi = {
   getAll:    (p = {})             => request('GET', `/api/library?${new URLSearchParams(p)}`),
   add:       (mangaId, status)    => request('POST', `/api/library/${mangaId}`, { status }),
   remove:    (mangaId)            => request('DELETE', `/api/library/${mangaId}`),
+
+  // Dans mangaApi
+getMy:           (p = {})        => request('GET', `/api/manga/my/list?${new URLSearchParams(p)}`),
+create:          (data)          => request('POST', '/api/manga', data),
+
+// Dans libraryApi (à compléter)
+getMyLibrary:    (p = {})        => request('GET', `/api/library?${new URLSearchParams(p)}`),
+getCounts:       ()              => request('GET', '/api/library/counts'),
+
+// Dans chaptersApi
+create:          (mangaId, data) => request('POST', `/api/manga/${mangaId}/chapters`, data),
+getById:         (id)            => request('GET', `/api/chapters/${id}`),
+
+// Dans publishersApi
+getMyApplication: ()             => request('GET', '/api/publishers/my-application'),
+apply:            (data)         => request('POST', '/api/publishers/apply', data),
+
+// Dans subscriptionsApi
+getPlans:        ()              => request('GET', '/api/subscriptions/plans'),
+request:         (data)          => request('POST', '/api/subscriptions/request', data),
+getMy:           ()              => request('GET', '/api/subscriptions/my'),
 }
 
 export const subscriptionsApi = {
@@ -232,6 +274,8 @@ export const adminMangaApi = {
   getSubscriptions: (p = {})        => request('GET', `/api/subscriptions?${new URLSearchParams(p)}`),
   activateSub:      (id, data = {}) => request('PATCH', `/api/subscriptions/${id}/activate`, data),
   updateSub:        (id, data)      => request('PATCH', `/api/subscriptions/${id}`, data),
+
+  
 }
 
 

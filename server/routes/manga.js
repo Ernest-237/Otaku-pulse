@@ -255,4 +255,24 @@ router.post('/:id/rate', protect, [
   } catch (err) { res.status(400).json({ error: err.message }) }
 })
 
+// GET /api/manga/my/list — mangas du publisher connecté
+router.get('/my/list', protect, async (req, res, next) => {
+  try {
+    if (!req.user.isPublisher && !['admin','superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Réservé aux éditeurs' })
+    }
+    const { rows: mangas, count } = await Manga.findAndCountAll({
+      where: { authorId: req.user.id },
+      order: [['createdAt','DESC']],
+      attributes: { exclude: ['coverImageData','bannerImageData'] },
+    })
+    const result = mangas.map(m => {
+      const j = m.toJSON()
+      if (m.coverImageMime) j.coverUrl = `/api/manga/${m.id}/cover`
+      return j
+    })
+    res.json({ mangas: result, total: count })
+  } catch (err) { next(err) }
+})
+
 module.exports = router

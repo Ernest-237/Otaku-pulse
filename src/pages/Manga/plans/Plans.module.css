@@ -1,0 +1,628 @@
+/* Plans.module.css — Page abonnements */
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+/* ══ HERO ══ */
+.hero {
+  position: relative;
+  background: var(--bg-alt);
+  padding: 3rem 0 2.5rem;
+  border-bottom: 1.5px solid var(--border);
+  overflow: hidden;
+}
+.heroGlow {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 25% 20%, var(--neon-soft) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 80%, rgba(245,158,11,.06) 0%, transparent 55%);
+}
+.heroInner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.heroBadge {
+  display: inline-block;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #fff;
+  border-radius: var(--radius-full);
+  padding: 5px 16px;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  margin-bottom: 1rem;
+  box-shadow: 0 6px 16px rgba(245,158,11,.3);
+}
+.heroTitle {
+  font-family: var(--font-title);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  letter-spacing: 3px;
+  line-height: 1.1;
+  color: var(--text-strong);
+  margin-bottom: .8rem;
+}
+.heroAccent {
+  color: var(--green-700);
+  text-shadow: 0 0 24px var(--neon-glow);
+}
+.heroSub {
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 580px;
+  margin: 0 auto;
+}
+
+/* Active subscription banner */
+.activeBanner {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 1.5rem;
+  padding: 12px 20px;
+  background: var(--green-pale);
+  border: 1.5px solid var(--green-300);
+  border-radius: var(--radius-lg);
+  color: var(--green-700);
+  text-align: left;
+  position: relative;
+}
+.activeBanner::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 3px;
+  background: var(--neon);
+  box-shadow: 0 0 8px var(--neon-glow);
+  border-radius: 4px 0 0 4px;
+}
+.activeBannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: .82rem;
+}
+.activeBannerText > strong {
+  font-size: .9rem;
+  color: var(--text-strong);
+}
+.activeBannerText > span {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* ══ PLANS GRID ══ */
+.plansSection {
+  padding: 3rem 0;
+}
+.plansGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.2rem;
+}
+.planCard {
+  position: relative;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.8rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all .3s;
+}
+.planCard:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--plan-color);
+}
+.planCard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--plan-color);
+  opacity: .8;
+}
+.planFeatured {
+  border-color: var(--green-700) !important;
+  background: linear-gradient(180deg, var(--green-pale) 0%, var(--bg-card) 30%);
+  box-shadow: var(--shadow-lg), 0 0 30px var(--neon-soft);
+  transform: scale(1.03);
+}
+.planFeatured::before {
+  height: 4px;
+  background: var(--neon);
+  box-shadow: 0 0 12px var(--neon-glow);
+  opacity: 1;
+}
+
+.planBadge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--plan-color);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.planIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  margin-bottom: 1.2rem;
+}
+
+.planTitle {
+  font-family: var(--font-title);
+  font-size: 1.3rem;
+  letter-spacing: 2px;
+  color: var(--text-strong);
+  margin-bottom: 4px;
+}
+.planDuration {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .76rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.planPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.priceAmount {
+  font-family: var(--font-title);
+  font-size: 2.2rem;
+  letter-spacing: 1px;
+  color: var(--plan-color);
+  line-height: 1;
+}
+.priceCurrency {
+  font-size: .72rem;
+  color: var(--text-muted);
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.pricePeriod {
+  margin-left: 4px;
+  font-size: .78rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.planSavings {
+  display: inline-block;
+  margin-bottom: 1rem;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--green-pale);
+  color: var(--green-700);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .8px;
+}
+
+.planFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 1.2rem 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.planFeatures li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: .82rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.planFeatures li > svg {
+  color: var(--plan-color);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.planBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 18px;
+  background: var(--plan-color);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: .88rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .2s;
+  margin-top: 1rem;
+}
+.planBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.15);
+}
+.planFeatured .planBtn {
+  background: var(--green-700);
+  box-shadow: var(--shadow-green);
+}
+.planFeatured .planBtn:hover {
+  background: var(--green-800);
+  box-shadow: var(--shadow-green-lg);
+}
+.planActiveBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 18px;
+  background: var(--green-pale);
+  color: var(--green-700);
+  border: 1.5px solid var(--green-300);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .8px;
+  margin-top: 1rem;
+}
+.planBtnPending {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 18px;
+  background: var(--bg-soft);
+  border: 1.5px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: .82rem;
+  font-weight: 800;
+  cursor: not-allowed;
+  margin-top: 1rem;
+}
+.spinIcon { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ══ BENEFITS ══ */
+.benefitsSection {
+  padding: 3rem 0;
+  background: var(--bg-alt);
+  border-top: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+}
+.benefitsHead {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+.benefitsTitle {
+  font-family: var(--font-title);
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  letter-spacing: 2.5px;
+  color: var(--text-strong);
+  margin-bottom: .6rem;
+}
+.benefitsSub {
+  color: var(--text-muted);
+  max-width: 580px;
+  margin: 0 auto;
+  font-size: .92rem;
+  line-height: 1.7;
+}
+.benefitsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+.benefitCard {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.4rem;
+  text-align: center;
+  transition: all .25s;
+}
+.benefitCard:hover {
+  border-color: var(--green-300);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+.benefitIcon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: .9rem;
+}
+.benefitCardTitle {
+  font-family: var(--font-title);
+  font-size: .92rem;
+  letter-spacing: 1.5px;
+  color: var(--text-strong);
+  margin-bottom: .5rem;
+}
+.benefitCardSub {
+  font-size: .82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* Payment box */
+.paymentBox {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.8rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.paymentBox::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: var(--neon);
+  box-shadow: 0 0 8px var(--neon-glow);
+}
+.paymentTitle {
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  color: var(--text-strong);
+  margin-bottom: 6px;
+}
+.paymentSub {
+  font-size: .85rem;
+  color: var(--text-muted);
+  margin-bottom: 1.2rem;
+}
+.paymentMethods {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.paymentMethod {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--bg-soft);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.paymentLogo { font-size: 1.1rem; }
+
+/* ══ FAQ ══ */
+.faqSection {
+  padding: 3rem 0 4rem;
+}
+.faqTitle {
+  font-family: var(--font-title);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  letter-spacing: 2.5px;
+  color: var(--text-strong);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+.faqList {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.faqItem {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all .2s;
+}
+.faqItemOpen {
+  border-color: var(--green-300);
+  box-shadow: var(--shadow-sm);
+}
+.faqQ {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.3rem;
+  background: none;
+  border: none;
+  color: var(--text-strong);
+  font-family: var(--font-body);
+  font-size: .92rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: color .2s;
+}
+.faqQ:hover { color: var(--green-700); }
+.faqIcon {
+  font-family: var(--font-title);
+  font-size: 1.3rem;
+  color: var(--green-700);
+  width: 24px;
+  text-align: center;
+}
+.faqA {
+  padding: 0 1.3rem 1.2rem;
+  color: var(--text-muted);
+  font-size: .88rem;
+  line-height: 1.7;
+}
+
+/* ══ MODAL ══ */
+.modalSummary {
+  background: var(--bg-soft);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 1.2rem;
+}
+.modalSummaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+.modalSummaryRow:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.modalSummaryRow > span {
+  color: var(--text-muted);
+  font-size: .85rem;
+  font-weight: 700;
+}
+.modalSummaryRow > strong {
+  color: var(--text-strong);
+  font-weight: 800;
+}
+.modalField { margin-bottom: 1rem; }
+.modalField label {
+  display: block;
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.modalInput {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: .92rem;
+  outline: none;
+  transition: all .2s;
+  box-sizing: border-box;
+}
+.modalInput:focus {
+  border-color: var(--green-700);
+  box-shadow: var(--shadow-neon);
+}
+.modalNote {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--green-pale);
+  border: 1.5px solid var(--green-200);
+  border-radius: var(--radius-md);
+  color: var(--green-700);
+}
+.modalNote > svg { flex-shrink: 0; margin-top: 2px; }
+.modalNote > p {
+  margin: 0;
+  font-size: .82rem;
+  line-height: 1.6;
+  color: var(--green-800, #166534);
+}
+
+.modalBtnGhost {
+  padding: 9px 18px;
+  border-radius: var(--radius-full);
+  background: none;
+  border: 1.5px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: .85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+}
+.modalBtnGhost:hover { color: var(--text); border-color: var(--text-muted); }
+
+.modalBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 22px;
+  border-radius: var(--radius-full);
+  background: var(--green-700);
+  border: none;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: .85rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: var(--shadow-green-sm);
+}
+.modalBtnPrimary:hover:not(:disabled) {
+  background: var(--green-800);
+  transform: translateY(-1px);
+}
+.modalBtnPrimary:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ══ RESPONSIVE ══ */
+@media (max-width: 1100px) {
+  .plansGrid { grid-template-columns: repeat(2, 1fr); }
+  .planFeatured { transform: none; }
+  .benefitsGrid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .hero { padding: 2rem 0 1.8rem; }
+  .plansSection { padding: 2rem 0; }
+  .plansGrid { grid-template-columns: 1fr; }
+  .planCard { padding: 1.5rem 1.3rem; }
+  .planFeatured { transform: none; }
+  .priceAmount { font-size: 1.9rem; }
+
+  .benefitsSection { padding: 2rem 0; }
+  .benefitsGrid { grid-template-columns: 1fr; gap: 8px; }
+  .paymentBox { padding: 1.4rem; }
+  .paymentMethods { gap: 8px; }
+  .paymentMethod { padding: 7px 12px; font-size: .76rem; }
+
+  .activeBanner {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}

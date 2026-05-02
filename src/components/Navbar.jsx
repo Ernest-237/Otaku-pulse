@@ -1,12 +1,13 @@
-// src/components/Navbar.jsx — Fandom + Boutique page
+// src/components/Navbar.jsx — Version complète avec icône user néon
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { User } from 'lucide-react'
 import { useAuth }  from '../contexts/AuthContext'
 import { useCart }  from '../contexts/CartContext'
 import { useLang }  from '../contexts/LangContext'
 import { useToast } from '../contexts/ToastContext'
+import { authApi }  from '../api'
 import Modal  from './ui/Modal'
-import Button from './ui/Button'
 import { Spinner } from './ui/Spinner'
 import styles from './Navbar.module.css'
 
@@ -16,7 +17,8 @@ const i18n = {
     manga:'📚 Manga',
     login:'Connexion', signup:"S'inscrire", logout:'Déconnexion',
     profile:'Mon Profil', admin:'Admin',
-    announce:'⚡ OTAKU PULSE — Goodies Anime livrés au Cameroun\u00a0•\u00a0 🎌 Mangas, Posters, Accessoires\u00a0•\u00a0 🚚 Livraison Yaoundé · Douala · Bafoussam\u00a0•\u00a0',
+    library:'Ma Bibliothèque', publisher:'Espace Éditeur', subscription:'Mon Abonnement',
+    accountAccess:'Mon compte',
     loginTitle:'CONNEXION', signupTitle:'INSCRIPTION',
     email:'Email', password:'Mot de passe', pseudo:'Pseudo Otaku',
     confirmPwd:'Confirmer le mot de passe', pseudoHint:'3-20 caractères, lettres/chiffres/_/-',
@@ -28,7 +30,8 @@ const i18n = {
     manga:'📚 Manga',
     login:'Login', signup:'Sign Up', logout:'Logout',
     profile:'My Profile', admin:'Admin',
-    announce:'⚡ OTAKU PULSE — Anime Goods Delivered in Cameroon\u00a0•\u00a0 🎌 Manga, Posters, Accessories\u00a0•\u00a0 🚚 Delivery Yaoundé · Douala · Bafoussam\u00a0•\u00a0',
+    library:'My Library', publisher:'Publisher Space', subscription:'My Subscription',
+    accountAccess:'My account',
     loginTitle:'LOGIN', signupTitle:'SIGN UP',
     email:'Email', password:'Password', pseudo:'Otaku Username',
     confirmPwd:'Confirm password', pseudoHint:'3-20 chars, letters/numbers/_/-',
@@ -52,9 +55,18 @@ export default function Navbar() {
   const [userDropdown, setUserDropdown] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
   const [signupLoading,setSignupLoading]= useState(false)
+  const [authLoading,  setAuthLoading]  = useState(false)
   const [authError,    setAuthError]    = useState('')
+
+  // Forgot password states
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetCode,  setResetCode]  = useState('')
+  const [resetPwd,   setResetPwd]   = useState('')
+  const [resetSent,  setResetSent]  = useState(false)
+
   const dropdownRef = useRef(null)
 
+  // Close user dropdown on outside click
   useEffect(() => {
     const handler = e => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target))
@@ -64,8 +76,28 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Fermer menu mobile au changement de route
+  // Close mobile menu on route change
   useEffect(() => { setMenuOpen(false) }, [location.pathname])
+
+  // Auto-open login modal if sessionStorage flag set (from other pages)
+  useEffect(() => {
+    if (sessionStorage.getItem('openLogin') === '1') {
+      sessionStorage.removeItem('openLogin')
+      setAuthTab('login')
+      setAuthError('')
+      setAuthModal(true)
+    }
+  }, [location.pathname])
+
+  // Reset auth states when modal closes
+  const closeAuthModal = () => {
+    setAuthModal(false)
+    setAuthError('')
+    setResetSent(false)
+    setResetEmail('')
+    setResetCode('')
+    setResetPwd('')
+  }
 
   const handleLogin = async e => {
     e.preventDefault(); setAuthError('')
@@ -73,7 +105,7 @@ export default function Navbar() {
     setLoginLoading(true)
     try {
       const u = await login(fd.get('email'), fd.get('password'))
-      setAuthModal(false)
+      closeAuthModal()
       toast.success(`Bienvenue ${u.pseudo} ⚡`)
       if (['admin','superadmin'].includes(u.role)) setTimeout(() => navigate('/admin'), 600)
     } catch(err) { setAuthError(err.message) }
@@ -89,9 +121,47 @@ export default function Navbar() {
     setSignupLoading(true)
     try {
       const u = await register(fd.get('pseudo'), fd.get('email'), fd.get('password'))
-      setAuthModal(false); toast.success(`Bienvenue ${u.pseudo} ⚡`)
+      closeAuthModal()
+      toast.success(`Bienvenue ${u.pseudo} ⚡`)
     } catch(err) { setAuthError(err.message) }
     finally { setSignupLoading(false) }
+  }
+
+  const handleForgot = async () => {
+    setAuthError('')
+    if (!resetEmail || !resetEmail.includes('@')) {
+      setAuthError('Email invalide'); return
+    }
+    setAuthLoading(true)
+    try {
+      if (authApi?.forgotPassword) {
+        await authApi.forgotPassword(resetEmail)
+      }
+      setResetSent(true)
+      toast.success('📧 Code envoyé !')
+    } catch(err) { setAuthError(err.message || 'Erreur d\'envoi') }
+    finally { setAuthLoading(false) }
+  }
+
+  const handleReset = async () => {
+    setAuthError('')
+    if (!resetCode || resetCode.length !== 6) {
+      setAuthError('Code à 6 chiffres requis'); return
+    }
+    if (!resetPwd || resetPwd.length < 8) {
+      setAuthError('Mot de passe trop court (min 8 caractères)'); return
+    }
+    setAuthLoading(true)
+    try {
+      if (authApi?.resetPassword) {
+        await authApi.resetPassword(resetEmail, resetCode, resetPwd)
+      }
+      toast.success('✅ Mot de passe modifié, connecte-toi')
+      setAuthTab('login')
+      setResetSent(false)
+      setResetCode(''); setResetPwd('')
+    } catch(err) { setAuthError(err.message || 'Code invalide ou expiré') }
+    finally { setAuthLoading(false) }
   }
 
   const handleLogout = async () => {
@@ -111,11 +181,15 @@ export default function Navbar() {
     { label: T.shop,   action: () => navigate('/boutique') },
     { label: T.events, action: () => navigate('/reservation') },
     { label: T.fandom, href: '/fandom' },
-    { label: T.manga,  href: '/manga' },   
+    { label: T.manga,  href: '/manga' },
     { label: T.about,  action: () => scrollTo('apropos')  },
     { label: T.blog,   href: '/blog' },
     { label: lang==='fr'?'🎴 Carte Membre':'🎴 Membership', href: '/membership' },
   ]
+
+  const openAuthModal = (tab = 'login') => {
+    setAuthTab(tab); setAuthModal(true); setAuthError(''); setResetSent(false)
+  }
 
   return (
     <>
@@ -139,8 +213,7 @@ export default function Navbar() {
                       className={`${styles.link} ${location.pathname===l.href?styles.linkActive:''}`}>
                       {l.label}
                     </Link>
-                  : <button className={`${styles.link} ${location.pathname===l.path?styles.linkActive:''}`}
-                      onClick={l.action}>{l.label}</button>
+                  : <button className={styles.link} onClick={l.action}>{l.label}</button>
                 }
               </li>
             ))}
@@ -161,54 +234,90 @@ export default function Navbar() {
               🛒{cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
             </button>
 
-            {/* User */}
+            {/* User — toujours bouton circulaire néon (logged in OU non) */}
             {user ? (
               <div className={styles.userMenu} ref={dropdownRef}>
-                <button className={styles.userBtn} onClick={() => setUserDropdown(p => !p)}>
-                  <span className={styles.userAvatar}>{user.avatar || '🎌'}</span>
-                  <span className={styles.userName}>{user.pseudo}</span>
+                <button
+                  className={`${styles.iconBtn} ${userDropdown ? styles.iconBtnActive : ''}`}
+                  onClick={() => setUserDropdown(p => !p)}
+                  aria-label={T.profile}
+                  title={user.pseudo}
+                >
+                  <span className={styles.iconUserAvatar}>{user.avatar || '🎌'}</span>
                   {user.membershipStatus === 'active' && (
-                    <span title="Carte Membre active" style={{ fontSize:'.7rem', flexShrink:0 }}>🎴</span>
+                    <span className={styles.iconBadge} title="Carte Membre active">🎴</span>
                   )}
-                  <span style={{ fontSize:'.65rem', color:'rgba(200,230,255,.4)', flexShrink:0 }}>▾</span>
                 </button>
                 {userDropdown && (
                   <div className={styles.dropdown}>
+                    {/* Header user */}
+                    <div className={styles.dropHead}>
+                      <div className={styles.dropHeadAvatar}>{user.avatar || '🎌'}</div>
+                      <div className={styles.dropHeadInfo}>
+                        <div className={styles.dropHeadName}>
+                          {user.pseudo}
+                          {user.membershipStatus === 'active' && ' 🎴'}
+                        </div>
+                        <div className={styles.dropHeadEmail}>{user.email}</div>
+                      </div>
+                    </div>
+
+                    <div className={styles.dropDivider} />
+
                     <Link to="/profil" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
-                      <span>👤</span> {T.profile}
+                      <span className={styles.dropIcon}>👤</span> {T.profile}
                     </Link>
+
+                    <Link to="/manga/library" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
+                      <span className={styles.dropIcon}>📚</span> {T.library}
+                    </Link>
+
+                    <Link to="/manga/plans" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
+                      <span className={styles.dropIcon}>👑</span> {T.subscription}
+                    </Link>
+
+                    {(user.isPublisher || ['admin','superadmin'].includes(user.role)) && (
+                      <Link to="/manga/publisher" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
+                        <span className={styles.dropIcon}>✍️</span> {T.publisher}
+                      </Link>
+                    )}
+
                     {user.membershipStatus === 'active' && (
-                      <Link to="/membership" className={styles.dropItem}
-                        onClick={() => setUserDropdown(false)}>
-                        <span>🎴</span> Ma Carte Membre
+                      <Link to="/membership" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
+                        <span className={styles.dropIcon}>🎴</span> Ma Carte Membre
                       </Link>
                     )}
+
                     {isAdmin && (
-                      <Link to="/admin" className={`${styles.dropItem} ${styles.dropAdmin}`}
-                        onClick={() => setUserDropdown(false)}>
-                        <span>⚙️</span> {T.admin}
-                      </Link>
+                      <>
+                        <div className={styles.dropDivider} />
+                        <Link to="/admin" className={`${styles.dropItem} ${styles.dropAdmin}`}
+                          onClick={() => setUserDropdown(false)}>
+                          <span className={styles.dropIcon}>⚙️</span> {T.admin}
+                        </Link>
+                      </>
                     )}
+
+                    <div className={styles.dropDivider} />
                     <button className={`${styles.dropItem} ${styles.dropLogout}`} onClick={handleLogout}>
-                      <span>🚪</span> {T.logout}
+                      <span className={styles.dropIcon}>🚪</span> {T.logout}
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className={styles.authBtns}>
-                <button className={styles.loginBtn}
-                  onClick={() => { setAuthTab('login'); setAuthModal(true); setAuthError('') }}>
-                  {T.login}
-                </button>
-                <button className={styles.signupBtn}
-                  onClick={() => { setAuthTab('signup'); setAuthModal(true); setAuthError('') }}>
-                  {T.signup}
-                </button>
-              </div>
+              // ── Pas connecté : icône user néon clean ──
+              <button
+                className={`${styles.iconBtn} ${styles.iconBtnGuest}`}
+                onClick={() => openAuthModal('login')}
+                aria-label={T.accountAccess}
+                title={T.accountAccess}
+              >
+                <User size={18} strokeWidth={2.2} />
+              </button>
             )}
 
-            {/* Burger */}
+            {/* Burger mobile */}
             <button className={`${styles.burger} ${menuOpen?styles.burgerOpen:''}`}
               onClick={() => setMenuOpen(p => !p)} aria-label="Menu">
               <span/><span/><span/>
@@ -249,6 +358,27 @@ export default function Navbar() {
               )
             ))}
 
+            {/* Liens user supplémentaires en mobile */}
+            {user && (
+              <>
+                <div className={styles.mobileDivider} />
+                <Link to="/profil" className={styles.mobileLink}
+                  onClick={() => setMenuOpen(false)}>👤 {T.profile}</Link>
+                <Link to="/manga/library" className={styles.mobileLink}
+                  onClick={() => setMenuOpen(false)}>📚 {T.library}</Link>
+                <Link to="/manga/plans" className={styles.mobileLink}
+                  onClick={() => setMenuOpen(false)}>👑 {T.subscription}</Link>
+                {(user.isPublisher || ['admin','superadmin'].includes(user.role)) && (
+                  <Link to="/manga/publisher" className={styles.mobileLink}
+                    onClick={() => setMenuOpen(false)}>✍️ {T.publisher}</Link>
+                )}
+                {isAdmin && (
+                  <Link to="/admin" className={`${styles.mobileLink} ${styles.mobileLinkAdmin}`}
+                    onClick={() => setMenuOpen(false)}>⚙️ {T.admin}</Link>
+                )}
+              </>
+            )}
+
             <div className={styles.mobileDivider} />
 
             {/* Langue */}
@@ -265,36 +395,35 @@ export default function Navbar() {
             {!user ? (
               <div className={styles.mobileAuth}>
                 <button className={`${styles.mobileAuthBtn} ${styles.mobileAuthPrimary}`}
-                  onClick={() => { setAuthTab('login'); setAuthModal(true); setMenuOpen(false) }}>
+                  onClick={() => { openAuthModal('login'); setMenuOpen(false) }}>
                   🔐 Se connecter
                 </button>
                 <button className={`${styles.mobileAuthBtn} ${styles.mobileAuthSecondary}`}
-                  onClick={() => { setAuthTab('signup'); setAuthModal(true); setMenuOpen(false) }}>
+                  onClick={() => { openAuthModal('signup'); setMenuOpen(false) }}>
                   ✨ Créer un compte
                 </button>
               </div>
             ) : (
-              <>
-                <button className={styles.mobileLogout}
-                  onClick={async () => { await logout(); navigate('/'); setMenuOpen(false) }}>
-                  🚪 Déconnexion
-                </button>
-              </>
+              <button className={styles.mobileLogout}
+                onClick={async () => { await logout(); navigate('/'); setMenuOpen(false) }}>
+                🚪 Déconnexion
+              </button>
             )}
           </div>
         )}
-
       </nav>
 
       {/* Auth Modal */}
-      <Modal isOpen={authModal} onClose={() => setAuthModal(false)}>
+      <Modal isOpen={authModal} onClose={closeAuthModal}>
         <div className={styles.authModal}>
-          <div className={styles.authTabs}>
-            <button className={`${styles.authTab} ${authTab==='login'?styles.authTabActive:''}`}
-              onClick={() => { setAuthTab('login'); setAuthError('') }}>{T.loginTitle}</button>
-            <button className={`${styles.authTab} ${authTab==='signup'?styles.authTabActive:''}`}
-              onClick={() => { setAuthTab('signup'); setAuthError('') }}>{T.signupTitle}</button>
-          </div>
+          {authTab !== 'forgot' && (
+            <div className={styles.authTabs}>
+              <button className={`${styles.authTab} ${authTab==='login'?styles.authTabActive:''}`}
+                onClick={() => { setAuthTab('login'); setAuthError('') }}>{T.loginTitle}</button>
+              <button className={`${styles.authTab} ${authTab==='signup'?styles.authTabActive:''}`}
+                onClick={() => { setAuthTab('signup'); setAuthError('') }}>{T.signupTitle}</button>
+            </div>
+          )}
 
           {authTab === 'login' && (
             <form onSubmit={handleLogin} className={styles.authForm}>
@@ -392,7 +521,7 @@ export default function Navbar() {
                   <div className={styles.authHeader}>
                     <div className={styles.authBolt}>📬</div>
                     <h3 className={styles.authTitle}>CODE ENVOYÉ</h3>
-                    <p className={styles.authSub}>Vérifie ton email <strong>{resetEmail}</strong> — entre le code à 6 chiffres ci-dessous</p>
+                    <p className={styles.authSub}>Vérifie ton email <strong>{resetEmail}</strong></p>
                   </div>
                   {authError && <div className={styles.authError}>{authError}</div>}
                   <div className={styles.formGroup}>
@@ -425,7 +554,6 @@ export default function Navbar() {
               </p>
             </div>
           )}
-
         </div>
       </Modal>
     </>
