@@ -9,7 +9,7 @@ import {
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi, useMutation } from '../../../hooks/useApi'
-import { mangaApi, chaptersApi, publishersApi, fileToBase64 } from '../../../api'
+import { mangaApi, chaptersApi, publishersApi } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../Home/sections/Footer'
@@ -21,6 +21,39 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrende
 
 const GENRES_OPTIONS = ['action','aventure','romance','fantasy','sci-fi','shonen','seinen','slice of life','mystery','drame','horreur','sport','comédie']
 
+/* ══════════════════════════════════════════════════════
+   HELPER : Lecture safe d'un fichier en base64
+   Retourne { data: 'BASE64_PUR', mime: 'image/jpeg', dataUrl: 'data:...' }
+   ══════════════════════════════════════════════════════ */
+async function readFileToBase64Safe(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error('Aucun fichier fourni'))
+    if (!(file instanceof Blob)) return reject(new Error('Fichier invalide'))
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result !== 'string') {
+        return reject(new Error('Lecture de fichier échouée'))
+      }
+      const commaIdx = result.indexOf(',')
+      if (commaIdx === -1) {
+        return reject(new Error('Format de fichier non reconnu'))
+      }
+      resolve({
+        data:    result.substring(commaIdx + 1),
+        mime:    file.type || 'image/jpeg',
+        dataUrl: result,
+      })
+    }
+    reader.onerror = () => reject(new Error('Erreur lors de la lecture du fichier'))
+    reader.readAsDataURL(file)
+  })
+}
+
+/* ══════════════════════════════════════════════════════
+   COPY i18n
+   ══════════════════════════════════════════════════════ */
 const copy = {
   fr: {
     title: 'Espace Éditeur',
@@ -138,6 +171,9 @@ const copy = {
   },
 }
 
+/* ══════════════════════════════════════════════════════
+   PAGE PRINCIPALE
+   ══════════════════════════════════════════════════════ */
 export default function PublisherPage() {
   const { lang } = useLang()
   const t = copy[lang]
@@ -149,24 +185,28 @@ export default function PublisherPage() {
   const [chapterModalOpen, setChapterModalOpen] = useState(false)
   const [selectedManga, setSelectedManga] = useState(null)
 
+  // L'admin/superadmin a aussi accès même sans le flag isPublisher
+  const canPublish = isPublisher || ['admin','superadmin'].includes(user?.role)
+
   useEffect(() => { document.title = `✍️ ${t.title} — Otaku Pulse` }, [t.title])
 
-  // Vérification candidature
+  // Vérification candidature (uniquement si connecté ET pas publisher)
   const { data: appsData } = useApi(
-    () => isLoggedIn && !isPublisher ? publishersApi.getMyApplication() : Promise.resolve({ application: null }),
-    [isLoggedIn, isPublisher],
-    isLoggedIn && !isPublisher
+    () => isLoggedIn && !canPublish ? publishersApi.getMyApplication() : Promise.resolve({ application: null }),
+    [isLoggedIn, canPublish],
+    isLoggedIn && !canPublish
   )
   const myApp = appsData?.application
 
   // Fetch mes mangas
   const { data: mangasData, loading, refresh } = useApi(
-    () => isLoggedIn && isPublisher ? mangaApi.getMy({ limit: 50 }) : Promise.resolve({ mangas: [] }),
-    [isLoggedIn, isPublisher],
-    isLoggedIn && isPublisher
+    () => isLoggedIn && canPublish ? mangaApi.getMy({ limit: 50 }) : Promise.resolve({ mangas: [] }),
+    [isLoggedIn, canPublish],
+    isLoggedIn && canPublish
   )
   const myMangas = mangasData?.mangas || []
 
+  // ── Pas connecté ──
   if (!isLoggedIn) {
     return (
       <div className={styles.page}>
@@ -187,7 +227,7 @@ export default function PublisherPage() {
   }
 
   // ── User pas publisher : afficher candidature ──
-  if (!isPublisher) {
+  if (!canPublish) {
     return (
       <div className={styles.page}>
         <Navbar />
@@ -322,7 +362,9 @@ export default function PublisherPage() {
   )
 }
 
-/* ══ APPLICATION FLOW ══════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   APPLICATION FLOW
+   ══════════════════════════════════════════════════════ */
 function PublisherApplicationFlow({ existingApp, t, toast }) {
   const [bio, setBio] = useState('')
   const [portfolio, setPortfolio] = useState('')
@@ -403,7 +445,9 @@ function PublisherApplicationFlow({ existingApp, t, toast }) {
   )
 }
 
-/* ══ MANGA CARD ════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   MANGA CARD
+   ══════════════════════════════════════════════════════ */
 function MyMangaCard({ manga, lang, t, onAddChapter }) {
   const title = lang === 'fr' ? manga.titleF : (manga.titleE || manga.titleF)
   const STATUS_COLORS = { pending:'#f59e0b', approved:'#22c55e', rejected:'#ef4444', suspended:'#6b7280' }
@@ -465,7 +509,9 @@ function MyMangaCard({ manga, lang, t, onAddChapter }) {
   )
 }
 
-/* ══ CREATE MANGA MODAL ══════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   CREATE MANGA MODAL
+   ══════════════════════════════════════════════════════ */
 function CreateMangaModal({ t, onClose, onSuccess, toast }) {
   const { lang } = useLang()
   const [form, setForm] = useState({
@@ -490,34 +536,37 @@ function CreateMangaModal({ t, onClose, onSuccess, toast }) {
   }
 
   const submit = async () => {
-    if (!form.titleF.trim()) return toast.error('Titre français requis')
+    // Validations
+    if (!form.titleF.trim())    return toast.error('Titre français requis')
     if (!form.synopsisF.trim()) return toast.error('Synopsis français requis')
-    if (!form.coverFile) return toast.error('Couverture requise')
+    if (!form.coverFile)        return toast.error('Couverture requise')
 
     try {
-      const coverData = await fileToBase64(form.coverFile)
-      const bannerData = form.bannerFile ? await fileToBase64(form.bannerFile) : null
+      // ✅ Lecture safe des fichiers
+      const cover  = await readFileToBase64Safe(form.coverFile)
+      const banner = form.bannerFile ? await readFileToBase64Safe(form.bannerFile) : null
 
       const payload = {
-        titleF: form.titleF.trim(),
-        titleE: form.titleE.trim() || null,
+        titleF:    form.titleF.trim(),
+        titleE:    form.titleE.trim() || null,
         synopsisF: form.synopsisF.trim(),
         synopsisE: form.synopsisE.trim() || null,
-        language: form.language,
+        language:  form.language,
         accessTier: form.accessTier,
         ageRating: form.ageRating,
-        genres: form.genres,
-        coverImageData: coverData.split(',')[1],
-        coverImageMime: form.coverFile.type,
-        bannerImageData: bannerData ? bannerData.split(',')[1] : null,
-        bannerImageMime: form.bannerFile?.type || null,
+        genres:    form.genres,
+        coverImageData:  cover.data,
+        coverImageMime:  cover.mime,
+        bannerImageData: banner ? banner.data : null,
+        bannerImageMime: banner ? banner.mime : null,
       }
 
       const { error } = await mutate(payload)
       if (error) toast.error(error)
       else onSuccess()
     } catch (err) {
-      toast.error(err.message)
+      console.error('Manga create error:', err)
+      toast.error(err.message || 'Erreur lors de la création')
     }
   }
 
@@ -614,7 +663,9 @@ function CreateMangaModal({ t, onClose, onSuccess, toast }) {
   )
 }
 
-/* ══ CREATE CHAPTER MODAL ════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   CREATE CHAPTER MODAL
+   ══════════════════════════════════════════════════════ */
 function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
   const { lang } = useLang()
   const title = lang === 'fr' ? manga.titleF : (manga.titleE || manga.titleF)
@@ -628,7 +679,7 @@ function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
   const [progress, setProgress] = useState(0)
 
   const handleFiles = (files) => {
-    const arr = Array.from(files).filter(f => f.type.startsWith('image/'))
+    const arr = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'))
     setForm(f => ({ ...f, pageFiles: [...f.pageFiles, ...arr] }))
   }
   const removePage = (idx) => {
@@ -643,18 +694,18 @@ function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
   }
 
   const submit = async () => {
-    if (!form.chapterNumber) return toast.error('Numéro requis')
-    if (!form.pageFiles.length) return toast.error('Ajoute au moins 1 page')
+    if (!form.chapterNumber)        return toast.error('Numéro requis')
+    if (!form.pageFiles.length)     return toast.error('Ajoute au moins 1 page')
 
     try {
-      // Convert all pages to base64
+      // ✅ Lecture safe de chaque page
       const pages = []
       for (let i = 0; i < form.pageFiles.length; i++) {
         const f = form.pageFiles[i]
-        const data = await fileToBase64(f)
+        const result = await readFileToBase64Safe(f)
         pages.push({
-          data: data.split(',')[1],
-          mime: f.type,
+          data:  result.data,
+          mime:  result.mime,
           order: i,
         })
         setProgress(Math.round(((i + 1) / form.pageFiles.length) * 100))
@@ -662,17 +713,18 @@ function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
 
       const payload = {
         chapterNumber: parseFloat(form.chapterNumber),
-        title: form.title.trim() || null,
-        accessTier: form.accessTier,
+        title:         form.title.trim() || null,
+        accessTier:    form.accessTier,
         pages,
-        isPublished: true,
+        isPublished:   true,
       }
 
       const { error } = await mutate(payload)
       if (error) toast.error(error)
       else onSuccess()
     } catch (err) {
-      toast.error(err.message)
+      console.error('Chapter publish error:', err)
+      toast.error(err.message || 'Erreur lors de la publication')
     } finally {
       setProgress(0)
     }
@@ -759,7 +811,9 @@ function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
   )
 }
 
-/* ══ HELPERS ══ */
+/* ══════════════════════════════════════════════════════
+   HELPERS UI
+   ══════════════════════════════════════════════════════ */
 function FormField({ label, children }) {
   return (
     <div className={styles.formField}>
