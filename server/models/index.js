@@ -1,4 +1,4 @@
-// server/models/index.js — OTAKU PULSE v2 PostgreSQL + Manga Platform
+// server/models/index.js — OTAKU PULSE v2 PostgreSQL + Manga Platform + Coins
 const { DataTypes } = require('sequelize')
 const bcrypt        = require('bcryptjs')
 const { sequelize } = require('../config/database')
@@ -37,6 +37,9 @@ const User = sequelize.define('User', {
   isPublisher:         { type: DataTypes.BOOLEAN, defaultValue: false },
   publisherInfo:       { type: DataTypes.JSONB, defaultValue: null },
   // ex: { bio, banner, social: {twitter, instagram}, validatedAt, totalMangas }
+  // ── REVENUS ÉDITEUR (coins gagnés via déblocages) ──
+  coinsEarned:         { type: DataTypes.INTEGER, defaultValue: 0 },   // total coins gagnés (lifetime)
+  coinsBalance:        { type: DataTypes.INTEGER, defaultValue: 0 },   // coins gagnés non encore "payés"
 }, {
   tableName: 'users', timestamps: true,
   hooks: { beforeSave: async (u) => { if (u.changed('password') && u.password) u.password = await bcrypt.hash(u.password, 12) } },
@@ -289,6 +292,8 @@ const Manga = sequelize.define('Manga', {
   status:           { type: DataTypes.ENUM('ongoing','completed','hiatus','cancelled'), defaultValue: 'ongoing' },
   ageRating:        { type: DataTypes.ENUM('all','13+','16+','18+'), defaultValue: 'all' },
   accessTier:       { type: DataTypes.ENUM('free','premium'), defaultValue: 'premium' },
+  // ── CERTIFICATION ──
+  isOfficial:       { type: DataTypes.BOOLEAN, defaultValue: false }, // badge "Certifié Otaku Pulse"
   // Modération
   moderationStatus: { type: DataTypes.ENUM('pending','approved','rejected','suspended'), defaultValue: 'pending' },
   moderationNotes:  { type: DataTypes.TEXT },
@@ -325,6 +330,8 @@ const Chapter = sequelize.define('Chapter', {
   pageCount:     { type: DataTypes.INTEGER, defaultValue: 0 },
   // Override accès (peut être différent du manga, ex: chapitre 1 = free même si manga premium)
   accessTier:    { type: DataTypes.ENUM('free','premium'), defaultValue: 'premium' },
+  // ── COÛT EN COINS pour débloquer (si premium) ──
+  coinCost:      { type: DataTypes.INTEGER, defaultValue: 5 },
   isPublished:   { type: DataTypes.BOOLEAN, defaultValue: false },
   publishedAt:   { type: DataTypes.DATE },
   viewCount:     { type: DataTypes.INTEGER, defaultValue: 0 },
@@ -464,6 +471,88 @@ const MangaRating = sequelize.define('MangaRating', {
   indexes: [{ fields: ['mangaId','userId'], unique: true }]
 })
 
+// ╔═══════════════════════════════════════════════════════════╗
+// ║                  SYSTÈME DE COINS — NOUVEAU                ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+// ══ COIN WALLET (1 par user) ════════════════════════
+const CoinWallet = sequelize.define('CoinWallet', {
+  id:             { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:         { type: DataTypes.UUID, allowNull: false, unique: true },
+  balance:        { type: DataTypes.INTEGER, defaultValue: 0 },   // solde actuel
+  totalPurchased: { type: DataTypes.INTEGER, defaultValue: 0 },   // total acheté (lifetime)
+  totalSpent:     { type: DataTypes.INTEGER, defaultValue: 0 },   // total dépensé (lifetime)
+}, {
+  tableName: 'coin_wallets', timestamps: true,
+  indexes: [{ fields: ['userId'], unique: true }],
+})
+
+// ══ COIN TRANSACTION (historique) ═══════════════════
+const CoinTransaction = sequelize.define('CoinTransaction', {
+  id:                { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:            { type: DataTypes.UUID, allowNull: false },
+  type:              {
+    type: DataTypes.ENUM('purchase','unlock','bonus','refund','admin_adjust','earning'),
+    allowNull: false,
+  },
+  amount:            { type: DataTypes.INTEGER, allowNull: false },  // +crédit / -débit
+  balanceAfter:      { type: DataTypes.INTEGER, allowNull: false },
+  description:       { type: DataTypes.STRING },
+  // Références optionnelles
+  chapterId:         { type: DataTypes.UUID, allowNull: true },
+  mangaId:           { type: DataTypes.UUID, allowNull: true },
+  purchaseRequestId: { type: DataTypes.UUID, allowNull: true },
+}, {
+  tableName: 'coin_transactions', timestamps: true,
+  indexes: [
+    { fields: ['userId','createdAt'] },
+    { fields: ['type'] },
+  ]
+})
+
+// ══ COIN PURCHASE REQUEST (validation manuelle) ═════
+const CoinPurchaseRequest = sequelize.define('CoinPurchaseRequest', {
+  id:             { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:         { type: DataTypes.UUID, allowNull: false },
+  packId:         { type: DataTypes.STRING, allowNull: false },   // 'starter','standard','premium','mega'
+  coinsAmount:    { type: DataTypes.INTEGER, allowNull: false },  // coins de base
+  bonusCoins:     { type: DataTypes.INTEGER, defaultValue: 0 },   // coins bonus
+  totalCoins:     { type: DataTypes.INTEGER, allowNull: false },  // coins + bonus
+  priceXAF:       { type: DataTypes.INTEGER, allowNull: false },  // montant FCFA
+  paymentMethod:  { type: DataTypes.ENUM('mtn_money','orange_money'), allowNull: false },
+  transactionId:  { type: DataTypes.STRING, allowNull: false },   // ID transaction Mobile Money
+  whatsappNumber: { type: DataTypes.STRING },
+  status:         {
+    type: DataTypes.ENUM('pending','approved','rejected','cancelled'),
+    defaultValue: 'pending',
+  },
+  adminNotes:     { type: DataTypes.TEXT },
+  reviewedBy:     { type: DataTypes.UUID, allowNull: true },
+  reviewedAt:     { type: DataTypes.DATE, allowNull: true },
+}, {
+  tableName: 'coin_purchase_requests', timestamps: true,
+  indexes: [
+    { fields: ['userId','createdAt'] },
+    { fields: ['status','createdAt'] },
+    { fields: ['transactionId'] },
+  ]
+})
+
+// ══ CHAPTER UNLOCK (accès permanent) ════════════════
+const ChapterUnlock = sequelize.define('ChapterUnlock', {
+  id:         { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:     { type: DataTypes.UUID, allowNull: false },
+  chapterId:  { type: DataTypes.UUID, allowNull: false },
+  mangaId:    { type: DataTypes.UUID, allowNull: false },
+  coinsSpent: { type: DataTypes.INTEGER, allowNull: false },
+}, {
+  tableName: 'chapter_unlocks', timestamps: true,
+  indexes: [
+    { unique: true, fields: ['userId','chapterId'] },  // pas de double déblocage
+    { fields: ['userId','mangaId'] },
+  ]
+})
+
 // ══ ASSOCIATIONS ═══════════════════════════════════════
 // Existantes (préservées)
 User.hasMany(Order,    { foreignKey:'userId', as:'orders' })
@@ -522,6 +611,23 @@ MangaRating.belongsTo(Manga,   { foreignKey: 'mangaId', as: 'manga' })
 MangaRating.belongsTo(User,    { foreignKey: 'userId', as: 'user' })
 User.hasMany(MangaRating,      { foreignKey: 'userId', as: 'mangaRatings' })
 
+// ── COINS ASSOCIATIONS ──────────────────────────────
+User.hasOne(CoinWallet,   { foreignKey: 'userId', as: 'coinWallet', onDelete: 'CASCADE' })
+CoinWallet.belongsTo(User, { foreignKey: 'userId', as: 'user' })
+
+User.hasMany(CoinTransaction,   { foreignKey: 'userId', as: 'coinTransactions', onDelete: 'CASCADE' })
+CoinTransaction.belongsTo(User, { foreignKey: 'userId', as: 'user' })
+
+User.hasMany(CoinPurchaseRequest,   { foreignKey: 'userId', as: 'coinPurchases', onDelete: 'CASCADE' })
+CoinPurchaseRequest.belongsTo(User, { foreignKey: 'userId', as: 'user' })
+
+User.hasMany(ChapterUnlock,    { foreignKey: 'userId', as: 'chapterUnlocks', onDelete: 'CASCADE' })
+ChapterUnlock.belongsTo(User,  { foreignKey: 'userId', as: 'user' })
+ChapterUnlock.belongsTo(Chapter, { foreignKey: 'chapterId', as: 'chapter' })
+ChapterUnlock.belongsTo(Manga, { foreignKey: 'mangaId', as: 'manga' })
+Manga.hasMany(ChapterUnlock,   { foreignKey: 'mangaId', as: 'unlocks' })
+Chapter.hasMany(ChapterUnlock, { foreignKey: 'chapterId', as: 'unlocks' })
+
 // ══ SYNC ══════════════════════════════════════════════
 const syncDatabase = async (force = false) => {
   await sequelize.sync({ force, alter: !force })
@@ -536,4 +642,6 @@ module.exports = {
   // Manga Platform
   Manga, Chapter, ReadingProgress, LibraryItem, ChapterView,
   Subscription, PublisherApplication, MangaComment, MangaRating,
+  // Coins
+  CoinWallet, CoinTransaction, CoinPurchaseRequest, ChapterUnlock,
 }

@@ -64,6 +64,8 @@ app.use('/api/subscriptions',  require('./routes/subscriptions'))
 app.use('/api/publishers',     require('./routes/publishers'))
 app.use('/api/comments',       require('./routes/comments'))
 app.use('/api/admin/manga',    require('./routes/adminManga'))    // ← AJOUT
+app.use('/api/coins',          require('./routes/coins'))
+app.use('/api/admin/coins',    require('./routes/adminCoins'))
 
 // Health
 app.get('/api/health', async (req, res) => {
