@@ -3,7 +3,7 @@ import { useLang } from '../../../contexts/LangContext'
 import styles from './Apropos.module.css'
 
 const STORY = [
-  { year:'2024', iconFr:'💡', iconEn:'💡', textFr:"L'idée naît : créer une boutique de goodies Otaku pour les fans camerounais.", textEn:"The idea is born: create an Otaku goods store for Cameroonian fans." },
+  { year:'2024', iconFr:'💡', iconEn:'💡', textFr:"L'idée naît : créer une plateforme de evenementiel Otaku pour les fans camerounais.", textEn:"The idea is born: create an Otaku goods store for Cameroonian fans." },
   { year:'2025', iconFr:'🛒', iconEn:'🛒', textFr:"Lancement de la boutique en ligne avec posters, mangas et accessoires.", textEn:"Launch of the online store with posters, manga and accessories." },
   { year:'2026', iconFr:'🚀', iconEn:'🚀', textFr:"Expansion : Yaoundé, Douala, Bafoussam — livraison dans tout le Cameroun !", textEn:"Expansion: Yaoundé, Douala, Bafoussam — delivery across Cameroon!" },
 ]
@@ -23,8 +23,8 @@ export default function Apropos() {
             </h2>
             <p className={styles.desc}>
               {lang==='fr'
-                ? "Otaku Pulse est la première boutique de goodies anime au Cameroun. Nous livrons posters, mangas, accessoires et produits collectors directement chez les fans otaku, où qu'ils soient dans le pays."
-                : "Otaku Pulse is the first anime goods store in Cameroon. We deliver posters, manga, accessories and collectibles directly to otaku fans, wherever they are in the country."}
+                ? "Otaku Pulse est le rendez-vous de la culture otaku au Cameroun : événements anime, manga, gaming, cosplay, figurines, goodies et expériences uniques pour tous les passionnés. Découvrez, participez et partagez votre passion avec la communauté otaku."
+                : "Otaku Pulse is Cameroon’s first otaku culture hub, dedicated to anime, manga, gaming and Japanese pop culture events. We create unique experiences through anime events, community activities, collectibles, figurines, manga, gaming and exclusive otaku products for fans across Cameroon."}
             </p>
             <div className={styles.values}>
               {[
