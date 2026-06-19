@@ -22,6 +22,7 @@ import MangaReader    from './pages/Manga/reader'
 import MangaPlans     from './pages/Manga/plans'
 import MangaLibrary   from './pages/Manga/library'
 import MangaPublisher from './pages/Manga/publisher'
+import CoinsPage from './pages/Manga/coins'
 
 // Guards
 function AdminRoute({ children }) {
@@ -58,6 +59,7 @@ export default function App() {
       <Route path="/manga/publisher"                          element={<PrivateRoute><MangaPublisher /></PrivateRoute>} />
       <Route path="/manga/:slug"                              element={<MangaDetail />} />
       <Route path="/manga/:slug/chapter/:chapterNumber"       element={<MangaReader />} />
+      <Route path="/manga/coins"                              element={<CoinsPage />} />
 
       {/* Pages privées */}
       <Route path="/profil" element={<PrivateRoute><Profil /></PrivateRoute>} />

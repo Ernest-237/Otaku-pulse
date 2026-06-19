@@ -306,6 +306,7 @@ const Manga = sequelize.define('Manga', {
   commentCount:     { type: DataTypes.INTEGER, defaultValue: 0 },
   averageRating:    { type: DataTypes.FLOAT, defaultValue: 0 },
   ratingCount:      { type: DataTypes.INTEGER, defaultValue: 0 },
+  followerCount:    { type: DataTypes.INTEGER, defaultValue: 0 },   // ← NOUVEAU
   // Publication
   isFeatured:       { type: DataTypes.BOOLEAN, defaultValue: false },
   publishedAt:      { type: DataTypes.DATE },
@@ -471,6 +472,22 @@ const MangaRating = sequelize.define('MangaRating', {
   indexes: [{ fields: ['mangaId','userId'], unique: true }]
 })
 
+// ══ MANGA FOLLOW (abonnés à un créateur/manga) ═════════
+// Déplacé ici (après MangaRating, avant les modèles Coins)
+const MangaFollow = sequelize.define('MangaFollow', {
+  id:        { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:    { type: DataTypes.UUID, allowNull: false },   // celui qui suit
+  mangaId:   { type: DataTypes.UUID, allowNull: false },   // manga suivi
+  authorId:  { type: DataTypes.UUID, allowNull: false },   // créateur du manga (dénormalisé)
+}, {
+  tableName: 'manga_follows', timestamps: true,
+  indexes: [
+    { unique: true, fields: ['userId','mangaId'] },  // pas de double follow
+    { fields: ['authorId'] },
+    { fields: ['mangaId'] },
+  ]
+})
+
 // ╔═══════════════════════════════════════════════════════════╗
 // ║                  SYSTÈME DE COINS — NOUVEAU                ║
 // ╚═══════════════════════════════════════════════════════════╝
@@ -611,6 +628,13 @@ MangaRating.belongsTo(Manga,   { foreignKey: 'mangaId', as: 'manga' })
 MangaRating.belongsTo(User,    { foreignKey: 'userId', as: 'user' })
 User.hasMany(MangaRating,      { foreignKey: 'userId', as: 'mangaRatings' })
 
+// ── MANGA FOLLOW ASSOCIATIONS ───────────────────────
+User.hasMany(MangaFollow,    { foreignKey: 'userId', as: 'mangaFollows', onDelete: 'CASCADE' })
+MangaFollow.belongsTo(User,  { foreignKey: 'userId', as: 'follower' })
+MangaFollow.belongsTo(Manga, { foreignKey: 'mangaId', as: 'manga' })
+MangaFollow.belongsTo(User,  { foreignKey: 'authorId', as: 'author' })
+Manga.hasMany(MangaFollow,   { foreignKey: 'mangaId', as: 'followers' })
+
 // ── COINS ASSOCIATIONS ──────────────────────────────
 User.hasOne(CoinWallet,   { foreignKey: 'userId', as: 'coinWallet', onDelete: 'CASCADE' })
 CoinWallet.belongsTo(User, { foreignKey: 'userId', as: 'user' })
@@ -642,6 +666,7 @@ module.exports = {
   // Manga Platform
   Manga, Chapter, ReadingProgress, LibraryItem, ChapterView,
   Subscription, PublisherApplication, MangaComment, MangaRating,
+  MangaFollow,    // ← NOUVEAU
   // Coins
   CoinWallet, CoinTransaction, CoinPurchaseRequest, ChapterUnlock,
 }

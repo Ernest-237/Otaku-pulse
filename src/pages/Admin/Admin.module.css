@@ -82,6 +82,166 @@
 /* ── FORM GRID ── */
 .formGrid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
 
+
+/* ══ COINS SECTION ══════════════════════════════════ */
+.statsRow {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin-bottom: 1.5rem;
+}
+.statCard {
+  background: #161929; border: 1px solid #232842; border-radius: 14px;
+  padding: 1.1rem; position: relative; overflow: hidden;
+}
+.statHighlight { border-color: var(--c); box-shadow: 0 0 0 1px var(--c); }
+.statIcon {
+  display: inline-flex; padding: 7px; border-radius: 9px;
+  background: rgba(255,255,255,0.05); margin-bottom: 0.6rem;
+}
+.statValue { font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1; }
+.statLabel { font-size: 0.74rem; color: #8b92b0; margin-top: 4px; font-weight: 600; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border: 1px solid #232842; border-radius: 10px;
+  background: #161929; color: #8b92b0; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.tab:hover { border-color: #3a4060; color: #cbd5e1; }
+.tabActive { background: #a78bfa; border-color: #a78bfa; color: #fff; }
+.tabBadge {
+  background: #ef4444; color: #fff; font-size: 0.68rem; font-weight: 800;
+  padding: 1px 7px; border-radius: 100px; min-width: 18px; text-align: center;
+}
+
+.coinReqList { display: flex; flex-direction: column; gap: 12px; }
+.coinReqCard {
+  background: #161929; border: 1px solid #232842; border-radius: 16px; padding: 1.3rem;
+}
+.coinReqHead {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;
+}
+.coinReqUser { display: flex; align-items: center; gap: 10px; }
+.coinReqAvatar {
+  display: inline-flex; padding: 9px; border-radius: 50%;
+  background: rgba(167,139,250,0.15); color: #a78bfa;
+}
+.coinReqName { font-size: 0.95rem; font-weight: 700; color: #fff; }
+.coinReqEmail { font-size: 0.76rem; color: #8b92b0; }
+.coinReqStatus {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.74rem; font-weight: 700; padding: 4px 11px; border-radius: 100px;
+}
+
+.coinReqGrid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px; margin-bottom: 1rem;
+}
+.coinReqField { display: flex; flex-direction: column; gap: 4px; }
+.coinReqLabel {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.72rem; color: #8b92b0; font-weight: 600;
+}
+.coinReqValue {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.95rem; font-weight: 700; color: #e2e8f0;
+}
+.coinIcon { color: #f59e0b; }
+.bonusTag {
+  font-size: 0.72rem; color: #a78bfa; background: rgba(167,139,250,0.12);
+  padding: 1px 6px; border-radius: 100px;
+}
+
+.coinReqTxId {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: #0c0e1a; border: 1px solid #232842; border-radius: 10px;
+  padding: 0.8rem 1rem; margin-bottom: 0.8rem;
+}
+.coinReqTxLabel { font-size: 0.78rem; color: #8b92b0; font-weight: 600; }
+.coinReqTxCode {
+  font-family: 'Courier New', monospace; font-size: 0.95rem; font-weight: 700;
+  color: #33ff33; background: rgba(51,255,51,0.08); padding: 3px 10px; border-radius: 6px;
+  letter-spacing: 0.03em;
+}
+.coinReqWa {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: auto;
+  font-size: 0.8rem; color: #22c55e; font-weight: 600;
+}
+
+.coinReqNotes {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(239,68,68,0.08); border-radius: 8px; padding: 0.6rem 0.9rem;
+  font-size: 0.82rem; color: #fca5a5; margin-bottom: 0.8rem;
+}
+
+.coinReqActions { display: flex; gap: 10px; justify-content: flex-end; }
+.coinReqReject {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 9px 16px; border: 1px solid #ef4444; border-radius: 10px;
+  background: transparent; color: #ef4444; font-weight: 700; font-size: 0.85rem;
+  cursor: pointer; transition: all .15s;
+}
+.coinReqReject:hover:not(:disabled) { background: rgba(239,68,68,0.1); }
+.coinReqApprove {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border: none; border-radius: 10px;
+  background: linear-gradient(135deg, #22c55e, #15803d); color: #fff;
+  font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: filter .15s;
+}
+.coinReqApprove:hover:not(:disabled) { filter: brightness(1.1); }
+.coinReqApprove:disabled, .coinReqReject:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── MODALS ADMIN ── */
+.modalBackdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+  backdrop-filter: blur(3px);
+}
+.modalBox {
+  background: #11142a; border: 1px solid #232842; border-radius: 18px;
+  padding: 1.6rem; max-width: 440px; width: 100%;
+}
+.modalHead {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;
+}
+.modalHead h3 {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 1.15rem; font-weight: 800; color: #fff; margin: 0;
+}
+.modalHead button {
+  background: transparent; border: none; color: #8b92b0; cursor: pointer; padding: 4px;
+}
+.modalText { font-size: 0.85rem; color: #8b92b0; line-height: 1.5; margin: 0 0 1.2rem; }
+.modalTextarea, .modalInput {
+  width: 100%; background: #0c0e1a; border: 1px solid #232842; border-radius: 10px;
+  padding: 0.7rem 0.9rem; color: #e2e8f0; font-size: 0.9rem; font-family: inherit;
+}
+.modalTextarea:focus, .modalInput:focus { outline: none; border-color: #a78bfa; }
+.modalField { display: flex; flex-direction: column; gap: 5px; margin-bottom: 1rem; }
+.modalField label { font-size: 0.8rem; font-weight: 700; color: #cbd5e1; }
+.modalActions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.3rem; }
+.btnGhost {
+  padding: 9px 16px; border: 1px solid #232842; border-radius: 10px;
+  background: transparent; color: #8b92b0; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+}
+.btnDanger {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border: none; border-radius: 10px;
+  background: #ef4444; color: #fff; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+}
+.btnPrimary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border: none; border-radius: 10px;
+  background: linear-gradient(135deg, #22c55e, #15803d); color: #fff;
+  font-weight: 700; font-size: 0.85rem; cursor: pointer;
+}
+.btnSecondary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border: 1px solid #a78bfa; border-radius: 10px;
+  background: rgba(167,139,250,0.1); color: #a78bfa; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+}
+
 /* ── RESPONSIVE ── */
 @media(max-width:1024px) { .statsGrid{grid-template-columns:repeat(2,1fr)} .dash2col{grid-template-columns:1fr} }
 @media(max-width:768px)  { .sidebar{width:200px} .main{margin-left:200px} .statsGrid{grid-template-columns:1fr 1fr} .detailGrid{grid-template-columns:1fr} .formGrid2{grid-template-columns:1fr} }

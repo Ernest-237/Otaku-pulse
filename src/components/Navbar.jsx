@@ -18,6 +18,8 @@ const i18n = {
     login:'Connexion', signup:"S'inscrire", logout:'Déconnexion',
     profile:'Mon Profil', admin:'Admin',
     library:'Ma Bibliothèque', publisher:'Espace Éditeur', subscription:'Mon Abonnement',
+    creatorSpace:'Espace Créateur', creatorDashboard:'Mon Tableau de bord',
+    coins:'Mes Coins',
     accountAccess:'Mon compte',
     loginTitle:'CONNEXION', signupTitle:'INSCRIPTION',
     email:'Email', password:'Mot de passe', pseudo:'Pseudo Otaku',
@@ -31,6 +33,8 @@ const i18n = {
     login:'Login', signup:'Sign Up', logout:'Logout',
     profile:'My Profile', admin:'Admin',
     library:'My Library', publisher:'Publisher Space', subscription:'My Subscription',
+    creatorSpace:'Creator Space', creatorDashboard:'My Dashboard',
+    coins:'My Coins',
     accountAccess:'My account',
     loginTitle:'LOGIN', signupTitle:'SIGN UP',
     email:'Email', password:'Password', pseudo:'Otaku Username',
@@ -276,11 +280,20 @@ export default function Navbar() {
                       <span className={styles.dropIcon}>👑</span> {T.subscription}
                     </Link>
 
-                    {(user.isPublisher || ['admin','superadmin'].includes(user.role)) && (
-                      <Link to="/manga/publisher" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
-                        <span className={styles.dropIcon}>✍️</span> {T.publisher}
-                      </Link>
-                    )}
+                    {/* Coins — accessible à tous */}
+                    <Link to="/manga/coins" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
+                      <span className={styles.dropIcon}>🪙</span> {T.coins}
+                    </Link>
+
+                    {/* Espace Créateur — visible par TOUS, libellé selon statut */}
+                    <Link to="/manga/publisher" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
+                      <span className={styles.dropIcon}>
+                        {(user.isPublisher || ['admin','superadmin'].includes(user.role)) ? '✍️' : '🎨'}
+                      </span>
+                      {(user.isPublisher || ['admin','superadmin'].includes(user.role))
+                        ? T.creatorDashboard
+                        : T.creatorSpace}
+                    </Link>
 
                     {user.membershipStatus === 'active' && (
                       <Link to="/membership" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
@@ -368,10 +381,14 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}>📚 {T.library}</Link>
                 <Link to="/manga/plans" className={styles.mobileLink}
                   onClick={() => setMenuOpen(false)}>👑 {T.subscription}</Link>
-                {(user.isPublisher || ['admin','superadmin'].includes(user.role)) && (
-                  <Link to="/manga/publisher" className={styles.mobileLink}
-                    onClick={() => setMenuOpen(false)}>✍️ {T.publisher}</Link>
-                )}
+                <Link to="/manga/coins" className={styles.mobileLink}
+                  onClick={() => setMenuOpen(false)}>🪙 {T.coins}</Link>
+                <Link to="/manga/publisher" className={styles.mobileLink}
+                  onClick={() => setMenuOpen(false)}>
+                  {(user.isPublisher || ['admin','superadmin'].includes(user.role))
+                    ? `✍️ ${T.creatorDashboard}`
+                    : `🎨 ${T.creatorSpace}`}
+                </Link>
                 {isAdmin && (
                   <Link to="/admin" className={`${styles.mobileLink} ${styles.mobileLinkAdmin}`}
                     onClick={() => setMenuOpen(false)}>⚙️ {T.admin}</Link>

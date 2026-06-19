@@ -241,6 +241,8 @@ export const subscriptionsApi = {
 export const publishersApi = {
   apply:       (data)             => request('POST', '/api/publishers/apply', data),
   getMy:       ()                 => request('GET',  '/api/publishers/my'),
+  
+  getDashboard: () => request('GET', '/api/publishers/dashboard'),
   // Admin
   getAll:      (p = {})           => request('GET', `/api/publishers?${new URLSearchParams(p)}`),
   review:      (id, status, notes)=> request('PATCH', `/api/publishers/${id}/review`, { status, adminNotes: notes }),
@@ -253,6 +255,37 @@ export const commentsApi = {
   delete:        (id)             => request('DELETE', `/api/comments/${id}`),
   hide:          (id, isHidden)   => request('PATCH', `/api/comments/${id}/hide`, { isHidden }),
 }
+
+// ══ ADMIN COINS ══════════════════════════════════════
+export const adminCoinsApi = {
+  getDashboard:   ()             => request('GET',   '/api/admin/coins/dashboard'),
+  getRequests:    (p = {})       => request('GET',   `/api/admin/coins/requests?${new URLSearchParams(p)}`),
+  approve:        (id, data={})  => request('PATCH', `/api/admin/coins/requests/${id}/approve`, data),
+  reject:         (id, data={})  => request('PATCH', `/api/admin/coins/requests/${id}/reject`, data),
+  adjust:         (data)         => request('POST',  '/api/admin/coins/adjust', data),
+}
+
+
+// ══ COINS ════════════════════════════════════════════
+export const coinsApi = {
+  // Public
+  getPacks:        ()              => request('GET',  '/api/coins/packs', null, false),
+  // Protégées
+  getWallet:       ()              => request('GET',  '/api/coins/wallet'),
+  getTransactions: (p = {})        => request('GET',  `/api/coins/transactions?${new URLSearchParams(p)}`),
+  purchase:        (data)          => request('POST', '/api/coins/purchase', data),
+  getMyPurchases:  ()              => request('GET',  '/api/coins/my-purchases'),
+  unlockChapter:   (chapterId)     => request('POST', `/api/coins/unlock/${chapterId}`),
+  getUnlocks:      (mangaId)       => request('GET',  `/api/coins/unlocks/${mangaId}`),
+}
+
+// ══ FOLLOWS (s'abonner à un manga) ════════════════════
+export const followApi = {
+  toggle:    (mangaId) => request('POST', `/api/follows/${mangaId}`),
+  getStatus: (mangaId) => request('GET',  `/api/follows/${mangaId}/status`),
+  getMy:     ()        => request('GET',  '/api/follows/my'),
+}
+
 
 // ── ADMIN MANGA ──────────────────────────────────────
 export const adminMangaApi = {

@@ -310,4 +310,74 @@ router.patch('/publishers/:userId', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// ══════════════════════════════════════════════════════
+// PATCH /api/admin/manga/manga/:id/official — toggle badge "Officiel"
+// ══════════════════════════════════════════════════════
+router.patch('/manga/:id/official', async (req, res, next) => {
+  try {
+    const m = await Manga.findByPk(req.params.id)
+    if (!m) return res.status(404).json({ error: 'Manga introuvable' })
+    await m.update({ isOfficial: !m.isOfficial })
+    res.json({ manga: { id: m.id, isOfficial: m.isOfficial } })
+  } catch (err) { next(err) }
+})
+
+// ══════════════════════════════════════════════════════
+// GET /api/admin/manga/manga/:id/chapters — chapitres d'un manga (modération)
+// ══════════════════════════════════════════════════════
+router.get('/manga/:id/chapters', async (req, res, next) => {
+  try {
+    const chapters = await Chapter.findAll({
+      where: { mangaId: req.params.id },
+      order: [['chapterNumber', 'ASC']],
+      attributes: { exclude: ['pages'] },  // exclure les pages (lourd)
+    })
+    // Ajouter le nombre de pages
+    const result = chapters.map(c => {
+      const j = c.toJSON()
+      j.pageCount = c.pageCount || 0
+      return j
+    })
+    res.json({ chapters: result })
+  } catch (err) { next(err) }
+})
+
+// ══════════════════════════════════════════════════════
+// PATCH /api/admin/manga/chapters/:id — modérer un chapitre
+// ══════════════════════════════════════════════════════
+router.patch('/chapters/:id', async (req, res, next) => {
+  try {
+    const ch = await Chapter.findByPk(req.params.id)
+    if (!ch) return res.status(404).json({ error: 'Chapitre introuvable' })
+    const allowed = ['isPublished', 'accessTier', 'coinCost', 'title']
+    const updates = {}
+    allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k] })
+    if (updates.isPublished && !ch.publishedAt) updates.publishedAt = new Date()
+    await ch.update(updates)
+
+    // Recompter les chapitres publiés du manga
+    const publishedCount = await Chapter.count({
+      where: { mangaId: ch.mangaId, isPublished: true },
+    })
+    await Manga.update({ totalChapters: publishedCount }, { where: { id: ch.mangaId } })
+
+    res.json({ chapter: ch })
+  } catch (err) { next(err) }
+})
+
+// ══════════════════════════════════════════════════════
+// DELETE /api/admin/manga/chapters/:id — supprimer un chapitre
+// ══════════════════════════════════════════════════════
+router.delete('/chapters/:id', async (req, res, next) => {
+  try {
+    const ch = await Chapter.findByPk(req.params.id)
+    if (!ch) return res.status(404).json({ error: 'Chapitre introuvable' })
+    const mangaId = ch.mangaId
+    await ch.destroy()
+    const publishedCount = await Chapter.count({ where: { mangaId, isPublished: true } })
+    await Manga.update({ totalChapters: publishedCount }, { where: { id: mangaId } })
+    res.json({ success: true })
+  } catch (err) { next(err) }
+})
+
 module.exports = router

@@ -1,4 +1,4 @@
-// src/pages/Admin/sections/MangaSection.jsx — Modération mangas
+// src/pages/Admin/sections/MangaSection.jsx — Modération mangas + chapitres + certification
 import { useState } from 'react'
 import { adminMangaApi, API_BASE } from '../../../api'
 import { useApi } from '../../../hooks/useApi'
@@ -28,6 +28,7 @@ export default function MangaSection({ toast }) {
   const [accessFilter, setAccessFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
+  const [chaptersModal, setChaptersModal] = useState(null)
 
   const { data, loading, execute } = useApi(
     () => adminMangaApi.getMangas({
@@ -56,6 +57,19 @@ export default function MangaSection({ toast }) {
       await adminMangaApi.updateManga(manga.id, { isFeatured: !manga.isFeatured })
       toast.success(manga.isFeatured ? 'Retiré de la vedette' : '⭐ Ajouté en vedette')
       execute()
+    } catch (err) { toast.error(err.message) }
+  }
+
+  const toggleOfficial = async (manga) => {
+    try {
+      const res = await adminMangaApi.toggleOfficial(manga.id)
+      const nowOfficial = res?.manga?.isOfficial
+      toast.success(nowOfficial ? '🏅 Certifié Officiel !' : 'Certification retirée')
+      execute()
+      // Mettre à jour le modal ouvert si concerné
+      if (selected?.id === manga.id) {
+        setSelected({ ...selected, isOfficial: nowOfficial })
+      }
     } catch (err) { toast.error(err.message) }
   }
 
@@ -127,7 +141,10 @@ export default function MangaSection({ toast }) {
                       )}
                     </td>
                     <td>
-                      <strong style={{ color:'#e2e8f0' }}>{m.titleF}</strong>
+                      <strong style={{ color:'#e2e8f0', display:'flex', alignItems:'center', gap:5 }}>
+                        {m.titleF}
+                        {m.isOfficial && <span title="Certifié Officiel" style={{ fontSize:'.85rem' }}>🏅</span>}
+                      </strong>
                       {m.titleE && <div style={{ fontSize:'.72rem', color:'rgba(180,190,220,.45)' }}>{m.titleE}</div>}
                       <div style={{ fontSize:'.7rem', color:'rgba(180,190,220,.4)', marginTop:2 }}>
                         {m.totalChapters} chap. · {m.language?.toUpperCase()}
@@ -141,7 +158,10 @@ export default function MangaSection({ toast }) {
                       <Badge variant={STATUS_VARIANT[m.moderationStatus] || 'gray'} style={{ fontSize:'.65rem' }}>
                         {m.moderationStatus}
                       </Badge>
-                      {m.isFeatured && <div style={{ marginTop:4 }}><Badge variant="amber" style={{ fontSize:'.6rem' }}>⭐ VEDETTE</Badge></div>}
+                      <div style={{ display:'flex', gap:3, marginTop:4, flexWrap:'wrap' }}>
+                        {m.isFeatured && <Badge variant="amber" style={{ fontSize:'.6rem' }}>⭐ VEDETTE</Badge>}
+                        {m.isOfficial && <Badge variant="blue" style={{ fontSize:'.6rem' }}>🏅 OFFICIEL</Badge>}
+                      </div>
                     </td>
                     <td>
                       <Badge variant={m.accessTier === 'premium' ? 'purple' : 'green'} style={{ fontSize:'.65rem' }}>
@@ -170,6 +190,8 @@ export default function MangaSection({ toast }) {
                           {m.isFeatured ? '⭐' : '☆'}
                         </Button>
                       )}
+                      <Button variant="ghost" size="sm" title="Gérer les chapitres"
+                        onClick={() => setChaptersModal(m)}>📚</Button>
                       <Button variant="ghost" size="sm" onClick={() => setSelected(m)}>👁️</Button>
                     </td>
                   </tr>
@@ -186,14 +208,24 @@ export default function MangaSection({ toast }) {
           onClose={() => setSelected(null)}
           onModerate={moderate}
           onToggleFeature={toggleFeature}
+          onToggleOfficial={toggleOfficial}
           onDelete={removeManga}
+          onManageChapters={() => { setChaptersModal(selected); setSelected(null) }}
+        />
+      )}
+
+      {chaptersModal && (
+        <ChaptersManagerModal
+          manga={chaptersModal}
+          onClose={() => setChaptersModal(null)}
+          toast={toast}
         />
       )}
     </div>
   )
 }
 
-function MangaDetailModal({ manga: m, onClose, onModerate, onToggleFeature, onDelete }) {
+function MangaDetailModal({ manga: m, onClose, onModerate, onToggleFeature, onToggleOfficial, onDelete, onManageChapters }) {
   const [rejectReason, setRejectReason] = useState('')
   const [showReject, setShowReject] = useState(false)
 
@@ -210,8 +242,9 @@ function MangaDetailModal({ manga: m, onClose, onModerate, onToggleFeature, onDe
         </div>
 
         <div>
-          <h3 style={{ fontFamily:'var(--font-title)', fontSize:'1.3rem', letterSpacing:2, color:'#e2e8f0', marginBottom:6 }}>
+          <h3 style={{ fontFamily:'var(--font-title)', fontSize:'1.3rem', letterSpacing:2, color:'#e2e8f0', marginBottom:6, display:'flex', alignItems:'center', gap:8 }}>
             {m.titleF}
+            {m.isOfficial && <span title="Certifié Officiel">🏅</span>}
           </h3>
           {m.titleE && <p style={{ color:'rgba(180,190,220,.6)', fontSize:'.85rem', marginBottom:12 }}>{m.titleE}</p>}
 
@@ -305,6 +338,8 @@ function MangaDetailModal({ manga: m, onClose, onModerate, onToggleFeature, onDe
             <Button variant="ghost" size="sm">🌐 Voir sur le site</Button>
           </a>
 
+          <Button variant="ghost" size="sm" onClick={onManageChapters}>📚 Gérer les chapitres</Button>
+
           {m.moderationStatus !== 'approved' && (
             <Button variant="primary" size="sm" onClick={() => onModerate(m, 'approved')}>
               ✅ Approuver
@@ -312,20 +347,22 @@ function MangaDetailModal({ manga: m, onClose, onModerate, onToggleFeature, onDe
           )}
 
           {m.moderationStatus === 'approved' && (
-            <Button variant="ghost" size="sm" onClick={() => onToggleFeature(m)}>
-              {m.isFeatured ? '⭐ Retirer vedette' : '☆ Mettre en vedette'}
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" onClick={() => onToggleFeature(m)}>
+                {m.isFeatured ? '⭐ Retirer vedette' : '☆ Mettre en vedette'}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => onToggleOfficial(m)}>
+                {m.isOfficial ? '🏅 Retirer certification' : '🏅 Certifier Officiel'}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => onModerate(m, 'suspended', 'Suspendu par admin')}>
+                🚫 Suspendre
+              </Button>
+            </>
           )}
 
-          {m.moderationStatus === 'approved' && (
-            <Button variant="ghost" size="sm" onClick={() => onModerate(m, 'suspended', 'Suspendu par admin')}>
-              🚫 Suspendre
-            </Button>
-          )}
-
-          {!showReject ? (
+          {!showReject && m.moderationStatus !== 'rejected' && (
             <Button variant="danger" size="sm" onClick={() => setShowReject(true)}>❌ Rejeter</Button>
-          ) : null}
+          )}
 
           <Button variant="danger" size="sm" onClick={() => onDelete(m)}>🗑️ Supprimer</Button>
         </div>
@@ -345,6 +382,116 @@ function MangaDetailModal({ manga: m, onClose, onModerate, onToggleFeature, onDe
           </div>
         )}
       </div>
+    </Modal>
+  )
+}
+
+/* ══ GESTIONNAIRE DE CHAPITRES ════════════════════════ */
+function ChaptersManagerModal({ manga: m, onClose, toast }) {
+  const { data, loading, execute } = useApi(
+    () => adminMangaApi.getChapters(m.id),
+    [m.id],
+    true
+  )
+  const chapters = data?.chapters || []
+
+  const togglePublish = async (ch) => {
+    try {
+      await adminMangaApi.moderateChapter(ch.id, { isPublished: !ch.isPublished })
+      toast.success(ch.isPublished ? 'Chapitre dépublié' : '✅ Chapitre publié')
+      execute()
+    } catch (err) { toast.error(err.message) }
+  }
+
+  const toggleAccess = async (ch) => {
+    const newTier = ch.accessTier === 'premium' ? 'free' : 'premium'
+    try {
+      await adminMangaApi.moderateChapter(ch.id, { accessTier: newTier })
+      toast.success(newTier === 'premium' ? '👑 Passé en Premium' : '🆓 Passé en Gratuit')
+      execute()
+    } catch (err) { toast.error(err.message) }
+  }
+
+  const changeCost = async (ch) => {
+    const val = prompt('Coût en coins pour débloquer ce chapitre :', ch.coinCost ?? 5)
+    if (val === null) return
+    const cost = parseInt(val)
+    if (isNaN(cost) || cost < 0) return toast.error('Valeur invalide')
+    try {
+      await adminMangaApi.moderateChapter(ch.id, { coinCost: cost })
+      toast.success(`Coût mis à jour : ${cost} coins`)
+      execute()
+    } catch (err) { toast.error(err.message) }
+  }
+
+  const removeChapter = async (ch) => {
+    if (!confirm(`Supprimer le chapitre ${ch.chapterNumber} ? Action irréversible.`)) return
+    try {
+      await adminMangaApi.deleteChapter(ch.id)
+      toast.success('🗑️ Chapitre supprimé')
+      execute()
+    } catch (err) { toast.error(err.message) }
+  }
+
+  return (
+    <Modal isOpen title={`📚 Chapitres — ${m.titleF}`} onClose={onClose} wide>
+      {loading ? <PageLoader /> : !chapters.length ? (
+        <EmptyState icon="📚" title="Aucun chapitre" message="Cet éditeur n'a pas encore ajouté de chapitres." />
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {chapters.map(ch => (
+            <div key={ch.id} style={{
+              display:'flex', alignItems:'center', gap:12,
+              background:'rgba(255,255,255,.02)', border:'1px solid rgba(255,255,255,.06)',
+              borderRadius:10, padding:'.8rem 1rem',
+            }}>
+              {/* Numéro */}
+              <div style={{
+                width:44, height:44, flexShrink:0, borderRadius:9,
+                background:'rgba(167,139,250,.12)', color:'#a78bfa',
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+              }}>
+                <span style={{ fontSize:'.55rem', fontWeight:700, opacity:.7 }}>CH</span>
+                <span style={{ fontSize:'.95rem', fontWeight:800, lineHeight:1 }}>{Number(ch.chapterNumber)}</span>
+              </div>
+
+              {/* Infos */}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:'.9rem', fontWeight:700, color:'#e2e8f0' }}>
+                  {ch.title || `Chapitre ${Number(ch.chapterNumber)}`}
+                </div>
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4, alignItems:'center' }}>
+                  <span style={{ fontSize:'.72rem', color:'rgba(180,190,220,.5)' }}>{ch.pageCount} pages</span>
+                  <Badge variant={ch.isPublished ? 'green' : 'gray'} style={{ fontSize:'.6rem' }}>
+                    {ch.isPublished ? '✅ Publié' : '🔴 Brouillon'}
+                  </Badge>
+                  <Badge variant={ch.accessTier === 'premium' ? 'purple' : 'green'} style={{ fontSize:'.6rem' }}>
+                    {ch.accessTier === 'premium' ? `👑 ${ch.coinCost ?? 5} coins` : '🆓 Gratuit'}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display:'flex', gap:5, flexShrink:0, flexWrap:'wrap' }}>
+                <Button variant="ghost" size="sm" title={ch.isPublished ? 'Dépublier' : 'Publier'}
+                  onClick={() => togglePublish(ch)}>
+                  {ch.isPublished ? '🔴' : '✅'}
+                </Button>
+                <Button variant="ghost" size="sm" title="Changer accès free/premium"
+                  onClick={() => toggleAccess(ch)}>
+                  {ch.accessTier === 'premium' ? '🆓' : '👑'}
+                </Button>
+                {ch.accessTier === 'premium' && (
+                  <Button variant="ghost" size="sm" title="Modifier le coût en coins"
+                    onClick={() => changeCost(ch)}>🪙</Button>
+                )}
+                <Button variant="danger" size="sm" title="Supprimer"
+                  onClick={() => removeChapter(ch)}>🗑️</Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </Modal>
   )
 }

@@ -1,4 +1,4 @@
-// src/pages/Manga/reader/index.jsx — Lecteur immersif vertical webtoon
+// src/pages/Manga/reader/index.jsx — Lecteur immersif vertical webtoon + coins
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import {
@@ -7,8 +7,9 @@ import {
 } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
-import { mangaApi, chaptersApi, readingApi } from '../../../api'
+import { mangaApi, chaptersApi, readingApi, coinsApi } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
+import ChapterUnlockGate from './ChapterUnlockGate'
 import styles from './Reader.module.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'
@@ -37,6 +38,8 @@ const copy = {
     settings: 'Paramètres',
     showHeader: 'Afficher la barre',
     hideHeader: 'Masquer la barre',
+    loginToRead: 'Connecte-toi pour lire ce chapitre',
+    loginBtn: 'Se connecter',
   },
   en: {
     loading: 'Loading chapter...',
@@ -61,6 +64,8 @@ const copy = {
     settings: 'Settings',
     showHeader: 'Show header',
     hideHeader: 'Hide header',
+    loginToRead: 'Log in to read this chapter',
+    loginBtn: 'Log in',
   },
 }
 
@@ -84,6 +89,11 @@ export default function ReaderPage() {
   const [completed, setCompleted] = useState(false)
   const [premiumLocked, setPremiumLocked] = useState(false)
 
+  // ── COINS : accès / déblocage ──
+  const [walletBalance, setWalletBalance] = useState(0)
+  const [isUnlocked, setIsUnlocked] = useState(false)
+  const [accessChecked, setAccessChecked] = useState(false)
+
   const containerRef = useRef(null)
   const pageRefs = useRef([])
   const hideTimer = useRef(null)
@@ -91,7 +101,6 @@ export default function ReaderPage() {
   const lastSavedAt = useRef(0)
 
   const isPremiumChapter = chapter?.accessTier === 'premium'
-  const userHasAccess = isLoggedIn && hasActiveSubscription
 
   /* ── FETCH chapter ── */
   useEffect(() => {
@@ -101,6 +110,8 @@ export default function ReaderPage() {
     setCompleted(false)
     setPremiumLocked(false)
     setCurrentPage(0)
+    setIsUnlocked(false)
+    setAccessChecked(false)
     pageRefs.current = []
 
     async function loadChapter() {
@@ -124,17 +135,61 @@ export default function ReaderPage() {
           return
         }
 
-        // 3. Load chapter pages
+        // 3. Vérifier l'accès AVANT de charger les pages
+        const premium = ch.accessTier === 'premium'
+
+        if (!premium) {
+          // Chapitre gratuit → accès direct
+          setIsUnlocked(true)
+          setAccessChecked(true)
+        } else {
+          // Chapitre premium → vérifier déblocage (si connecté)
+          if (!isLoggedIn) {
+            setChapter(ch)
+            setPages([])
+            setPremiumLocked(true)
+            setAccessChecked(true)
+            setLoading(false)
+            return
+          }
+
+          try {
+            const [walletRes, unlocksRes] = await Promise.all([
+              coinsApi.getWallet(),
+              coinsApi.getUnlocks(ch.mangaId || mangaRes.manga.id),
+            ])
+            if (cancelled) return
+            setWalletBalance(walletRes?.wallet?.balance ?? 0)
+            const unlockedIds = unlocksRes?.unlockedChapterIds || []
+            const unlocked = unlockedIds.includes(ch.id)
+            setIsUnlocked(unlocked)
+            setAccessChecked(true)
+
+            if (!unlocked) {
+              // Premium non débloqué → afficher la gate de déblocage
+              setChapter(ch)
+              setPages([])
+              setLoading(false)
+              return
+            }
+          } catch (accessErr) {
+            console.error('Access check error:', accessErr)
+            setAccessChecked(true)
+            // En cas d'erreur de vérif, on tente quand même de charger (le backend protègera)
+          }
+        }
+
+        // 4. Load chapter pages (gratuit OU premium débloqué)
         try {
           const chapRes = await chaptersApi.getById(ch.id)
           if (cancelled) return
           setChapter(chapRes.chapter)
           setPages(chapRes.pages || [])
         } catch (chapErr) {
-          // Si erreur 403 = premium locked
-          if (chapErr.status === 403 || chapErr.message?.includes('premium') || chapErr.message?.includes('abonnement')) {
+          // Si erreur 403 = premium locked côté backend
+          if (chapErr.status === 403 || chapErr.message?.includes('premium') || chapErr.message?.includes('coins')) {
             setChapter(ch)
-            setPages([]) // l'utilisateur verra l'overlay premium
+            setPages([])
             setPremiumLocked(true)
           } else {
             throw chapErr
@@ -152,7 +207,7 @@ export default function ReaderPage() {
 
     loadChapter()
     return () => { cancelled = true }
-  }, [slug, chapterNumber])
+  }, [slug, chapterNumber, isLoggedIn])
 
   /* ── Title doc ── */
   useEffect(() => {
@@ -280,6 +335,22 @@ export default function ReaderPage() {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
+  /* ── Après déblocage réussi : recharger les pages ── */
+  const handleUnlocked = useCallback(async (newBalance) => {
+    setWalletBalance(newBalance)
+    setIsUnlocked(true)
+    setLoading(true)
+    try {
+      const chapRes = await chaptersApi.getById(chapter.id)
+      setChapter(chapRes.chapter)
+      setPages(chapRes.pages || [])
+    } catch (err) {
+      toast.error('Erreur de chargement après déblocage')
+    } finally {
+      setLoading(false)
+    }
+  }, [chapter, toast])
+
   /* ── RENDER ── */
   if (loading) {
     return (
@@ -310,6 +381,11 @@ export default function ReaderPage() {
   const progressPct = pages.length > 0
     ? Math.round(((currentPage + 1) / pages.length) * 100)
     : 0
+
+  // ── GATE : chapitre premium non débloqué ──
+  // Cas 1 : pas connecté → invite à se connecter
+  // Cas 2 : connecté mais pas débloqué → gate de déblocage par coins
+  const showUnlockGate = accessChecked && isPremiumChapter && !isUnlocked && !premiumLocked
 
   return (
     <div
@@ -361,7 +437,24 @@ export default function ReaderPage() {
 
       {/* ── PAGES VERTICALES ── */}
       <main className={styles.pagesContainer}>
-        {premiumLocked ? (
+        {showUnlockGate ? (
+          isLoggedIn ? (
+            <ChapterUnlockGate
+              chapter={chapter}
+              walletBalance={walletBalance}
+              mangaTitle={title}
+              toast={toast}
+              onUnlocked={handleUnlocked}
+            />
+          ) : (
+            <PremiumLockOverlay
+              t={t}
+              isLoggedIn={isLoggedIn}
+              slug={slug}
+              chapter={chapter}
+            />
+          )
+        ) : premiumLocked ? (
           <PremiumLockOverlay
             t={t}
             isLoggedIn={isLoggedIn}
@@ -375,14 +468,14 @@ export default function ReaderPage() {
         ) : (
           <>
             {pages.map((p, i) => (
-  <ChapterPage
-    key={i}
-    page={p}
-    idx={i}
-    total={pages.length}
-    pageRef={el => pageRefs.current[i] = el}
-  />
-))}
+              <ChapterPage
+                key={i}
+                page={p}
+                idx={i}
+                total={pages.length}
+                pageRef={el => pageRefs.current[i] = el}
+              />
+            ))}
 
             {/* Fin de chapitre */}
             {completed && (
@@ -399,7 +492,7 @@ export default function ReaderPage() {
       </main>
 
       {/* ── BOTTOM NAV (chapitres) ── */}
-      {!premiumLocked && pages.length > 0 && (
+      {!premiumLocked && !showUnlockGate && pages.length > 0 && (
         <div className={`${styles.bottomNav} ${!headerVisible ? styles.bottomNavHidden : ''}`}>
           <button
             className={styles.navChapBtn}
@@ -484,17 +577,17 @@ function ChapterPage({ page, idx, total, pageRef }) {
   )
 }
 
-/* ══ PREMIUM LOCK OVERLAY ══════════════════════════════ */
+/* ══ PREMIUM LOCK OVERLAY (non connecté) ═══════════════ */
 function PremiumLockOverlay({ t, isLoggedIn, slug, chapter }) {
   return (
     <div className={styles.premiumLock}>
       <div className={styles.premiumGlow} />
       <div className={styles.premiumCard}>
         <div className={styles.premiumIcon}>
-          <Crown size={48} />
+          <Lock size={48} />
         </div>
         <h2 className={styles.premiumTitle}>{t.premiumLockTitle}</h2>
-        <p className={styles.premiumSub}>{t.premiumLockSub}</p>
+        <p className={styles.premiumSub}>{t.loginToRead}</p>
         <div className={styles.premiumChapInfo}>
           <Lock size={14} />
           <span>{t.chapter} {chapter.chapterNumber}</span>
@@ -506,19 +599,13 @@ function PremiumLockOverlay({ t, isLoggedIn, slug, chapter }) {
           )}
         </div>
 
-        {isLoggedIn ? (
-          <Link to="/manga/plans" className={styles.premiumBtn}>
-            <Crown size={16} fill="currentColor" /> {t.premiumLockBtn}
-          </Link>
-        ) : (
-          <Link
-            to="/"
-            className={styles.premiumBtn}
-            onClick={() => sessionStorage.setItem('openLogin', '1')}
-          >
-            🔐 {t.premiumLockLogin}
-          </Link>
-        )}
+        <Link
+          to="/"
+          className={styles.premiumBtn}
+          onClick={() => sessionStorage.setItem('openLogin', '1')}
+        >
+          🔐 {t.loginBtn}
+        </Link>
 
         <Link to={`/manga/${slug}`} className={styles.premiumBack}>
           <ChevronLeft size={14} /> {t.backToManga}

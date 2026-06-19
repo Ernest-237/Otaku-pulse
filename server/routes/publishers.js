@@ -73,6 +73,76 @@ router.get('/', protect, restrictTo('admin','superadmin'), async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }) }
 })
 
+// ══════════════════════════════════════════════════════
+// GET /api/publishers/dashboard — tableau de bord créateur
+// ══════════════════════════════════════════════════════
+router.get('/dashboard', protect, async (req, res, next) => {
+  try {
+    const { Manga, MangaFollow, CoinTransaction, User, sequelize } = require('../models/index')
+    const { Op, fn, col } = require('sequelize')
+
+    // Mes mangas
+    const myMangas = await Manga.findAll({
+      where: { authorId: req.user.id },
+      order: [['createdAt', 'DESC']],
+      attributes: { exclude: ['coverImageData','bannerImageData','synopsisF','synopsisE'] },
+    })
+    const mangasWithUrl = myMangas.map(m => {
+      const j = m.toJSON()
+      if (m.coverImageMime) j.coverUrl = `/api/manga/${m.id}/cover`
+      return j
+    })
+
+    // Stats agrégées
+    const totalMangas = myMangas.length
+    const approvedMangas = myMangas.filter(m => m.moderationStatus === 'approved').length
+    const pendingMangas = myMangas.filter(m => m.moderationStatus === 'pending').length
+    const totalChapters = myMangas.reduce((s, m) => s + (m.totalChapters || 0), 0)
+    const totalViews = myMangas.reduce((s, m) => s + (m.viewCount || 0), 0)
+    const totalReads = myMangas.reduce((s, m) => s + (m.readCount || 0), 0)
+    const totalFollowers = myMangas.reduce((s, m) => s + (m.followerCount || 0), 0)
+
+    // Revenus en coins (depuis User)
+    const me = await User.findByPk(req.user.id, { attributes: ['coinsEarned','coinsBalance'] })
+
+    // Revenus du mois (transactions earning)
+    const month = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    const monthEarnings = await CoinTransaction.sum('amount', {
+      where: { userId: req.user.id, type: 'earning', createdAt: { [Op.gte]: month } },
+    }) || 0
+
+    // Classement : rang du créateur par vues totales (parmi tous les éditeurs)
+    const allAuthorsViews = await Manga.findAll({
+      where: { moderationStatus: 'approved' },
+      attributes: ['authorId', [fn('SUM', col('viewCount')), 'totalViews']],
+      group: ['authorId'],
+      order: [[fn('SUM', col('viewCount')), 'DESC']],
+      raw: true,
+    })
+    const myRank = allAuthorsViews.findIndex(a => a.authorId === req.user.id) + 1
+    const totalCreators = allAuthorsViews.length
+
+    // Top mangas (les miens, par vues)
+    const topMangas = [...mangasWithUrl]
+      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+      .slice(0, 5)
+
+    res.json({
+      mangas: mangasWithUrl,
+      stats: {
+        totalMangas, approvedMangas, pendingMangas,
+        totalChapters, totalViews, totalReads, totalFollowers,
+        coinsEarned: me?.coinsEarned || 0,
+        coinsBalance: me?.coinsBalance || 0,
+        monthEarnings,
+        rank: myRank || null,
+        totalCreators,
+      },
+      topMangas,
+    })
+  } catch (err) { next(err) }
+})
+
 // ── PATCH /api/publishers/:id/review — admin ───────
 router.patch('/:id/review', protect, restrictTo('admin','superadmin'), [
   body('status').isIn(['approved','rejected']),

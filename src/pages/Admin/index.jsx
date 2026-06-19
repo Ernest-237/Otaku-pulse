@@ -20,6 +20,7 @@ import MangaSection         from './sections/MangaSection'
 import PublishersSection    from './sections/PublishersSection'
 import SubscriptionsSection from './sections/SubscriptionsSection'
 import MangaCommentsSection from './sections/MangaCommentsSection'
+import CoinsSection from './sections/CoinsSection'
 
 const ALL_CATS = ['posters','stickers','accessoires','kits','manga','livre','dessin','nutrition','echange','jeux']
 
@@ -40,6 +41,7 @@ const SECTIONS = [
   { id:'publishers',  icon:'✍️', label:'Éditeurs'       },
   { id:'subs',        icon:'💎', label:'Abonnements'    },
   { id:'mangaComm',   icon:'💬', label:'Commentaires'   },
+  { id:'coins',       icon:'🪙', label:'Coins & Paiements' },
 ]
 
 export default function Admin() {
@@ -121,6 +123,7 @@ export default function Admin() {
 {section==='publishers'  && <PublishersSection     toast={toast} />}
 {section==='subs'        && <SubscriptionsSection  toast={toast} />}
 {section==='mangaComm'   && <MangaCommentsSection  toast={toast} />}
+{section==='coins'       && <CoinsSection          toast={toast} />}
         </div>
       </main>
     </div>

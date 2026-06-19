@@ -66,8 +66,8 @@ export default function Footer() {
 
               <p className={styles.brandDesc}>
                 {lang === 'fr'
-                  ? 'Premier service de goodies Otaku au Cameroun. Livraison à Yaoundé, Douala.'
-                  : 'First Otaku goods service in Cameroon. Delivery in Yaoundé, Douala.'}
+                  ? 'le rendez-vous de la culture otaku au Cameroun : événements anime, manga, gaming, cosplay, figurines, goodies et expériences uniques pour tous les passionnés.'
+                  : 'first otaku culture hub, dedicated to anime, manga, gaming and Japanese pop culture events. We create unique experiences through anime events, community activities, collectibles, figurines, manga, gaming and exclusive otaku products for fans across Cameroon.'}
               </p>
 
               <div className={styles.socials}>
