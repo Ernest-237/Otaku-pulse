@@ -136,7 +136,7 @@ export const suppliersApi = {
 }
 
 // ── UPLOAD helper ─────────────────────────────────────
-// Convertit un File en base64
+// Convertit un File en base64 → retourne { data, mime }
 export function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -151,103 +151,75 @@ export function fileToBase64(file) {
   })
 }
 
-// ── MANGA PLATFORM ────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// MANGA PLATFORM
+// ══════════════════════════════════════════════════════
+
+// ── MANGA ─────────────────────────────────────────────
 export const mangaApi = {
-  getAll:        (p = {})         => request('GET', `/api/manga?${new URLSearchParams(p)}`, null, false),
-  getBySlug:     (slug)           => request('GET', `/api/manga/${slug}`, null, false),
-  continueReading:()              => request('GET', '/api/manga/continue-reading'),
-  create:        (data)           => request('POST',  '/api/manga', data),
-  update:        (id, data)       => request('PATCH', `/api/manga/${id}`, data),
-  moderate:      (id, status, notes) => request('PATCH', `/api/manga/${id}/moderate`, { status, notes }),
-  delete:        (id)             => request('DELETE', `/api/manga/${id}`),
-  rate:          (id, rating, review) => request('POST', `/api/manga/${id}/rate`, { rating, review }),
-  getCoverUrl:   (id)             => `${API_BASE}/api/manga/${id}/cover`,
-  getBannerUrl:  (id)             => `${API_BASE}/api/manga/${id}/banner`,
-
-  // Dans mangaApi
-getMy:           (p = {})        => request('GET', `/api/manga/my/list?${new URLSearchParams(p)}`),
-create:          (data)          => request('POST', '/api/manga', data),
-
-// Dans libraryApi (à compléter)
-getMyLibrary:    (p = {})        => request('GET', `/api/library?${new URLSearchParams(p)}`),
-getCounts:       ()              => request('GET', '/api/library/counts'),
-
-// Dans chaptersApi
-create:          (mangaId, data) => request('POST', `/api/manga/${mangaId}/chapters`, data),
-getById:         (id)            => request('GET', `/api/chapters/${id}`),
-
-// Dans publishersApi
-getMyApplication: ()             => request('GET', '/api/publishers/my-application'),
-apply:            (data)         => request('POST', '/api/publishers/apply', data),
-
-// Dans subscriptionsApi
-getPlans:        ()              => request('GET', '/api/subscriptions/plans'),
-request:         (data)          => request('POST', '/api/subscriptions/request', data),
-getMy:           ()              => request('GET', '/api/subscriptions/my'),
+  getAll:          (p = {})           => request('GET', `/api/manga?${new URLSearchParams(p)}`, null, false),
+  getBySlug:       (slug)             => request('GET', `/api/manga/${slug}`, null, false),
+  continueReading: ()                 => request('GET', '/api/manga/continue-reading'),
+  getMy:           (p = {})           => request('GET', `/api/manga/my/list?${new URLSearchParams(p)}`),
+  create:          (data)             => request('POST',  '/api/manga', data),
+  update:          (id, data)         => request('PATCH', `/api/manga/${id}`, data),
+  moderate:        (id, status, notes)=> request('PATCH', `/api/manga/${id}/moderate`, { status, notes }),
+  delete:          (id)               => request('DELETE', `/api/manga/${id}`),
+  rate:            (id, rating, review) => request('POST', `/api/manga/${id}/rate`, { rating, review }),
+  getCoverUrl:     (id)               => `${API_BASE}/api/manga/${id}/cover`,
+  getBannerUrl:    (id)               => `${API_BASE}/api/manga/${id}/banner`,
 }
 
+// ── CHAPTERS ──────────────────────────────────────────
 export const chaptersApi = {
-  getByManga:    (mangaId)        => request('GET', `/api/chapters/by-manga/${mangaId}`, null, false),
-  getById:       (id)             => request('GET', `/api/chapters/${id}`, null, true), // optionalAuth side
-  create:        (data)           => request('POST', '/api/chapters', data),
-  update:        (id, data)       => request('PATCH', `/api/chapters/${id}`, data),
-  delete:        (id)             => request('DELETE', `/api/chapters/${id}`),
+  getByManga: (mangaId)        => request('GET', `/api/chapters/by-manga/${mangaId}`, null, false),
+  getById:    (id)             => request('GET', `/api/chapters/${id}`, null, true),
+  // Création d'un chapitre rattaché à un manga : (mangaId, data)
+  create:     (mangaId, data)  => request('POST', `/api/manga/${mangaId}/chapters`, data),
+  update:     (id, data)       => request('PATCH', `/api/chapters/${id}`, data),
+  delete:     (id)             => request('DELETE', `/api/chapters/${id}`),
 }
 
+// ── READING ───────────────────────────────────────────
 export const readingApi = {
-  saveProgress:  (data)           => request('POST', '/api/reading/progress', data),
-  getProgress:   (mangaId)        => request('GET',  `/api/reading/progress/${mangaId}`),
-  resetProgress: (mangaId)        => request('DELETE', `/api/reading/progress/${mangaId}`),
+  saveProgress:  (data)     => request('POST', '/api/reading/progress', data),
+  getProgress:   (mangaId)  => request('GET',  `/api/reading/progress/${mangaId}`),
+  resetProgress: (mangaId)  => request('DELETE', `/api/reading/progress/${mangaId}`),
 }
 
+// ── LIBRARY ───────────────────────────────────────────
 export const libraryApi = {
-  getAll:    (p = {})             => request('GET', `/api/library?${new URLSearchParams(p)}`),
-  add:       (mangaId, status)    => request('POST', `/api/library/${mangaId}`, { status }),
-  remove:    (mangaId)            => request('DELETE', `/api/library/${mangaId}`),
-
-  // Dans mangaApi
-getMy:           (p = {})        => request('GET', `/api/manga/my/list?${new URLSearchParams(p)}`),
-create:          (data)          => request('POST', '/api/manga', data),
-
-// Dans libraryApi (à compléter)
-getMyLibrary:    (p = {})        => request('GET', `/api/library?${new URLSearchParams(p)}`),
-getCounts:       ()              => request('GET', '/api/library/counts'),
-
-// Dans chaptersApi
-create:          (mangaId, data) => request('POST', `/api/manga/${mangaId}/chapters`, data),
-getById:         (id)            => request('GET', `/api/chapters/${id}`),
-
-// Dans publishersApi
-getMyApplication: ()             => request('GET', '/api/publishers/my-application'),
-apply:            (data)         => request('POST', '/api/publishers/apply', data),
-
-// Dans subscriptionsApi
-getPlans:        ()              => request('GET', '/api/subscriptions/plans'),
-request:         (data)          => request('POST', '/api/subscriptions/request', data),
-getMy:           ()              => request('GET', '/api/subscriptions/my'),
+  getAll:       (p = {})         => request('GET', `/api/library?${new URLSearchParams(p)}`),
+  getMyLibrary: (p = {})         => request('GET', `/api/library?${new URLSearchParams(p)}`),
+  getCounts:    ()               => request('GET', '/api/library/counts'),
+  add:          (mangaId, status)=> request('POST', `/api/library/${mangaId}`, { status }),
+  remove:       (mangaId)        => request('DELETE', `/api/library/${mangaId}`),
 }
 
+// ── SUBSCRIPTIONS ─────────────────────────────────────
 export const subscriptionsApi = {
-  getPlans:    ()                 => request('GET', '/api/subscriptions/plans', null, false),
-  getActive:   ()                 => request('GET', '/api/subscriptions/active'),
-  getMy:       ()                 => request('GET', '/api/subscriptions/my'),
-  request:     (data)             => request('POST', '/api/subscriptions/request', data),
+  getPlans:    ()         => request('GET', '/api/subscriptions/plans', null, false),
+  getActive:   ()         => request('GET', '/api/subscriptions/active'),
+  getMy:       ()         => request('GET', '/api/subscriptions/my'),
+  request:     (data)     => request('POST', '/api/subscriptions/request', data),
   // Admin
-  getAll:      (p = {})           => request('GET', `/api/subscriptions?${new URLSearchParams(p)}`),
-  activate:    (id, data)         => request('PATCH', `/api/subscriptions/${id}/activate`, data),
-  update:      (id, data)         => request('PATCH', `/api/subscriptions/${id}`, data),
+  getAll:      (p = {})   => request('GET', `/api/subscriptions?${new URLSearchParams(p)}`),
+  activate:    (id, data) => request('PATCH', `/api/subscriptions/${id}/activate`, data),
+  update:      (id, data) => request('PATCH', `/api/subscriptions/${id}`, data),
 }
 
+// ── PUBLISHERS ────────────────────────────────────────
 export const publishersApi = {
-  apply:       (data)             => request('POST', '/api/publishers/apply', data),
-  getMy:       ()                 => request('GET',  '/api/publishers/my'),
-  
-  getDashboard: () => request('GET', '/api/publishers/dashboard'),
+  apply:            (data)              => request('POST', '/api/publishers/apply', data),
+  getMy:            ()                  => request('GET',  '/api/publishers/my'),
+  getMyApplication: ()                  => request('GET',  '/api/publishers/my-application'),
+  getDashboard:     ()                  => request('GET',  '/api/publishers/dashboard'),
   // Admin
-  getAll:      (p = {})           => request('GET', `/api/publishers?${new URLSearchParams(p)}`),
-  review:      (id, status, notes)=> request('PATCH', `/api/publishers/${id}/review`, { status, adminNotes: notes }),
+  getAll:           (p = {})            => request('GET', `/api/publishers?${new URLSearchParams(p)}`),
+  review:           (id, status, notes) => request('PATCH', `/api/publishers/${id}/review`, { status, adminNotes: notes }),
 }
 
+// ── COMMENTS ──────────────────────────────────────────
 export const commentsApi = {
   getForManga:   (mangaId, p={})  => request('GET', `/api/comments/manga/${mangaId}?${new URLSearchParams(p)}`, null, false),
   getForChapter: (chapterId)      => request('GET', `/api/comments/chapter/${chapterId}`, null, false),
@@ -256,17 +228,7 @@ export const commentsApi = {
   hide:          (id, isHidden)   => request('PATCH', `/api/comments/${id}/hide`, { isHidden }),
 }
 
-// ══ ADMIN COINS ══════════════════════════════════════
-export const adminCoinsApi = {
-  getDashboard:   ()             => request('GET',   '/api/admin/coins/dashboard'),
-  getRequests:    (p = {})       => request('GET',   `/api/admin/coins/requests?${new URLSearchParams(p)}`),
-  approve:        (id, data={})  => request('PATCH', `/api/admin/coins/requests/${id}/approve`, data),
-  reject:         (id, data={})  => request('PATCH', `/api/admin/coins/requests/${id}/reject`, data),
-  adjust:         (data)         => request('POST',  '/api/admin/coins/adjust', data),
-}
-
-
-// ══ COINS ════════════════════════════════════════════
+// ── COINS ─────────────────────────────────────────────
 export const coinsApi = {
   // Public
   getPacks:        ()              => request('GET',  '/api/coins/packs', null, false),
@@ -279,39 +241,58 @@ export const coinsApi = {
   getUnlocks:      (mangaId)       => request('GET',  `/api/coins/unlocks/${mangaId}`),
 }
 
-// ══ FOLLOWS (s'abonner à un manga) ════════════════════
+// ── FOLLOWS (s'abonner à un manga) ────────────────────
 export const followApi = {
   toggle:    (mangaId) => request('POST', `/api/follows/${mangaId}`),
   getStatus: (mangaId) => request('GET',  `/api/follows/${mangaId}/status`),
   getMy:     ()        => request('GET',  '/api/follows/my'),
 }
 
+// ══════════════════════════════════════════════════════
+// ADMIN — COINS
+// ══════════════════════════════════════════════════════
+export const adminCoinsApi = {
+  getDashboard:   ()             => request('GET',   '/api/admin/coins/dashboard'),
+  getRequests:    (p = {})       => request('GET',   `/api/admin/coins/requests?${new URLSearchParams(p)}`),
+  approve:        (id, data={})  => request('PATCH', `/api/admin/coins/requests/${id}/approve`, data),
+  reject:         (id, data={})  => request('PATCH', `/api/admin/coins/requests/${id}/reject`, data),
+  adjust:         (data)         => request('POST',  '/api/admin/coins/adjust', data),
+}
 
-// ── ADMIN MANGA ──────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// ADMIN — MANGA
+// ══════════════════════════════════════════════════════
 export const adminMangaApi = {
   getDashboard:     ()              => request('GET', '/api/admin/manga/dashboard'),
   getMangas:        (p = {})        => request('GET', `/api/admin/manga/list?${new URLSearchParams(p)}`),
   updateManga:      (id, data)      => request('PATCH', `/api/admin/manga/manga/${id}`, data),
   deleteManga:      (id)            => request('DELETE', `/api/admin/manga/manga/${id}`),
-  // Comments
+  moderateManga:    (id, status, notes='') => request('PATCH', `/api/admin/manga/manga/${id}`, {
+                                          moderationStatus: status,
+                                          ...(status === 'rejected' ? { rejectedReason: notes } : { moderationNotes: notes }),
+                                        }),
+  toggleOfficial:   (id)            => request('PATCH', `/api/admin/manga/manga/${id}/official`),
+  // Chapitres (modération)
+  getChapters:      (mangaId)       => request('GET', `/api/admin/manga/manga/${mangaId}/chapters`),
+  moderateChapter:  (id, data)      => request('PATCH', `/api/admin/manga/chapters/${id}`, data),
+  deleteChapter:    (id)            => request('DELETE', `/api/admin/manga/chapters/${id}`),
+  // Commentaires
   getComments:      (p = {})        => request('GET', `/api/admin/manga/comments/list?${new URLSearchParams(p)}`),
   deleteComment:    (id)            => request('DELETE', `/api/admin/manga/comments/${id}`),
   hideComment:      (id, isHidden)  => request('PATCH', `/api/comments/${id}/hide`, { isHidden }),
   // Publishers
   getPublishers:    ()              => request('GET', '/api/admin/manga/publishers/list'),
   togglePublisher:  (userId, revoke)=> request('PATCH', `/api/admin/manga/publishers/${userId}`, { revoke }),
-  // Reuse from public namespace
-  moderateManga:    (id, status, notes) => request('PATCH', `/api/manga/${id}/moderate`, { status, notes }),
+  // Candidatures publisher
   getPubApps:       (p = {})        => request('GET', `/api/publishers?${new URLSearchParams(p)}`),
   reviewPubApp:     (id, status, notes) => request('PATCH', `/api/publishers/${id}/review`, { status, adminNotes: notes }),
+  // Abonnements
   getSubscriptions: (p = {})        => request('GET', `/api/subscriptions?${new URLSearchParams(p)}`),
   activateSub:      (id, data = {}) => request('PATCH', `/api/subscriptions/${id}/activate`, data),
   updateSub:        (id, data)      => request('PATCH', `/api/subscriptions/${id}`, data),
-
-  
 }
 
-
+// ── HEALTH ────────────────────────────────────────────
 export const checkHealth = async () => {
   try { const res = await fetch(`${API_BASE}/api/health`); return res.ok } catch { return false }
 }
