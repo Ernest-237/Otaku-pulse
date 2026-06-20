@@ -1,4 +1,4 @@
-// src/pages/Admin/index.jsx — COMPLET
+// src/pages/Admin/index.jsx — COMPLET (dark néon gaming)
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }  from '../../contexts/AuthContext'
@@ -66,11 +66,11 @@ export default function Admin() {
     <div key={s.id} style={{
       padding:'12px 1rem 6px',
       fontSize:'.6rem',
-      color:'rgba(124,58,237,.5)',
+      color:'rgba(51,255,51,.5)',
       letterSpacing:'2px',
       fontWeight:800,
       textTransform:'uppercase',
-      borderTop:'1px solid rgba(255,255,255,.05)',
+      borderTop:'1px solid rgba(51,255,51,.1)',
       marginTop:'8px',
       marginBottom:'4px',
     }}>{s.label}</div>
@@ -101,7 +101,7 @@ export default function Admin() {
   {SECTIONS.find(s => s.id === section && !s.divider)?.label || section}
 </h1>
           <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-            <span style={{ fontSize:'.75rem', color:'rgba(180,190,220,.5)' }}>
+            <span style={{ fontSize:'.75rem', color:'var(--ad-text-2, rgba(143,168,150,.6))' }}>
               {new Date().toLocaleDateString('fr-FR',{ dateStyle:'medium' })}
             </span>
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>🌐 Site</Button>
@@ -145,7 +145,6 @@ function ContactsSection({ toast }) {
 
   const save = async (id, status, adminNotes) => {
     try {
-      // Appel PATCH /api/contact/:id
       const res = await fetch(`${API_BASE}/api/contact/${id}`, {
         method:'PATCH',
         headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${localStorage.getItem('op_token')}` },
@@ -187,7 +186,7 @@ function ContactsSection({ toast }) {
                 <tr key={c.id} className={styles.tr}>
                   <td>
                     <strong>{c.prenom} {c.nom}</strong>
-                    <br/><small style={{ color:'rgba(180,190,220,.5)' }}>{c.email}</small>
+                    <br/><small style={{ color:'var(--ad-text-2,#8fa896)' }}>{c.email}</small>
                   </td>
                   <td><Badge variant="blue" style={{ fontSize:'.65rem' }}>{c.pack?.toUpperCase()}</Badge></td>
                   <td style={{ fontSize:'.82rem' }}>{c.theme}</td>
@@ -211,7 +210,7 @@ function ContactModal({ c, onClose, onSave }) {
   const [status, setStatus] = useState(c.status)
   const [notes,  setNotes]  = useState(c.adminNotes||'')
   return (
-    <Modal isOpen title="📬 Réservation" onClose={onClose}
+    <Modal isOpen dark title="📬 Réservation" onClose={onClose}
       footer={
         <><Button variant="ghost" onClick={onClose}>Fermer</Button>
         <Button variant="primary" onClick={() => onSave(c.id, status, notes)}>💾 Sauvegarder</Button></>
@@ -234,7 +233,7 @@ function ContactModal({ c, onClose, onSave }) {
         ))}
       </div>
       {c.message && (
-        <p style={{ color:'rgba(180,190,220,.6)', fontSize:'.85rem', lineHeight:1.6, padding:'10px', background:'rgba(255,255,255,.03)', borderRadius:8, marginBottom:'1rem' }}>
+        <p style={{ color:'var(--ad-text-2,#8fa896)', fontSize:'.85rem', lineHeight:1.6, padding:'10px', background:'rgba(255,255,255,.03)', borderRadius:8, marginBottom:'1rem' }}>
           {c.message}
         </p>
       )}
@@ -310,17 +309,17 @@ function ProductsSection({ toast }) {
                   </td>
                   <td>
                     <strong>{p.nameF}</strong>
-                    {p.nameE && <div style={{ fontSize:'.75rem', color:'rgba(180,190,220,.45)' }}>{p.nameE}</div>}
+                    {p.nameE && <div style={{ fontSize:'.75rem', color:'var(--ad-text-2,#8fa896)' }}>{p.nameE}</div>}
                   </td>
                   <td>
                     {p.supplier
-                      ? <span style={{ fontSize:'.78rem', background:'rgba(34,197,94,.1)', color:'#4ade80', borderRadius:6, padding:'3px 8px' }}>🤝 {p.supplier.name}</span>
-                      : <span style={{ fontSize:'.75rem', color:'rgba(180,190,220,.4)' }}>Otaku Pulse</span>}
+                      ? <span style={{ fontSize:'.78rem', background:'rgba(51,255,51,.1)', color:'#4ade80', borderRadius:6, padding:'3px 8px' }}>🤝 {p.supplier.name}</span>
+                      : <span style={{ fontSize:'.75rem', color:'var(--ad-text-2,#8fa896)' }}>Otaku Pulse</span>}
                   </td>
                   <td><Badge variant="gray" style={{ fontSize:'.65rem' }}>{p.category}</Badge></td>
                   <td>
                     <span style={{ fontFamily:'var(--font-title)', color:'#4ade80' }}>{p.price?.toLocaleString()} F</span>
-                    {p.oldPrice && <div style={{ fontSize:'.72rem', color:'rgba(180,190,220,.4)', textDecoration:'line-through' }}>{p.oldPrice?.toLocaleString()}</div>}
+                    {p.oldPrice && <div style={{ fontSize:'.72rem', color:'var(--ad-text-2,#8fa896)', textDecoration:'line-through' }}>{p.oldPrice?.toLocaleString()}</div>}
                   </td>
                   <td><Badge variant={p.stock<=0?'red':p.stock<=3?'amber':'green'} style={{ fontSize:'.65rem' }}>{p.stock}</Badge></td>
                   <td><Badge variant={p.isActive?'green':'gray'} style={{ fontSize:'.65rem' }}>{p.isActive?'Actif':'Inactif'}</Badge></td>
@@ -359,7 +358,7 @@ function ProductModal({ product:p, onClose, onSave, toast }) {
   const slugify = str => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')
 
   return (
-    <Modal isOpen title={p?'✏️ Modifier produit':'📦 Nouveau produit'} onClose={onClose} wide
+    <Modal isOpen dark title={p?'✏️ Modifier produit':'📦 Nouveau produit'} onClose={onClose} wide
       footer={
         <><Button variant="ghost" onClick={onClose}>Annuler</Button>
         <Button variant="primary" onClick={() => onSave({
@@ -375,15 +374,26 @@ function ProductModal({ product:p, onClose, onSave, toast }) {
         <AInput label="Nom EN"   value={form.nameE} onChange={v => s('nameE',v)} />
       </div>
       <AInput label="Slug URL" value={form.slug} onChange={v => s('slug',v)} />
-      <div style={{ marginBottom:'1rem' }}>
-        <label style={{ display:'block', fontSize:'.7rem', fontWeight:700, color:'rgba(180,190,220,.5)', marginBottom:5, letterSpacing:1, textTransform:'uppercase' }}>Fournisseur</label>
-        <select value={form.supplierId} onChange={e => { s('supplierId',e.target.value); s('isOwnProduct',!e.target.value) }}
-          style={{ width:'100%', padding:'10px 12px', borderRadius:10, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'#e2e8f0', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }}>
-          <option value="" style={{ background:'#11142a' }}>⚡ Otaku Pulse (notre produit)</option>
-          {suppliers.filter(s=>s.isActive).map(s => <option key={s.id} value={s.id} style={{ background:'#11142a' }}>🤝 {s.name}</option>)}
-        </select>
-      </div>
-      <AInput label="URL image externe" value={form.imageUrl} onChange={v=>s('imageUrl',v)} placeholder="https://...jpg" />
+      <ASelectRaw label="Fournisseur" value={form.supplierId}
+        onChange={e => { s('supplierId',e.target.value); s('isOwnProduct',!e.target.value) }}>
+        <option value="">⚡ Otaku Pulse (notre produit)</option>
+        {suppliers.filter(sp=>sp.isActive).map(sp => <option key={sp.id} value={sp.id}>🤝 {sp.name}</option>)}
+      </ASelectRaw>
+
+      {/* ── IMAGE : fichier OU lien ── */}
+      <AField label="Image du produit">
+        <ImageUploader
+          currentUrl={form.imageUrl && form.imageUrl.startsWith('/') ? `${API_BASE}${form.imageUrl}` : form.imageUrl}
+          onUpload={async (data, mime) => {
+            // Stocke la data URL base64 directement dans imageUrl
+            s('imageUrl', `data:${mime};base64,${data}`)
+            toast?.success?.('📸 Image chargée')
+          }}
+          onUrlChange={(url) => s('imageUrl', url)}
+          placeholder="Cliquer ou glisser une image produit"
+        />
+      </AField>
+
       <div className={styles.formGrid2}>
         <ASelect label="Catégorie *" value={form.category} onChange={v=>s('category',v)}
           options={ALL_CATS.map(c=>({v:c,l:c.charAt(0).toUpperCase()+c.slice(1)}))} />
@@ -395,7 +405,7 @@ function ProductModal({ product:p, onClose, onSave, toast }) {
       </div>
       <ATextarea label="Description FR" value={form.descF||''} onChange={v=>s('descF',v)} rows={2} />
       <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', marginTop:'.5rem', color:'#cbd5e1' }}>
-        <input type="checkbox" checked={form.isActive} onChange={e=>s('isActive',e.target.checked)} style={{ accentColor:'var(--green)' }} />
+        <input type="checkbox" checked={form.isActive} onChange={e=>s('isActive',e.target.checked)} style={{ accentColor:'#33ff33' }} />
         ✅ Produit actif
       </label>
     </Modal>
@@ -476,10 +486,10 @@ function BlogSection({ toast }) {
               <div key={p.id} className={styles.postItem}>
                 <span style={{ fontSize:'1.8rem', width:46, textAlign:'center', flexShrink:0 }}>{p.emoji||CAT_ICONS[p.category]||'📰'}</span>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:'.9rem', fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:3, color:'#e2e8f0' }}>{p.title}</div>
+                  <div style={{ fontSize:'.9rem', fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:3, color:'var(--ad-text,#e8ffe8)' }}>{p.title}</div>
                   <div style={{ display:'flex', gap:7, flexWrap:'wrap', alignItems:'center' }}>
                     <Badge variant={CAT_COLORS[p.category]||'gray'} style={{ fontSize:'.62rem' }}>{p.category}</Badge>
-                    <span style={{ fontSize:'.72rem', color:'rgba(180,190,220,.5)' }}>{new Date(p.createdAt).toLocaleDateString('fr-FR')}</span>
+                    <span style={{ fontSize:'.72rem', color:'var(--ad-text-2,#8fa896)' }}>{new Date(p.createdAt).toLocaleDateString('fr-FR')}</span>
                     <span style={{ fontSize:'.72rem', color:p.isPublished?'#4ade80':'#f87171' }}>{p.isPublished?'✅ Publié':'🔴 Masqué'}</span>
                   </div>
                 </div>
@@ -499,11 +509,11 @@ function BlogSection({ toast }) {
           </div>
           <div style={{ padding:'1rem', display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:10 }}>
             {partners.map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px', background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.06)', borderRadius:10 }}>
+              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px', background:'rgba(255,255,255,.03)', border:'1px solid var(--ad-border,rgba(51,255,51,.12))', borderRadius:10 }}>
                 <span style={{ fontSize:'1.5rem', width:36, textAlign:'center' }}>{p.logo||'🤝'}</span>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:'.85rem', fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'#e2e8f0' }}>{p.name}</div>
-                  <div style={{ fontSize:'.72rem', color:'rgba(180,190,220,.5)' }}>{p.description||''}</div>
+                  <div style={{ fontSize:'.85rem', fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'var(--ad-text,#e8ffe8)' }}>{p.name}</div>
+                  <div style={{ fontSize:'.72rem', color:'var(--ad-text-2,#8fa896)' }}>{p.description||''}</div>
                 </div>
                 <Button variant="danger" size="sm" onClick={async () => { try { await blogApi.deletePartner(p.id); refetchPart() } catch(e) { toast.error(e.message) }}}>✕</Button>
               </div>
@@ -517,17 +527,17 @@ function BlogSection({ toast }) {
           <PopupForm toast={toast} />
         </div>
       </div>
-      {postModal && <PostModal post={editingPost} onClose={() => { setPostModal(false); setEditingPost(null) }} onSave={savePost} />}
+      {postModal && <PostModal post={editingPost} onClose={() => { setPostModal(false); setEditingPost(null) }} onSave={savePost} toast={toast} />}
       {partModal && <PartnerModal onClose={() => setPartModal(false)} onSave={savePartner} />}
     </div>
   )
 }
 
-function PostModal({ post:p, onClose, onSave }) {
+function PostModal({ post:p, onClose, onSave, toast }) {
   const [form, setForm] = useState({ title:p?.title||'', category:p?.category||'blog', excerpt:p?.excerpt||'', content:p?.content||'', emoji:p?.emoji||'📰', imageUrl:p?.imageUrl||'', isFeatured:p?.isFeatured||false, isPublished:p?.isPublished!==false, promoCode:p?.promoCode||'' })
   const s = (k,v) => setForm(f=>({...f,[k]:v}))
   return (
-    <Modal isOpen title={p?'✏️ Modifier':'📝 Nouvel article'} onClose={onClose} wide
+    <Modal isOpen dark title={p?'✏️ Modifier':'📝 Nouvel article'} onClose={onClose} wide
       footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={()=>onSave(form)}>💾 Publier</Button></>}>
       <AInput label="Titre *" value={form.title} onChange={v=>s('title',v)} />
       <div className={styles.formGrid2}>
@@ -535,13 +545,26 @@ function PostModal({ post:p, onClose, onSave }) {
           options={[{v:'blog',l:'📝 Blog'},{v:'event',l:'🎌 Événement'},{v:'promo',l:'🔥 Promo'},{v:'partner',l:'🤝 Partenaire'}]} />
         <AInput label="Emoji" value={form.emoji} onChange={v=>s('emoji',v)} />
       </div>
-      <AInput label="Image URL" value={form.imageUrl} onChange={v=>s('imageUrl',v)} placeholder="https://...jpg" />
+
+      {/* ── IMAGE : fichier OU lien ── */}
+      <AField label="Image de l'article">
+        <ImageUploader
+          currentUrl={form.imageUrl && form.imageUrl.startsWith('/') ? `${API_BASE}${form.imageUrl}` : form.imageUrl}
+          onUpload={async (data, mime) => {
+            s('imageUrl', `data:${mime};base64,${data}`)
+            toast?.success?.('📸 Image chargée')
+          }}
+          onUrlChange={(url) => s('imageUrl', url)}
+          placeholder="Cliquer ou glisser une image d'article"
+        />
+      </AField>
+
       <ATextarea label="Résumé" value={form.excerpt} onChange={v=>s('excerpt',v)} rows={2} />
       <ATextarea label="Contenu *" value={form.content} onChange={v=>s('content',v)} rows={6} />
       <AInput label="Code promo" value={form.promoCode} onChange={v=>s('promoCode',v)} placeholder="NAKAMA" />
       <div style={{ display:'flex', gap:'1.5rem', marginTop:'.8rem' }}>
-        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.isFeatured} onChange={e=>s('isFeatured',e.target.checked)} style={{ accentColor:'#22c55e' }} /> ⭐ À la une</label>
-        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.isPublished} onChange={e=>s('isPublished',e.target.checked)} style={{ accentColor:'#22c55e' }} /> ✅ Publié</label>
+        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.isFeatured} onChange={e=>s('isFeatured',e.target.checked)} style={{ accentColor:'#33ff33' }} /> ⭐ À la une</label>
+        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.isPublished} onChange={e=>s('isPublished',e.target.checked)} style={{ accentColor:'#33ff33' }} /> ✅ Publié</label>
       </div>
     </Modal>
   )
@@ -551,7 +574,7 @@ function PartnerModal({ onClose, onSave }) {
   const [form, setForm] = useState({ name:'', description:'', logo:'🤝', url:'' })
   const s = (k,v) => setForm(f=>({...f,[k]:v}))
   return (
-    <Modal isOpen title="🤝 Nouveau partenaire" onClose={onClose}
+    <Modal isOpen dark title="🤝 Nouveau partenaire" onClose={onClose}
       footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={()=>onSave(form)}>💾 Ajouter</Button></>}>
       <AInput label="Nom *" value={form.name} onChange={v=>s('name',v)} />
       <AInput label="Description" value={form.description} onChange={v=>s('description',v)} />
@@ -568,7 +591,7 @@ function PopupForm({ toast }) {
   const s = (k,v) => setForm(f=>({...f,[k]:v}))
   return (
     <div style={{ padding:'1rem' }}>
-      <p style={{ fontSize:'.8rem', color:'rgba(180,190,220,.5)', lineHeight:1.5, marginBottom:'1rem' }}>Popup visible sur la page Blog.</p>
+      <p style={{ fontSize:'.8rem', color:'var(--ad-text-2,#8fa896)', lineHeight:1.5, marginBottom:'1rem' }}>Popup visible sur la page Blog.</p>
       <AInput label="Emoji" value={form.emoji} onChange={v=>s('emoji',v)} />
       <AInput label="Titre" value={form.title} onChange={v=>s('title',v)} />
       <ATextarea label="Texte" value={form.text} onChange={v=>s('text',v)} rows={2} />
@@ -618,13 +641,13 @@ function UsersSection({ toast }) {
             <tbody>
               {filtered.map(u => (
                 <tr key={u.id} className={styles.tr}>
-                  <td><strong style={{ color:'#e2e8f0' }}>{u.pseudo}</strong>
-                    {u.firstName && <div style={{ fontSize:'.75rem', color:'rgba(180,190,220,.45)' }}>{u.firstName} {u.lastName||''}</div>}
+                  <td><strong style={{ color:'var(--ad-text,#e8ffe8)' }}>{u.pseudo}</strong>
+                    {u.firstName && <div style={{ fontSize:'.75rem', color:'var(--ad-text-2,#8fa896)' }}>{u.firstName} {u.lastName||''}</div>}
                   </td>
-                  <td style={{ fontSize:'.82rem', color:'#cbd5e1' }}>{u.email}</td>
-                  <td style={{ fontSize:'.82rem', color:'rgba(180,190,220,.6)' }}>{u.city||'—'}</td>
+                  <td style={{ fontSize:'.82rem', color:'#c5d6c8' }}>{u.email}</td>
+                  <td style={{ fontSize:'.82rem', color:'var(--ad-text-2,#8fa896)' }}>{u.city||'—'}</td>
                   <td><Badge variant={u.role==='superadmin'?'red':u.role==='admin'?'amber':'gray'} style={{ fontSize:'.65rem' }}>{u.role}</Badge></td>
-                  <td style={{ fontSize:'.78rem', color:'rgba(180,190,220,.5)' }}>{new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
+                  <td style={{ fontSize:'.78rem', color:'var(--ad-text-2,#8fa896)' }}>{new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
                   <td><Badge variant={u.isBanned?'red':u.isVerified?'green':'amber'} style={{ fontSize:'.65rem' }}>{u.isBanned?'🔒 Banni':u.isVerified?'✅ Actif':'⏳'}</Badge></td>
                   <td><Button variant="ghost" size="sm" onClick={()=>setSelected(u)}>👁️</Button></td>
                 </tr>
@@ -644,7 +667,7 @@ function UserModal({ user:u, onClose, onSave }) {
   const [ver,  setVer]  = useState(u.isVerified)
   const [nl,   setNl]   = useState(u.newsletterSubscribed)
   return (
-    <Modal isOpen title={`👤 ${u.pseudo}`} onClose={onClose} wide
+    <Modal isOpen dark title={`👤 ${u.pseudo}`} onClose={onClose} wide
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Fermer</Button>
@@ -663,11 +686,11 @@ function UserModal({ user:u, onClose, onSave }) {
           .map(([l,v]) => (
             <div key={l} className={styles.detailItem}>
               <div className={styles.detailLbl}>{l}</div>
-              <strong style={{ fontSize:'.88rem', color:'#e2e8f0' }}>{v}</strong>
+              <strong style={{ fontSize:'.88rem', color:'var(--ad-text,#e8ffe8)' }}>{v}</strong>
             </div>
           ))}
       </div>
-      <div style={{ background:'rgba(255,255,255,.02)', border:'1px solid rgba(255,255,255,.06)', borderRadius:12, padding:'1.2rem' }}>
+      <div style={{ background:'rgba(255,255,255,.02)', border:'1px solid var(--ad-border,rgba(51,255,51,.12))', borderRadius:12, padding:'1.2rem' }}>
         <div className={styles.formGrid2}>
           <ASelect label="Rôle" value={role} onChange={setRole}
             options={[{v:'user',l:'👤 Membre'},{v:'admin',l:'⚙️ Admin'},{v:'superadmin',l:'👑 Super Admin'}]} />
@@ -681,37 +704,71 @@ function UserModal({ user:u, onClose, onSave }) {
   )
 }
 
-// ══ FORM HELPERS ══════════════════════════════════════
-function AInput({ label, type='text', value, onChange, placeholder }) {
+// ══ FORM HELPERS (dark néon) ══════════════════════════
+const labelStyle = {
+  display:'block', fontSize:'.7rem', fontWeight:700, letterSpacing:1,
+  color:'var(--ad-text-2,#8fa896)', marginBottom:5, textTransform:'uppercase',
+}
+const fieldStyle = {
+  width:'100%', padding:'10px 12px', borderRadius:10,
+  background:'var(--ad-bg,#0a0e0a)', border:'1px solid var(--ad-border-2,rgba(51,255,51,.22))',
+  color:'var(--ad-text,#e8ffe8)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none',
+  transition:'border-color .2s, box-shadow .2s',
+}
+const onFocusField = e => { e.target.style.borderColor='rgba(51,255,51,.5)'; e.target.style.boxShadow='0 0 0 3px rgba(51,255,51,.12)' }
+const onBlurField  = e => { e.target.style.borderColor='var(--ad-border-2,rgba(51,255,51,.22))'; e.target.style.boxShadow='none' }
+
+function AField({ label, children }) {
   return (
     <div style={{ marginBottom:'1rem' }}>
-      <label style={{ display:'block', fontSize:'.7rem', fontWeight:700, letterSpacing:1, color:'rgba(180,190,220,.5)', marginBottom:5, textTransform:'uppercase' }}>{label}</label>
-      <input type={type} value={value??''} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
-        style={{ width:'100%', padding:'10px 12px', borderRadius:10, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'#e2e8f0', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none', transition:'border-color .2s' }}
-        onFocus={e=>e.target.style.borderColor='rgba(124,58,237,.6)'}
-        onBlur={e=>e.target.style.borderColor='rgba(255,255,255,.1)'} />
+      <label style={labelStyle}>{label}</label>
+      {children}
     </div>
   )
 }
+
+function AInput({ label, type='text', value, onChange, placeholder }) {
+  return (
+    <div style={{ marginBottom:'1rem' }}>
+      <label style={labelStyle}>{label}</label>
+      <input type={type} value={value??''} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+        style={fieldStyle} onFocus={onFocusField} onBlur={onBlurField} />
+    </div>
+  )
+}
+
 function ASelect({ label, value, onChange, options }) {
   return (
     <div style={{ marginBottom:'1rem' }}>
-      <label style={{ display:'block', fontSize:'.7rem', fontWeight:700, letterSpacing:1, color:'rgba(180,190,220,.5)', marginBottom:5, textTransform:'uppercase' }}>{label}</label>
+      <label style={labelStyle}>{label}</label>
       <select value={value} onChange={e=>onChange(e.target.value)}
-        style={{ width:'100%', padding:'10px 12px', borderRadius:10, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'#e2e8f0', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }}>
-        {options.map(o=><option key={o.v} value={o.v} style={{ background:'#11142a' }}>{o.l}</option>)}
+        style={fieldStyle} onFocus={onFocusField} onBlur={onBlurField}>
+        {options.map(o=><option key={o.v} value={o.v} style={{ background:'#0f140f' }}>{o.l}</option>)}
       </select>
     </div>
   )
 }
+
+// Select avec children bruts (pour le cas fournisseurs)
+function ASelectRaw({ label, value, onChange, children }) {
+  return (
+    <div style={{ marginBottom:'1rem' }}>
+      <label style={labelStyle}>{label}</label>
+      <select value={value} onChange={onChange}
+        style={fieldStyle} onFocus={onFocusField} onBlur={onBlurField}>
+        {children}
+      </select>
+    </div>
+  )
+}
+
 function ATextarea({ label, value, onChange, rows=3 }) {
   return (
     <div style={{ marginBottom:'1rem' }}>
-      <label style={{ display:'block', fontSize:'.7rem', fontWeight:700, letterSpacing:1, color:'rgba(180,190,220,.5)', marginBottom:5, textTransform:'uppercase' }}>{label}</label>
+      <label style={labelStyle}>{label}</label>
       <textarea value={value??''} onChange={e=>onChange(e.target.value)} rows={rows}
-        style={{ width:'100%', padding:'10px 12px', borderRadius:10, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'#e2e8f0', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none', resize:'vertical', lineHeight:1.6 }}
-        onFocus={e=>e.target.style.borderColor='rgba(124,58,237,.6)'}
-        onBlur={e=>e.target.style.borderColor='rgba(255,255,255,.1)'} />
+        style={{ ...fieldStyle, resize:'vertical', lineHeight:1.6 }}
+        onFocus={onFocusField} onBlur={onBlurField} />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-/* Modal.module.css — Light néon otaku */
+/* Modal.module.css — Light néon otaku (site) + mode dark néon (admin) */
 
 .overlay {
   position: fixed; inset: 0;
@@ -127,6 +127,88 @@
   background: var(--bg-soft);
   flex-shrink: 0;
   flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ── MODE DARK NÉON (ADMIN) ──
+   Activé via la prop dark → classes .overlayDark / .modalDark
+   ═══════════════════════════════════════════════════════ */
+.overlayDark {
+  background:
+    radial-gradient(ellipse at 30% 15%, rgba(51,255,51,.12) 0%, transparent 55%),
+    rgba(0, 0, 0, 0.78);
+}
+
+.modalDark {
+  background: #0f140f;
+  border: 1.5px solid rgba(51,255,51,.18);
+  box-shadow: 0 24px 70px rgba(0,0,0,.6), 0 0 40px rgba(51,255,51,.08);
+}
+.modalDark::before {
+  background: #33ff33;
+  box-shadow: 0 0 16px rgba(51,255,51,.55);
+}
+
+/* Header dark */
+.modalDark .header {
+  border-bottom-color: rgba(51,255,51,.12);
+}
+.modalDark .title {
+  color: #e8ffe8;
+}
+
+/* Close dark */
+.modalDark .close {
+  background: rgba(255,255,255,.04);
+  border-color: rgba(51,255,51,.15);
+  color: #9aa6c0;
+}
+.modalDark .close:hover {
+  background: rgba(239,68,68,.15);
+  color: #fca5a5;
+  border-color: rgba(239,68,68,.4);
+}
+
+/* Scrollbar dark */
+.modalDark .body::-webkit-scrollbar-thumb {
+  background: rgba(51,255,51,.25);
+}
+.modalDark .body::-webkit-scrollbar-thumb:hover {
+  background: rgba(51,255,51,.5);
+}
+
+/* Footer dark */
+.modalDark .footer {
+  border-top-color: rgba(51,255,51,.12);
+  background: #0a0e0a;
+}
+
+/* Champs de formulaire à l'intérieur d'un modal dark
+   (inputs, selects, textareas standards non stylés en module) */
+.modalDark input:not([type="checkbox"]):not([type="radio"]),
+.modalDark select,
+.modalDark textarea {
+  background: #0a0e0a;
+  border: 1.5px solid rgba(51,255,51,.15);
+  color: #e8ffe8;
+}
+.modalDark input::placeholder,
+.modalDark textarea::placeholder {
+  color: #5f6b85;
+}
+.modalDark input:focus,
+.modalDark select:focus,
+.modalDark textarea:focus {
+  border-color: rgba(51,255,51,.5);
+  box-shadow: 0 0 0 3px rgba(51,255,51,.12);
+}
+.modalDark select option {
+  background: #0f140f;
+  color: #e8ffe8;
+}
+/* Labels génériques dans modal dark */
+.modalDark label {
+  color: #cbd5e1;
 }
 
 /* ── RESPONSIVE ── */

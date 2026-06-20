@@ -7,7 +7,6 @@ const { Op }   = require('sequelize');
 const { protect, restrictTo } = require('../middleware/auth');
 const router   = express.Router();
 
-// ── Charger les modèles Blog (définis dans models/index.js) ──
 const { sequelize } = require('../config/database');
 const { DataTypes } = require('sequelize');
 
@@ -22,7 +21,10 @@ function getBlogModels() {
     excerpt:     { type: DataTypes.TEXT },
     content:     { type: DataTypes.TEXT('long'), allowNull: false },
     category:    { type: DataTypes.ENUM('blog','event','promo','partner'), defaultValue: 'blog' },
-    imageUrl:    { type: DataTypes.STRING(500) },
+    // ── IMAGES : fichier base64 (TEXT illimité) OU lien URL ──
+    imageData:   { type: DataTypes.TEXT },          // base64 d'un fichier uploadé
+    imageMime:   { type: DataTypes.STRING(50) },    // type MIME (image/png, image/jpeg...)
+    imageUrl:    { type: DataTypes.TEXT },           // lien externe OU data URL (TEXT au lieu de STRING(500))
     emoji:       { type: DataTypes.STRING(10), defaultValue: '📰' },
     isFeatured:  { type: DataTypes.BOOLEAN, defaultValue: false },
     isPublished: { type: DataTypes.BOOLEAN, defaultValue: true },
@@ -39,7 +41,7 @@ function getBlogModels() {
     name:        { type: DataTypes.STRING(100), allowNull: false },
     description: { type: DataTypes.STRING(255) },
     logo:        { type: DataTypes.STRING(10), defaultValue: '🤝' },
-    logoUrl:     { type: DataTypes.STRING(500) },
+    logoUrl:     { type: DataTypes.TEXT },           // TEXT pour accepter base64 aussi
     url:         { type: DataTypes.STRING(500) },
     isActive:    { type: DataTypes.BOOLEAN, defaultValue: true },
     order:       { type: DataTypes.INTEGER, defaultValue: 0 },
@@ -65,6 +67,22 @@ function getBlogModels() {
   return { Post, Partner, PromoPopup };
 }
 
+// ── Helper : normalise les champs image du body ──────────
+// Si imageUrl contient une data URL base64 → on la déplace dans imageData/imageMime
+// pour éviter de stocker une énorme base64 dans un champ inadapté.
+function normalizeImageFields(body) {
+  const out = { ...body };
+  if (typeof out.imageUrl === 'string' && out.imageUrl.startsWith('data:')) {
+    const match = out.imageUrl.match(/^data:([^;]+);base64,(.*)$/s);
+    if (match) {
+      out.imageMime = match[1];
+      out.imageData = match[2];
+      out.imageUrl  = null; // on ne garde pas la data URL dans imageUrl
+    }
+  }
+  return out;
+}
+
 // ── GET /api/blog — liste publique ───────────────────────
 router.get('/', async (req, res, next) => {
   try {
@@ -74,9 +92,19 @@ router.get('/', async (req, res, next) => {
     if (category && category !== 'all') where.category = category;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    const { rows: posts, count: total } = await Post.findAndCountAll({
+    const { rows, count: total } = await Post.findAndCountAll({
       where, order: [['isFeatured','DESC'],['createdAt','DESC']],
       limit: parseInt(limit), offset,
+      attributes: { exclude: ['imageData'] }, // ne pas charger la base64 dans la liste (lourd)
+    });
+
+    // Reconstruire une URL d'image utilisable pour chaque post
+    const posts = rows.map(p => {
+      const j = p.toJSON();
+      if (!j.imageUrl && j.imageMime) {
+        j.imageUrl = `/api/blog/${j.id}/image`; // pointer vers la route image
+      }
+      return j;
     });
 
     res.json({ posts, total });
@@ -110,14 +138,29 @@ router.get('/popup', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── GET /api/blog/:id/image — sert l'image base64 d'un post ──
+router.get('/:id/image', async (req, res, next) => {
+  try {
+    const { Post } = getBlogModels();
+    const post = await Post.findByPk(req.params.id, { attributes: ['imageData','imageMime'] });
+    if (!post || !post.imageData) return res.status(404).send('No image');
+    const buffer = Buffer.from(post.imageData, 'base64');
+    res.set('Content-Type', post.imageMime || 'image/jpeg');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(buffer);
+  } catch (err) { next(err); }
+});
+
 // ── GET /api/blog/:id ─────────────────────────────────────
 router.get('/:id', async (req, res, next) => {
   try {
     const { Post } = getBlogModels();
-    const post = await Post.findByPk(req.params.id);
+    const post = await Post.findByPk(req.params.id, { attributes: { exclude: ['imageData'] } });
     if (!post || !post.isPublished) return res.status(404).json({ error: 'Article introuvable.' });
     await post.increment('views');
-    res.json({ post });
+    const j = post.toJSON();
+    if (!j.imageUrl && j.imageMime) j.imageUrl = `/api/blog/${j.id}/image`;
+    res.json({ post: j });
   } catch (err) { next(err); }
 });
 
@@ -125,8 +168,12 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
   try {
     const { Post } = getBlogModels();
-    const post = await Post.create({ ...req.body, authorId: req.user.id });
-    res.status(201).json({ post });
+    const payload = normalizeImageFields(req.body);
+    const post = await Post.create({ ...payload, authorId: req.user.id });
+    const j = post.toJSON();
+    delete j.imageData;
+    if (!j.imageUrl && j.imageMime) j.imageUrl = `/api/blog/${j.id}/image`;
+    res.status(201).json({ post: j });
   } catch (err) { next(err); }
 });
 
@@ -136,8 +183,12 @@ router.patch('/:id', protect, restrictTo('admin','superadmin'), async (req, res,
     const { Post } = getBlogModels();
     const post = await Post.findByPk(req.params.id);
     if (!post) return res.status(404).json({ error: 'Article introuvable.' });
-    await post.update(req.body);
-    res.json({ post });
+    const payload = normalizeImageFields(req.body);
+    await post.update(payload);
+    const j = post.toJSON();
+    delete j.imageData;
+    if (!j.imageUrl && j.imageMime) j.imageUrl = `/api/blog/${j.id}/image`;
+    res.json({ post: j });
   } catch (err) { next(err); }
 });
 
@@ -181,7 +232,6 @@ router.delete('/partners/:id', protect, restrictTo('admin','superadmin'), async 
 router.post('/popup', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
   try {
     const { PromoPopup } = getBlogModels();
-    // Désactiver les anciens popups
     await PromoPopup.update({ isActive: false }, { where: {} });
     const popup = await PromoPopup.create({ ...req.body, isActive: true });
     res.status(201).json({ popup });
@@ -197,8 +247,5 @@ router.patch('/popup/:id', protect, restrictTo('admin','superadmin'), async (req
     res.json({ popup });
   } catch (err) { next(err); }
 });
-
-// ── POST /api/orders/notify — notification commande ──────
-// (utilisé par profil.html après confirmation commande)
 
 module.exports = router;

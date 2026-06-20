@@ -1,8 +1,8 @@
-// src/components/ui/Modal.jsx — Light néon otaku
+// src/components/ui/Modal.jsx — Light (site) + mode dark néon (admin)
 import { useEffect } from 'react'
 import styles from './Modal.module.css'
 
-export default function Modal({ isOpen, onClose, title, children, footer, wide = false }) {
+export default function Modal({ isOpen, onClose, title, children, footer, wide = false, dark = false }) {
   // Bloquer scroll quand modal ouverte
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden'
@@ -21,10 +21,10 @@ export default function Modal({ isOpen, onClose, title, children, footer, wide =
 
   return (
     <div
-      className={styles.overlay}
+      className={`${styles.overlay} ${dark ? styles.overlayDark : ''}`}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className={`${styles.modal} ${wide ? styles.wide : ''}`}>
+      <div className={`${styles.modal} ${wide ? styles.wide : ''} ${dark ? styles.modalDark : ''}`}>
         {title ? (
           <div className={styles.header}>
             <span className={styles.title}>{title}</span>
