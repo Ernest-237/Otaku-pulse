@@ -22,7 +22,6 @@ app.use(cors({
     process.env.CLIENT_URL || 'http://localhost:5173',
     'https://otaku-pulse.com',
     'https://www.otaku-pulse.com',
-    'https://otaku-pulse-09xj.onrender.com',
     'https://api-pulse-v9vy.onrender.com',
     'http://localhost:5173',
   ],
@@ -63,10 +62,13 @@ app.use('/api/library',        require('./routes/library'))
 app.use('/api/subscriptions',  require('./routes/subscriptions'))
 app.use('/api/publishers',     require('./routes/publishers'))
 app.use('/api/comments',       require('./routes/comments'))
-app.use('/api/admin/manga',    require('./routes/adminManga'))    // ← AJOUT
+app.use('/api/admin/manga',    require('./routes/adminManga'))    
 app.use('/api/coins',          require('./routes/coins'))
 app.use('/api/admin/coins',    require('./routes/adminCoins'))
 app.use('/api/follows',        require('./routes/follows'))
+
+// ── Routes Fandom ────────────────────────────
+app.use('/api/fandom', require('./routes/fandom'))
 
 // Health
 app.get('/api/health', async (req, res) => {

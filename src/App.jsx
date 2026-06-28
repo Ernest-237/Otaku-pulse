@@ -49,8 +49,8 @@ export default function App() {
       <Route path="/reservation" element={<ReservationPage />} />
       <Route path="/blog"        element={<Blog />} />
       <Route path="/legal"       element={<LegalPage />} />
-      <Route path="/fandom"      element={<FandomPage />} />
       <Route path="/membership"  element={<MembershipPage />} />
+      <Route path="/fandom" element={<FandomPage />} />
 
       {/* Manga Platform */}
       <Route path="/manga"                                    element={<MangaCatalog />} />

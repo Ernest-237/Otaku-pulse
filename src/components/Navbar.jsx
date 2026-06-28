@@ -68,6 +68,7 @@ export default function Navbar() {
   const [resetPwd,   setResetPwd]   = useState('')
   const [resetSent,  setResetSent]  = useState(false)
 
+  const [showPwd, setShowPwd] = useState(false)
   const dropdownRef = useRef(null)
 
   // Close user dropdown on outside click
@@ -454,9 +455,18 @@ export default function Navbar() {
                 <input name="email" type="email" required className={styles.formInput} placeholder="ton@email.com"/>
               </div>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>{T.password}</label>
-                <input name="password" type="password" required className={styles.formInput} placeholder="••••••••"/>
-              </div>
+  <label className={styles.formLabel}>{T.password}</label>
+  <div style={{ position:'relative' }}>
+    <input name="password" type={showPwd ? 'text' : 'password'} required
+      className={styles.formInput} placeholder="••••••••" style={{ paddingRight:42 }}/>
+    <button type="button" onClick={() => setShowPwd(p => !p)}
+      style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)',
+        background:'none', border:'none', cursor:'pointer', fontSize:'1.1rem', padding:4, lineHeight:1 }}
+      aria-label={showPwd ? 'Masquer' : 'Afficher'}>
+      {showPwd ? '🙈' : '👁️'}
+    </button>
+  </div>
+</div>
               {authError && <div className={styles.authError}>{authError}</div>}
               <button type="submit" className={styles.authSubmit} disabled={loginLoading}>
                 {loginLoading ? <><Spinner size={16} color="#0c1a2e"/> {T.connecting}</> : `⚡ ${T.loginTitle}`}
@@ -492,10 +502,23 @@ export default function Navbar() {
                 <label className={styles.formLabel}>{T.email}</label>
                 <input name="email" type="email" required className={styles.formInput} placeholder="ton@email.com"/>
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>{T.password}</label>
-                <input name="password" type="password" required minLength={8} className={styles.formInput} placeholder="Min 8 caractères"/>
-              </div>
+             <div className={styles.formGroup}>
+  <label className={styles.formLabel}>{T.password}</label>
+  <div style={{ position:'relative' }}>
+    <input name="password" type={showPwd ? 'text' : 'password'} required minLength={8}
+      className={styles.formInput} placeholder="Min 8 caractères" style={{ paddingRight:42 }}/>
+    <button type="button" onClick={() => setShowPwd(p => !p)}
+      style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)',
+        background:'none', border:'none', cursor:'pointer', fontSize:'1.1rem', padding:4, lineHeight:1 }}>
+      {showPwd ? '🙈' : '👁️'}
+    </button>
+  </div>
+</div>
+<div className={styles.formGroup}>
+  <label className={styles.formLabel}>{T.confirmPwd}</label>
+  <input name="confirm" type={showPwd ? 'text' : 'password'} required
+    className={styles.formInput} placeholder="••••••••"/>
+</div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>{T.confirmPwd}</label>
                 <input name="confirm" type="password" required className={styles.formInput} placeholder="••••••••"/>

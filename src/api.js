@@ -292,6 +292,34 @@ export const adminMangaApi = {
   updateSub:        (id, data)      => request('PATCH', `/api/subscriptions/${id}`, data),
 }
 
+// ══════════════════════════════════════════════════════
+// ADMIN — FANDOM
+// ══════════════════════════════════════════════════════
+// ══ FANDOM (Otaku Fest West) ══════════════════════════
+// À AJOUTER dans src/api.js (avant le checkHealth final)
+export const fandomApi = {
+  // Cosplay
+  getCosplays:      ()              => request('GET',  '/api/fandom/cosplay', null, false),
+  submitCosplay:    (data)          => request('POST', '/api/fandom/cosplay', data),
+  voteCosplay:      (id)            => request('POST', `/api/fandom/cosplay/${id}/vote`),
+  deleteCosplay:    (id)            => request('DELETE', `/api/fandom/cosplay/${id}`),
+  cosplayLeaderboard: ()            => request('GET',  '/api/fandom/cosplay/leaderboard', null, false),
+  // Quiz
+  getQuizQuestions: (p = {})        => request('GET',  `/api/fandom/quiz/questions?${new URLSearchParams(p)}`, null, false),
+  submitQuiz:       (answers)       => request('POST', '/api/fandom/quiz/submit', { answers }),
+  quizLeaderboard:  ()              => request('GET',  '/api/fandom/quiz/leaderboard', null, false),
+  // Mini-jeux
+  saveGameScore:    (gameKey, score)=> request('POST', `/api/fandom/games/${gameKey}/score`, { score }),
+  gameLeaderboard:  (gameKey)       => request('GET',  `/api/fandom/games/${gameKey}/leaderboard`, null, false),
+  // Admin
+  adminGetQuestions:()              => request('GET',  '/api/fandom/admin/questions'),
+  adminCreateQuestion: (data)       => request('POST', '/api/fandom/admin/questions', data),
+  adminUpdateQuestion: (id, data)   => request('PATCH', `/api/fandom/admin/questions/${id}`, data),
+  adminDeleteQuestion: (id)         => request('DELETE', `/api/fandom/admin/questions/${id}`),
+  adminGetCosplays: ()              => request('GET',  '/api/fandom/admin/cosplay'),
+  adminModerateCosplay: (id, data)  => request('PATCH', `/api/fandom/admin/cosplay/${id}`, data),
+}
+
 // ── HEALTH ────────────────────────────────────────────
 export const checkHealth = async () => {
   try { const res = await fetch(`${API_BASE}/api/health`); return res.ok } catch { return false }

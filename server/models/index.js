@@ -652,6 +652,113 @@ ChapterUnlock.belongsTo(Manga, { foreignKey: 'mangaId', as: 'manga' })
 Manga.hasMany(ChapterUnlock,   { foreignKey: 'mangaId', as: 'unlocks' })
 Chapter.hasMany(ChapterUnlock, { foreignKey: 'chapterId', as: 'unlocks' })
 
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║         FANDOM — OTAKU FEST WEST (à ajouter à             ║
+// ║         server/models/index.js, AVANT le bloc SYNC)       ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+// ══ COSPLAY ENTRY (participation concours cosplay) ══════
+const CosplayEntry = sequelize.define('CosplayEntry', {
+  id:          { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:      { type: DataTypes.UUID, allowNull: false },
+  pseudo:      { type: DataTypes.STRING(50) },          // dénormalisé
+  characterName: { type: DataTypes.STRING(120), allowNull: false }, // perso incarné
+  animeName:   { type: DataTypes.STRING(120) },         // anime source
+  description: { type: DataTypes.TEXT },
+  // Photo cosplay en base64
+  imageData:   { type: DataTypes.TEXT, allowNull: false },
+  imageMime:   { type: DataTypes.STRING(50), defaultValue: 'image/jpeg' },
+  voteCount:   { type: DataTypes.INTEGER, defaultValue: 0 },
+  // Modération
+  status:      { type: DataTypes.ENUM('pending','approved','rejected'), defaultValue: 'approved' },
+  // (approved par défaut = direct visible ; passe en 'pending' si tu veux valider avant)
+  adminNotes:  { type: DataTypes.TEXT },
+}, {
+  tableName: 'cosplay_entries', timestamps: true,
+  indexes: [
+    { fields: ['userId'] },
+    { fields: ['status','voteCount'] },
+  ]
+})
+
+// ══ COSPLAY VOTE (1 vote par user par cosplay) ══════════
+const CosplayVote = sequelize.define('CosplayVote', {
+  id:       { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:   { type: DataTypes.UUID, allowNull: false },
+  entryId:  { type: DataTypes.UUID, allowNull: false },
+}, {
+  tableName: 'cosplay_votes', timestamps: true,
+  indexes: [{ unique: true, fields: ['userId','entryId'] }]  // pas de double vote
+})
+
+// ══ QUIZ QUESTION (questions otaku, gérées par admin) ═══
+const QuizQuestion = sequelize.define('QuizQuestion', {
+  id:          { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  question:    { type: DataTypes.TEXT, allowNull: false },
+  // 4 options stockées en JSON : ['opt A','opt B','opt C','opt D']
+  options:     { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+  correctIndex:{ type: DataTypes.INTEGER, allowNull: false }, // index de la bonne réponse (0-3)
+  category:    { type: DataTypes.STRING(60), defaultValue: 'general' }, // 'naruto','onepiece'...
+  difficulty:  { type: DataTypes.ENUM('facile','moyen','difficile'), defaultValue: 'moyen' },
+  points:      { type: DataTypes.INTEGER, defaultValue: 10 },
+  isActive:    { type: DataTypes.BOOLEAN, defaultValue: true },
+}, {
+  tableName: 'quiz_questions', timestamps: true,
+  indexes: [{ fields: ['isActive','category'] }]
+})
+
+// ══ QUIZ SCORE (meilleur score d'un user) ═══════════════
+const QuizScore = sequelize.define('QuizScore', {
+  id:           { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:       { type: DataTypes.UUID, allowNull: false },
+  pseudo:       { type: DataTypes.STRING(50) },
+  bestScore:    { type: DataTypes.INTEGER, defaultValue: 0 },   // meilleur score atteint
+  totalGames:   { type: DataTypes.INTEGER, defaultValue: 0 },   // parties jouées
+  totalCorrect: { type: DataTypes.INTEGER, defaultValue: 0 },   // bonnes réponses cumulées
+  lastPlayedAt: { type: DataTypes.DATE },
+}, {
+  tableName: 'quiz_scores', timestamps: true,
+  indexes: [
+    { unique: true, fields: ['userId'] },
+    { fields: ['bestScore'] },
+  ]
+})
+
+// ══ GAME SCORE (mini-jeux génériques : memory, etc.) ════
+const GameScore = sequelize.define('GameScore', {
+  id:         { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:     { type: DataTypes.UUID, allowNull: false },
+  pseudo:     { type: DataTypes.STRING(50) },
+  gameKey:    { type: DataTypes.STRING(40), allowNull: false }, // 'memory','reaction'...
+  bestScore:  { type: DataTypes.INTEGER, defaultValue: 0 },
+  totalPlays: { type: DataTypes.INTEGER, defaultValue: 0 },
+  lastPlayedAt: { type: DataTypes.DATE },
+}, {
+  tableName: 'game_scores', timestamps: true,
+  indexes: [
+    { unique: true, fields: ['userId','gameKey'] },
+    { fields: ['gameKey','bestScore'] },
+  ]
+})
+
+// ── FANDOM ASSOCIATIONS ─────────────────────────────
+User.hasMany(CosplayEntry,    { foreignKey: 'userId', as: 'cosplayEntries', onDelete: 'CASCADE' })
+CosplayEntry.belongsTo(User,  { foreignKey: 'userId', as: 'user' })
+CosplayEntry.hasMany(CosplayVote, { foreignKey: 'entryId', as: 'votes', onDelete: 'CASCADE' })
+CosplayVote.belongsTo(CosplayEntry, { foreignKey: 'entryId', as: 'entry' })
+CosplayVote.belongsTo(User,   { foreignKey: 'userId', as: 'user' })
+User.hasMany(CosplayVote,     { foreignKey: 'userId', as: 'cosplayVotes', onDelete: 'CASCADE' })
+
+User.hasMany(QuizScore,       { foreignKey: 'userId', as: 'quizScores', onDelete: 'CASCADE' })
+QuizScore.belongsTo(User,     { foreignKey: 'userId', as: 'user' })
+
+User.hasMany(GameScore,       { foreignKey: 'userId', as: 'gameScores', onDelete: 'CASCADE' })
+GameScore.belongsTo(User,     { foreignKey: 'userId', as: 'user' })
+
+// ⚠️ Ajoute ces modèles à ton module.exports :
+//   CosplayEntry, CosplayVote, QuizQuestion, QuizScore, GameScore,
+
 // ══ SYNC ══════════════════════════════════════════════
 const syncDatabase = async (force = false) => {
   await sequelize.sync({ force, alter: !force })
@@ -669,4 +776,6 @@ module.exports = {
   MangaFollow,    // ← NOUVEAU
   // Coins
   CoinWallet, CoinTransaction, CoinPurchaseRequest, ChapterUnlock,
+  //fandom
+  CosplayEntry, CosplayVote, QuizQuestion, QuizScore, GameScore,
 }
