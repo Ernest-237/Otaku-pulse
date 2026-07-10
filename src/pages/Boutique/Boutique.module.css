@@ -502,3 +502,159 @@
   .catBtn { padding: 6px 12px; font-size: .76rem; }
   .cardImg { height: 180px; }
 }
+/* ═══════════════════════════════════════════════════════
+   MENUS OTAKU — cartes de menu thématiques
+   À COLLER À LA FIN de src/pages/Boutique/Boutique.module.css
+   ═══════════════════════════════════════════════════════ */
+
+.menusWrap { padding-bottom: 3rem; animation: menuFade .4s ease; }
+@keyframes menuFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ── Intro ── */
+.menuIntro { text-align: center; max-width: 640px; margin: 0 auto 2.5rem; }
+.menuIntroIcon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 16px; margin-bottom: 1rem;
+  background: linear-gradient(135deg, #22c55e, #15803d); color: #fff;
+  box-shadow: 0 8px 24px rgba(34,197,94,.3);
+}
+.menuIntroTitle {
+  font-family: var(--font-title, sans-serif); font-size: 2rem; letter-spacing: 2px;
+  color: var(--text-strong, #1a1a1a); margin: 0 0 .6rem;
+}
+.menuIntroSub { color: var(--text-muted, #666); font-size: .95rem; line-height: 1.6; margin: 0; }
+.menuCartLink {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 1.2rem;
+  padding: 9px 18px; border-radius: 100px; text-decoration: none;
+  background: rgba(34,197,94,.1); color: var(--green-700, #15803d);
+  font-weight: 700; font-size: .88rem; transition: all .18s;
+}
+.menuCartLink:hover { background: rgba(34,197,94,.18); }
+
+/* ── Grille menus ── */
+.menusGrid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem; margin-bottom: 2rem;
+}
+
+/* ── Carte menu ── */
+.menuCard {
+  position: relative; overflow: hidden;
+  border-radius: 22px; padding: 1.6rem;
+  border: 1.5px solid var(--m-border, #eee);
+  background: var(--m-bg, #fff);
+  display: flex; flex-direction: column;
+  transition: transform .25s, box-shadow .25s;
+}
+.menuCard:hover { transform: translateY(-5px); box-shadow: 0 20px 45px rgba(0,0,0,.14); }
+.menuCardGlow {
+  position: absolute; top: -30%; right: -20%;
+  width: 260px; height: 260px; border-radius: 50%;
+  background: var(--m-glow, radial-gradient(circle, rgba(34,197,94,.12), transparent 70%));
+  pointer-events: none;
+}
+
+/* ── Thèmes par univers ── */
+.theme_shonen {
+  --m-bg: linear-gradient(160deg, #fff8f0, #fff);
+  --m-border: rgba(249,115,22,.25);
+  --m-glow: radial-gradient(circle, rgba(249,115,22,.18), transparent 70%);
+  --m-accent: #ea580c;
+  --m-accent-soft: rgba(249,115,22,.1);
+}
+.theme_dark {
+  --m-bg: linear-gradient(160deg, #16161d, #0d0d12);
+  --m-border: rgba(220,38,38,.35);
+  --m-glow: radial-gradient(circle, rgba(220,38,38,.22), transparent 70%);
+  --m-accent: #ef4444;
+  --m-accent-soft: rgba(220,38,38,.14);
+  color: #e8e8ee;
+}
+.theme_shojo {
+  --m-bg: linear-gradient(160deg, #fff0f6, #fff);
+  --m-border: rgba(236,72,153,.28);
+  --m-glow: radial-gradient(circle, rgba(236,72,153,.18), transparent 70%);
+  --m-accent: #db2777;
+  --m-accent-soft: rgba(236,72,153,.1);
+}
+
+/* ── Header carte ── */
+.menuCardHead { display: flex; align-items: center; gap: 14px; margin-bottom: 1.3rem; position: relative; }
+.menuCardEmoji {
+  font-size: 2.4rem; line-height: 1; flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.15));
+}
+.menuCardName {
+  font-family: var(--font-title, sans-serif); font-size: 1.3rem; letter-spacing: 1px;
+  color: var(--m-accent); margin: 0 0 3px; line-height: 1.1;
+}
+.theme_dark .menuCardName { color: #fca5a5; }
+.menuCardTagline { font-size: .82rem; font-style: italic; opacity: .7; margin: 0; }
+
+/* ── Sections ── */
+.menuSections { display: flex; flex-direction: column; gap: 1.1rem; flex: 1; position: relative; }
+.menuSection { }
+.menuSectionHead { display: flex; align-items: center; gap: 8px; margin-bottom: .5rem; }
+.menuSectionIcon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--m-accent-soft); color: var(--m-accent); flex-shrink: 0;
+}
+.theme_dark .menuSectionIcon { color: #fca5a5; }
+.menuSectionLabel { font-weight: 800; font-size: .92rem; flex: 1; }
+.menuSectionPrice {
+  font-weight: 800; font-size: .82rem; color: var(--m-accent);
+  background: var(--m-accent-soft); padding: 2px 10px; border-radius: 100px;
+}
+.theme_dark .menuSectionPrice { color: #fca5a5; }
+
+.menuItems { list-style: none; padding: 0 0 0 36px; margin: 0; display: flex; flex-direction: column; gap: 5px; }
+.menuItem { display: flex; align-items: baseline; gap: 6px; font-size: .85rem; }
+.menuItemName { font-weight: 600; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.menuItemDots { flex: 1; border-bottom: 1.5px dotted currentColor; opacity: .25; min-width: 12px; transform: translateY(-3px); }
+.menuItemPrice { font-weight: 700; opacity: .75; white-space: nowrap; font-size: .8rem; }
+
+.menuSectionDesc {
+  padding-left: 36px; font-size: .8rem; line-height: 1.5; font-style: italic;
+  opacity: .68; margin: .3rem 0 0;
+}
+
+/* ── Footer carte ── */
+.menuCardFooter {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 1.5rem; padding-top: 1.2rem; position: relative;
+  border-top: 1.5px dashed var(--m-border);
+}
+.menuTotal { display: flex; flex-direction: column; gap: 2px; }
+.menuTotalLabel { font-size: .7rem; text-transform: uppercase; letter-spacing: 1px; opacity: .6; font-weight: 700; }
+.menuTotalPrice {
+  font-family: var(--font-title, sans-serif); font-size: 1.5rem; letter-spacing: 1px;
+  color: var(--m-accent); line-height: 1;
+}
+.theme_dark .menuTotalPrice { color: #fca5a5; }
+.menuTotalPrice small { font-size: .7rem; opacity: .7; }
+
+.menuOrderBtn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 11px 18px; border: none; border-radius: 12px; cursor: pointer;
+  background: var(--m-accent); color: #fff; font-weight: 800; font-size: .85rem;
+  transition: filter .18s, transform .18s; white-space: nowrap;
+  box-shadow: 0 6px 16px -4px var(--m-accent);
+}
+.menuOrderBtn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+
+/* ── Note globale ── */
+.menuGlobalNote {
+  text-align: center; font-size: .85rem; color: var(--text-muted, #888);
+  background: rgba(34,197,94,.06); border: 1px solid rgba(34,197,94,.15);
+  border-radius: 14px; padding: 1rem 1.5rem; margin: 0 auto; max-width: 560px; font-weight: 600;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .menusGrid { grid-template-columns: 1fr; }
+  .menuIntroTitle { font-size: 1.6rem; }
+  .menuCard { padding: 1.3rem; }
+  .menuCardFooter { flex-direction: column; align-items: stretch; }
+  .menuOrderBtn { justify-content: center; }
+}

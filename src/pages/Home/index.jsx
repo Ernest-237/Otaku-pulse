@@ -11,7 +11,7 @@ import Footer              from './sections/Footer'
 
 export default function Home() {
   useEffect(() => {
-    document.title = 'Otaku Pulse ⚡ — Goodies Anime livrés au Cameroun'
+    document.title = 'Otaku Pulse ⚡ — Vivez l\'expérience otaku au Cameroun'
   }, [])
   return (
     <>

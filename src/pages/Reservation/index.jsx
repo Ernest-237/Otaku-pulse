@@ -36,8 +36,8 @@ const PACKS = [
     descF: 'Idéal pour petits événements (5 à 12 personnes). Décoration légère et ambiance soignée.',
     descE: 'Ideal for small events (5 to 12 guests). Light decoration and a clean immersive setup.',
     color: '#22c55e',
-    featuresF: ['Décoration 1 mur thématique', '3 goodies personnalisés', 'Cocktail Otaku x1', 'Photo backdrop', 'Durée 45 min'],
-    featuresE: ['1 themed wall decoration', '3 personalized goodies', '1 Otaku cocktail', 'Photo backdrop', '45 min duration'],
+    featuresF: ['Décoration 1 mur thématique', '3 goodies personnalisés', 'Cocktail Otaku x1', 'Photo backdrop'],
+    featuresE: ['1 themed wall decoration', '3 personalized goodies', '1 Otaku cocktail', 'Photo backdrop'],
   },
   {
     id: 'chunin',
@@ -50,8 +50,8 @@ const PACKS = [
     descE: 'Built for living rooms, gardens and small event halls with a fuller immersive setup.',
     color: '#0ea5e9',
     popular: true,
-    featuresF: ['Décoration 3 murs complets', '10 goodies premium', 'Bar mobile Otaku Pulse', 'Mixologue 2h15', 'Kakemono entrée'],
-    featuresE: ['3 full decorated walls', '10 premium goodies', 'Otaku Pulse mobile bar', 'Mixologist for 2h15', 'Entrance banner'],
+    featuresF: ['Décoration 3 murs complets', '10 goodies premium', 'Bar mobile Otaku Pulse', 'Mixologue', 'Kakemono entrée'],
+    featuresE: ['3 full decorated walls', '10 premium goodies', 'Otaku Pulse mobile bar', 'Mixologist', 'Entrance banner'],
   },
   {
     id: 'hokage',
@@ -63,8 +63,8 @@ const PACKS = [
     descF: "L'expérience ultime pour les grands événements avec décor premium et immersion totale.",
     descE: 'The ultimate package for large events with premium decoration and full immersion.',
     color: '#f97316',
-    featuresF: ['Tente thématique complète', '30 goodies collector', 'Bar & mixologue 4h', 'Mapping vidéo', 'DJ Anime set', 'Photo & vidéo inclus'],
-    featuresE: ['Full themed tent', '30 collector goodies', 'Bar & mixologist for 4h', 'Video mapping', 'Anime DJ set', 'Photo & video included'],
+    featuresF: ['Tente thématique complète', '30 goodies collector', 'Bar & mixologue', 'Mapping vidéo', 'DJ Anime set', 'Photo & vidéo inclus'],
+    featuresE: ['Full themed tent', '30 collector goodies', 'Bar & mixologist', 'Video mapping', 'Anime DJ set', 'Photo & video included'],
   },
 ]
 
