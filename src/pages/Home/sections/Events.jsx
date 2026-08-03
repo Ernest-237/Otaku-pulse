@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { ArrowRight, CalendarDays, Sparkles, Star, Ticket, X } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { useApi } from '../../../hooks/useApi'
-import { blogApi } from '../../../api'
+import { blogApi, API_BASE } from '../../../api'
 import styles from './Events.module.css'
+
+const resolveImg = url => (url && url.startsWith('/') ? `${API_BASE}${url}` : url)
 
 export default function Events() {
   const { lang } = useLang()
@@ -81,7 +83,7 @@ export default function Events() {
 function EventCard({ post, lang, onClick }) {
   const imgSrc = post.imageData
     ? `data:${post.imageMime};base64,${post.imageData}`
-    : post.imageUrl || null
+    : resolveImg(post.imageUrl)
 
   return (
     <div className={styles.card} onClick={onClick}>

@@ -179,8 +179,8 @@ const EventRegistration = sequelize.define('EventRegistration', {
 // ══ HERO CONFIG (existant) ══════════════════════════
 const HeroConfig = sequelize.define('HeroConfig', {
   id:           { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  taglineF:     { type: DataTypes.STRING(200), defaultValue:'EN COURS · DEPUIS LE 30 JUIN 2026 · CAMEROUN' },
-  taglineE:     { type: DataTypes.STRING(200), defaultValue:'ONGOING · SINCE JUNE 30, 2026 · CAMEROON' },
+  taglineF:     { type: DataTypes.STRING(200), defaultValue:'Goodies Anime · Livraison Cameroun' },
+  taglineE:     { type: DataTypes.STRING(200), defaultValue:'Anime Goods · Cameroon Delivery' },
   line1F:       { type: DataTypes.STRING(200), defaultValue:"VIVEZ L'EXPÉRIENCE" },
   line1E:       { type: DataTypes.STRING(200), defaultValue:'LIVE THE EXPERIENCE' },
   line2F:       { type: DataTypes.STRING(200), defaultValue:'AU-DELÀ DE' },
@@ -815,6 +815,21 @@ GameScore.belongsTo(User,     { foreignKey: 'userId', as: 'user' })
 const syncDatabase = async (force = false) => {
   await sequelize.sync({ force, alter: !force })
   console.log(`✅ Tables PostgreSQL ${force ? 'réinitialisées' : 'synchronisées'}`)
+
+  // Le site est lancé : on retire l'ancien message "countdown de lancement"
+  // s'il traîne encore dans la config Hero existante (le simple changement
+  // de defaultValue ci-dessus n'affecte pas une ligne déjà créée en base).
+  try {
+    const oldTaglines = ['EN COURS · DEPUIS LE 30 JUIN 2026 · CAMEROUN', 'LANCEMENT · 30 JUIN 2026 · CAMEROUN']
+    const hero = await HeroConfig.findOne({ where: { isActive: true } })
+    if (hero && oldTaglines.includes(hero.taglineF)) {
+      await hero.update({
+        taglineF: 'Goodies Anime · Livraison Cameroun',
+        taglineE: 'Anime Goods · Cameroon Delivery',
+      })
+      console.log('✅ Tagline Hero : message de lancement retiré')
+    }
+  } catch (err) { console.warn('⚠️ Correction tagline Hero ignorée:', err.message) }
 }
 
 module.exports = {

@@ -1,5 +1,6 @@
 // server/routes/anime.js — Planning animés (à venir/en cours), openings, personnages
 const express = require('express');
+const { Op } = require('sequelize');
 const { Anime } = require('../models/index');
 const { protect, restrictTo } = require('../middleware/auth');
 const router  = express.Router();
@@ -11,13 +12,26 @@ const withCoverUrl = (anime) => {
   return j;
 };
 
+// Étend une date 'YYYY-MM-DD' (ou 'YYYY-MM') à l'intervalle [1er du mois, 1er du mois suivant[
+function monthRange(month) {
+  const [y, m] = month.split('-').map(Number);
+  const start = `${y}-${String(m).padStart(2,'0')}-01`;
+  const nextY = m === 12 ? y + 1 : y;
+  const nextM = m === 12 ? 1 : m + 1;
+  const end   = `${nextY}-${String(nextM).padStart(2,'0')}-01`;
+  return { start, end };
+}
+
 // GET /api/anime — liste publique (filtrable par mois + statut)
 router.get('/', async (req, res, next) => {
   try {
     const { status, month, limit = 30 } = req.query;
     const where = { isActive: true };
     if (status) where.status = status;
-    if (month)  where.month  = month; // ex: '2026-08-01'
+    if (month) {
+      const { start, end } = monthRange(month); // accepte 'YYYY-MM' ou 'YYYY-MM-DD'
+      where.month = { [Op.gte]: start, [Op.lt]: end };
+    }
     const animes = await Anime.findAll({
       where, order: [['order', 'ASC'], ['createdAt', 'ASC']],
       limit: parseInt(limit),

@@ -131,15 +131,23 @@ function AnimeModal({ anime:a, onClose, onSave, toast }) {
 
       <div style={{ marginBottom:'1rem' }}>
         <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:6, textTransform:'uppercase' }}>Personnages</label>
+        {form.characters.length > 0 && (
+          <div style={{ display:'flex', gap:8, marginBottom:4, padding:'0 2px' }}>
+            <span style={{ flex:1.2, fontSize:'.62rem', fontWeight:700, letterSpacing:1, color:'#22c55e', textTransform:'uppercase' }}>Nom</span>
+            <span style={{ flex:1, fontSize:'.62rem', fontWeight:700, letterSpacing:1, color:'#60a5fa', textTransform:'uppercase' }}>Rôle</span>
+            <span style={{ flex:1.5, fontSize:'.62rem', fontWeight:700, letterSpacing:1, color:'#a78bfa', textTransform:'uppercase' }}>Image (URL)</span>
+            <span style={{ width:22, flexShrink:0 }} />
+          </div>
+        )}
         {form.characters.map((c,i) => (
           <div key={i} style={{ display:'flex', gap:8, marginBottom:8, alignItems:'center' }}>
-            <input value={c.name} onChange={e => setChar(i,'name',e.target.value)} placeholder="Nom"
-              style={{ flex:1.2, padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontSize:'.85rem', outline:'none' }} />
-            <input value={c.role} onChange={e => setChar(i,'role',e.target.value)} placeholder="Rôle"
-              style={{ flex:1, padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontSize:'.85rem', outline:'none' }} />
-            <input value={c.imageUrl} onChange={e => setChar(i,'imageUrl',e.target.value)} placeholder="URL image (optionnel)"
-              style={{ flex:1.5, padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontSize:'.85rem', outline:'none' }} />
-            <button type="button" onClick={() => delChar(i)} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:'1rem', flexShrink:0 }}>✕</button>
+            <input value={c.name} onChange={e => setChar(i,'name',e.target.value)} placeholder="Ex: Naruto Uzumaki"
+              style={{ ...fieldBaseStyle, flex:1.2, padding:'8px 10px', fontSize:'.85rem' }} onFocus={onFocusField} onBlur={onBlurField} />
+            <input value={c.role} onChange={e => setChar(i,'role',e.target.value)} placeholder="Ex: Héros"
+              style={{ ...fieldBaseStyle, flex:1, padding:'8px 10px', fontSize:'.85rem' }} onFocus={onFocusField} onBlur={onBlurField} />
+            <input value={c.imageUrl} onChange={e => setChar(i,'imageUrl',e.target.value)} placeholder="https:// (optionnel)"
+              style={{ ...fieldBaseStyle, flex:1.5, padding:'8px 10px', fontSize:'.85rem' }} onFocus={onFocusField} onBlur={onBlurField} />
+            <button type="button" onClick={() => delChar(i)} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:'1rem', flexShrink:0, width:22 }}>✕</button>
           </div>
         ))}
         <Button variant="ghost" size="sm" onClick={addChar}>+ Personnage</Button>
@@ -153,12 +161,16 @@ function AnimeModal({ anime:a, onClose, onSave, toast }) {
 }
 
 /* ══ Helpers de formulaire ══ */
+const fieldBaseStyle = { width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', transition:'border-color .15s, background .15s' }
+const onFocusField = e => { e.target.style.borderColor = '#22c55e'; e.target.style.background = 'rgba(34,197,94,.06)' }
+const onBlurField  = e => { e.target.style.borderColor = 'rgba(255,255,255,.12)'; e.target.style.background = 'rgba(255,255,255,.04)' }
+
 function HInput({ label, value, onChange, type='text', placeholder }) {
   return (
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <input type={type} value={value??''} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none' }} />
+        style={fieldBaseStyle} onFocus={onFocusField} onBlur={onBlurField} />
     </div>
   )
 }
@@ -167,7 +179,7 @@ function HTextarea({ label, value, onChange, rows=3 }) {
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <textarea value={value??''} onChange={e => onChange(e.target.value)} rows={rows}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', resize:'vertical', lineHeight:1.5 }} />
+        style={{ ...fieldBaseStyle, resize:'vertical', lineHeight:1.5 }} onFocus={onFocusField} onBlur={onBlurField} />
     </div>
   )
 }
@@ -176,7 +188,7 @@ function HSelect({ label, value, onChange, options }) {
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none' }}>
+        style={fieldBaseStyle} onFocus={onFocusField} onBlur={onBlurField}>
         {options.map(o => <option key={o.v} value={o.v} style={{ background:'#0f140f' }}>{o.l}</option>)}
       </select>
     </div>

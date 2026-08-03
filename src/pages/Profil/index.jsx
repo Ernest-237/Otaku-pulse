@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useApi, useMutation } from '../../hooks/useApi'
-import { usersApi, ordersApi } from '../../api'
+import { usersApi, ordersApi, API_BASE } from '../../api'
 import QUARTIERS from '../../data/quartiers'
 import Navbar from '../../components/Navbar'
 import Footer from '../Home/sections/Footer'
@@ -366,7 +366,7 @@ export default function ProfilPage() {
                         <div key={item.id} className={styles.cartCard}>
                           <div className={styles.cartThumb}>
                             {item.imageUrl
-                              ? <img src={item.imageUrl} alt={item.name} />
+                              ? <img src={item.imageUrl.startsWith('/') ? `${API_BASE}${item.imageUrl}` : item.imageUrl} alt={item.name} />
                               : <span>{item.emoji || '🎁'}</span>}
                           </div>
                           <div className={styles.cartInfo}>

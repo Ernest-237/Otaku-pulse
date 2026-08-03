@@ -184,7 +184,7 @@ export default function ReaderPage() {
           const chapRes = await chaptersApi.getById(ch.id)
           if (cancelled) return
           setChapter(chapRes.chapter)
-          setPages(chapRes.pages || [])
+          setPages(chapRes.chapter?.pages || [])
         } catch (chapErr) {
           // Si erreur 403 = premium locked côté backend
           if (chapErr.status === 403 || chapErr.message?.includes('premium') || chapErr.message?.includes('coins')) {
@@ -343,7 +343,7 @@ export default function ReaderPage() {
     try {
       const chapRes = await chaptersApi.getById(chapter.id)
       setChapter(chapRes.chapter)
-      setPages(chapRes.pages || [])
+      setPages(chapRes.chapter?.pages || [])
     } catch (err) {
       toast.error('Erreur de chargement après déblocage')
     } finally {

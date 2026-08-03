@@ -124,9 +124,6 @@ export default function HeroSection({ toast }) {
                 <HInput label="Secondary button EN" value={form.ctaSecondaryE} onChange={v => s('ctaSecondaryE',v)} />
               </div>
             </div>
-            <div style={{ marginTop:'1rem' }}>
-              <HInput label="📅 Date de lancement (countdown)" value={form.launchDate} onChange={v => s('launchDate',v)} type="date" />
-            </div>
           </div>
         </div>
       )}

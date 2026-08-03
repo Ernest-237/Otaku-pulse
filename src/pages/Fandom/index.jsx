@@ -13,6 +13,7 @@ import { fandomApi, API_BASE } from '../../api'
 import Navbar from '../../components/Navbar'
 import Footer from '../Home/sections/Footer'
 import Modal from '../../components/ui/Modal'
+import AnimeCarousel from '../../components/AnimeCarousel'
 import styles from './Fandom.module.css'
 
 async function fileToBase64Safe(file) {
@@ -69,6 +70,9 @@ export default function FandomPage() {
             Montre ton cosplay, teste tes connaissances otaku, grimpe au classement.
             {!isLoggedIn && ' Connecte-toi pour participer !'}
           </p>
+          <div className={styles.heroCarousel}>
+            <AnimeCarousel variant="dark" label={lang === 'fr' ? "ANIMÉS À L'AFFICHE" : 'FEATURED ANIME'} />
+          </div>
         </div>
       </section>
 

@@ -182,10 +182,11 @@
 
 .charImg {
   width: 110px;
-  height: auto;
-  max-height: 180px;
-  object-fit: contain;
-  object-position: bottom;
+  height: 140px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: var(--radius-xl, 20px);
+  border: 2px solid var(--green-200);
   filter: drop-shadow(0 6px 14px rgba(22, 163, 74, .25));
   display: block;
 }
@@ -246,7 +247,7 @@
   }
   .quoteText { font-size: .78rem; -webkit-line-clamp: 3; }
   .character { width: 90px; }
-  .charImg { width: 90px; max-height: 140px; }
+  .charImg { width: 90px; height: 114px; }
   .charEmojiDefault { width: 90px; height: 120px; font-size: 4rem; }
   .charShadow { width: 56px; }
 }
@@ -265,7 +266,7 @@
   .quoteIcon { width: 28px; height: 28px; }
   .quoteIcon svg { width: 16px; height: 16px; }
   .character { width: 75px; }
-  .charImg { width: 75px; max-height: 120px; }
+  .charImg { width: 75px; height: 95px; }
   .charEmojiDefault { width: 75px; height: 100px; font-size: 3.5rem; }
   .charShadow { width: 48px; height: 10px; }
   .charBadge { width: 22px; height: 22px; top: 6px; }
@@ -281,6 +282,6 @@
     min-width: 150px;
   }
   .character { width: 65px; }
-  .charImg { width: 65px; max-height: 105px; }
+  .charImg { width: 65px; height: 83px; }
   .charEmojiDefault { width: 65px; height: 90px; font-size: 3rem; }
 }

@@ -20,7 +20,7 @@ const QUOTES = [
   { text: "La vie d'un être vivant vaut plus que n'importe quel trésor.", char: 'Edward Elric', anime: 'Fullmetal Alchemist' },
 ]
 
-const CHARACTER_IMG = '/assets/characters/character.png'
+const CHARACTER_IMG = '/assets/characters/yuta.jpg'
 
 export default function FloatingCharacter() {
   const [visible, setVisible] = useState(false)

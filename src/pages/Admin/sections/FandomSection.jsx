@@ -254,14 +254,21 @@ function QuestionModal({ question:q, onClose, onSave, toast }) {
     <Modal isOpen dark title={q ? '✏️ Modifier question' : '🧠 Nouvelle question'} onClose={onClose}
       footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={submit}>💾 Enregistrer</Button></>}>
       <HTextarea label="Question *" value={form.question} onChange={v => s('question',v)} rows={2} />
-      {form.options.map((opt,i) => (
-        <div key={i} style={{ display:'flex', gap:8, alignItems:'center', marginBottom:'.6rem' }}>
-          <input type="radio" name="correct" checked={form.correctIndex===i} onChange={() => s('correctIndex',i)}
-            style={{ accentColor:'#33ff33', flexShrink:0 }} title="Bonne réponse" />
-          <input value={opt} onChange={e => setOption(i, e.target.value)} placeholder={`Option ${['A','B','C','D'][i]}`}
-            style={{ flex:1, padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontSize:'.88rem', outline:'none' }} />
-        </div>
-      ))}
+      {form.options.map((opt,i) => {
+        const isCorrect = form.correctIndex === i
+        return (
+          <div key={i} style={{ display:'flex', gap:8, alignItems:'center', marginBottom:'.6rem' }}>
+            <input type="radio" name="correct" checked={isCorrect} onChange={() => s('correctIndex',i)}
+              style={{ accentColor:'#33ff33', flexShrink:0 }} title="Bonne réponse" />
+            <span style={{ width:22, textAlign:'center', fontWeight:800, fontSize:'.8rem', color: isCorrect ? '#22c55e' : 'var(--muted)', flexShrink:0 }}>{['A','B','C','D'][i]}</span>
+            <input value={opt} onChange={e => setOption(i, e.target.value)} placeholder={`Option ${['A','B','C','D'][i]}`}
+              style={{ ...fieldBaseStyle, flex:1, padding:'8px 10px',
+                borderColor: isCorrect ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.12)',
+                background: isCorrect ? 'rgba(34,197,94,.06)' : 'rgba(255,255,255,.04)' }}
+              onFocus={onFocusField} onBlur={e => { if (!isCorrect) onBlurField(e) }} />
+          </div>
+        )
+      })}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'1rem', marginTop:'.6rem' }}>
         <HInput label="Catégorie" value={form.category} onChange={v => s('category',v)} placeholder="naruto, onepiece..." />
         <HSelect label="Difficulté" value={form.difficulty} onChange={v => s('difficulty',v)}
@@ -276,12 +283,16 @@ function QuestionModal({ question:q, onClose, onSave, toast }) {
 }
 
 /* ══ Helpers de formulaire (mêmes styles que HeroSection) ══ */
+const fieldBaseStyle = { width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', transition:'border-color .15s, background .15s' }
+const onFocusField = e => { e.target.style.borderColor = '#22c55e'; e.target.style.background = 'rgba(34,197,94,.06)' }
+const onBlurField  = e => { e.target.style.borderColor = 'rgba(255,255,255,.12)'; e.target.style.background = 'rgba(255,255,255,.04)' }
+
 function HInput({ label, value, onChange, type='text', placeholder }) {
   return (
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <input type={type} value={value??''} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none' }} />
+        style={fieldBaseStyle} onFocus={onFocusField} onBlur={onBlurField} />
     </div>
   )
 }
@@ -290,7 +301,7 @@ function HTextarea({ label, value, onChange, rows=3 }) {
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <textarea value={value??''} onChange={e => onChange(e.target.value)} rows={rows}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', resize:'vertical', lineHeight:1.5 }} />
+        style={{ ...fieldBaseStyle, resize:'vertical', lineHeight:1.5 }} onFocus={onFocusField} onBlur={onBlurField} />
     </div>
   )
 }
@@ -299,7 +310,7 @@ function HSelect({ label, value, onChange, options }) {
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none' }}>
+        style={fieldBaseStyle} onFocus={onFocusField} onBlur={onBlurField}>
         {options.map(o => <option key={o.v} value={o.v} style={{ background:'#0f140f' }}>{o.l}</option>)}
       </select>
     </div>

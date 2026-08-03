@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { API_BASE } from '../../../api'
+import AnimeCarousel from '../../../components/AnimeCarousel'
 import styles from './Hero.module.css'
 
 const HERO_DEFAULT = {
@@ -296,32 +297,36 @@ export default function Hero() {
             </div>
           </div>
 
-          <div className={styles.gifFrame}>
-            <div className={styles.gifLabel}>
-              <span className={styles.gifDot} />
-              <span>{lang === 'fr' ? 'Saison en cours' : 'Current season'}</span>
-            </div>
-
-            <div className={styles.gifContent}>
-              <img
-                src={HERO_GIF}
-                alt="Saison Otaku Pulse"
-                className={styles.gifImg}
-                onError={(e) => {
-                  e.target.style.display = 'none'
-                  e.target.nextSibling.style.display = 'flex'
-                }}
-              />
-
-              <div className={styles.gifFallbackContent} style={{ display: 'none' }}>
-                <PlayCircle size={36} strokeWidth={2.1} />
-                <span className={styles.gifFallbackText}>
-                  {lang === 'fr' ? 'Ajoute ton GIF saisonnier ici' : 'Add your seasonal GIF here'}
-                </span>
-                <code>/assets/hero/seasonal.gif</code>
+          <AnimeCarousel
+            variant="light"
+            label={lang === 'fr' ? 'Animés du moment' : 'Right now'}
+            fallback={
+              <div className={styles.gifFrame}>
+                <div className={styles.gifLabel}>
+                  <span className={styles.gifDot} />
+                  <span>{lang === 'fr' ? 'Saison en cours' : 'Current season'}</span>
+                </div>
+                <div className={styles.gifContent}>
+                  <img
+                    src={HERO_GIF}
+                    alt="Saison Otaku Pulse"
+                    className={styles.gifImg}
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      e.target.nextSibling.style.display = 'flex'
+                    }}
+                  />
+                  <div className={styles.gifFallbackContent} style={{ display: 'none' }}>
+                    <PlayCircle size={36} strokeWidth={2.1} />
+                    <span className={styles.gifFallbackText}>
+                      {lang === 'fr' ? 'Ajoute ton GIF saisonnier ici' : 'Add your seasonal GIF here'}
+                    </span>
+                    <code>/assets/hero/seasonal.gif</code>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            }
+          />
 
           <div className={styles.deco1}><Sparkles size={18} strokeWidth={2.2} /></div>
           <div className={styles.deco2}><Zap size={18} strokeWidth={2.2} /></div>

@@ -177,7 +177,7 @@ export const chaptersApi = {
   getByManga: (mangaId)        => request('GET', `/api/chapters/by-manga/${mangaId}`, null, false),
   getById:    (id)             => request('GET', `/api/chapters/${id}`, null, true),
   // Création d'un chapitre rattaché à un manga : (mangaId, data)
-  create:     (mangaId, data)  => request('POST', `/api/manga/${mangaId}/chapters`, data),
+  create:     (mangaId, data)  => request('POST', '/api/chapters', { ...data, mangaId }),
   update:     (id, data)       => request('PATCH', `/api/chapters/${id}`, data),
   delete:     (id)             => request('DELETE', `/api/chapters/${id}`),
 }

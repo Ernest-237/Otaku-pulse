@@ -6,6 +6,10 @@ const VARIANTS = {
   amber:  { bg: 'rgba(245,158,11,0.12)', color: '#fcd34d',  border: 'rgba(245,158,11,0.25)' },
   purple: { bg: 'rgba(139,92,246,0.12)', color: '#a78bfa',  border: 'rgba(139,92,246,0.25)' },
   gray:   { bg: 'rgba(255,255,255,0.06)',color: 'rgba(240,253,244,0.45)', border:'rgba(255,255,255,0.1)' },
+  teal:   { bg: 'rgba(20,184,166,0.12)', color: '#2dd4bf',  border: 'rgba(20,184,166,0.25)' },
+  pink:   { bg: 'rgba(236,72,153,0.12)', color: '#f472b6',  border: 'rgba(236,72,153,0.25)' },
+  orange: { bg: 'rgba(249,115,22,0.12)', color: '#fb923c',  border: 'rgba(249,115,22,0.25)' },
+  indigo: { bg: 'rgba(99,102,241,0.12)', color: '#a5b4fc',  border: 'rgba(99,102,241,0.25)' },
 }
 
 export default function Badge({ variant = 'gray', children, style = {} }) {
@@ -29,13 +33,22 @@ export default function Badge({ variant = 'gray', children, style = {} }) {
 }
 
 // Status → variant mapper
+// Chaque groupe de statuts affiché dans un même tableau (commandes, réservations,
+// événements, planning anime...) doit garder des couleurs toutes différentes entre elles —
+// voir la répartition par groupe ci-dessous avant de modifier une valeur.
 export function statusVariant(status) {
   const map = {
-    new:'blue', contacted:'amber', quoted:'amber',
-    confirmed:'green', completed:'green', cancelled:'red',
-    pending:'amber', processing:'blue', shipped:'blue',
-    delivered:'green', refunded:'red',
-    upcoming:'green', past:'gray', draft:'gray',
+    // Réservations/contacts : new, contacted, quoted, confirmed, cancelled, completed
+    new:'blue', contacted:'amber', quoted:'orange',
+    confirmed:'green', completed:'purple', cancelled:'red',
+    // Commandes : pending, confirmed, preparing, shipped, delivered, cancelled, refunded
+    pending:'amber', processing:'blue', preparing:'indigo',
+    shipped:'blue', delivered:'teal', refunded:'pink',
+    // Événements : upcoming, ongoing, past, cancelled, draft
+    upcoming:'green', ongoing:'blue', past:'gray', draft:'purple',
+    // Planning anime : upcoming, airing, ended
+    airing:'orange', ended:'gray',
+    // Catégories blog
     blog:'purple', event:'green', promo:'red', partner:'amber',
   }
   return map[status] || 'gray'
@@ -44,8 +57,9 @@ export function statusVariant(status) {
 export const STATUS_LABELS = {
   new:'Nouveau', contacted:'Contacté', quoted:'Devis envoyé',
   confirmed:'Confirmé', completed:'Terminé', cancelled:'Annulé',
-  pending:'En attente', processing:'En cours', shipped:'Expédié',
-  delivered:'Livré', refunded:'Remboursé',
-  upcoming:'À venir', past:'Passé', draft:'Brouillon',
+  pending:'En attente', processing:'En cours', preparing:'Préparation',
+  shipped:'Expédié', delivered:'Livré', refunded:'Remboursé',
+  upcoming:'À venir', ongoing:'En cours', past:'Passé', draft:'Brouillon',
+  airing:'En cours', ended:'Terminé',
   blog:'Blog', event:'Événement', promo:'Promo', partner:'Partenaire',
 }
