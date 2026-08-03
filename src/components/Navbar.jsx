@@ -519,10 +519,6 @@ export default function Navbar() {
   <input name="confirm" type={showPwd ? 'text' : 'password'} required
     className={styles.formInput} placeholder="••••••••"/>
 </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>{T.confirmPwd}</label>
-                <input name="confirm" type="password" required className={styles.formInput} placeholder="••••••••"/>
-              </div>
               {authError && <div className={styles.authError}>{authError}</div>}
               <button type="submit" className={styles.authSubmit} disabled={signupLoading}>
                 {signupLoading ? <><Spinner size={16} color="#0c1a2e"/> {T.joining}...</> : `⚡ ${T.joining}`}

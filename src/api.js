@@ -72,6 +72,8 @@ export const eventsApi = {
   register: (eventId, guests, whatsapp) => request('POST', '/api/events/register', { eventId, guests, whatsapp }),
   create:   (data)   => request('POST', '/api/events', data),
   update:   (id, d)  => request('PATCH', `/api/events/${id}`, d),
+  getMine:  ()        => request('GET', '/api/events/mine'),
+  cancel:   (registrationId) => request('DELETE', `/api/events/registrations/${registrationId}`),
 }
 
 // ── USERS ─────────────────────────────────────────────
@@ -295,7 +297,7 @@ export const adminMangaApi = {
 // ══════════════════════════════════════════════════════
 // ADMIN — FANDOM
 // ══════════════════════════════════════════════════════
-// ══ FANDOM (Otaku Fest West) ══════════════════════════
+// ══ FANDOM (titraille/activités admin-gérées) ══════════
 // À AJOUTER dans src/api.js (avant le checkHealth final)
 export const fandomApi = {
   // Cosplay
@@ -318,6 +320,24 @@ export const fandomApi = {
   adminDeleteQuestion: (id)         => request('DELETE', `/api/fandom/admin/questions/${id}`),
   adminGetCosplays: ()              => request('GET',  '/api/fandom/admin/cosplay'),
   adminModerateCosplay: (id, data)  => request('PATCH', `/api/fandom/admin/cosplay/${id}`, data),
+  // Page config (titraille/badge)
+  getConfig:        ()              => request('GET',  '/api/fandom/config', null, false),
+  adminUpdateConfig: (data)         => request('PATCH', '/api/fandom/admin/config', data),
+  // Activités
+  getActivities:    ()              => request('GET',  '/api/fandom/activities', null, false),
+  adminGetActivities: ()            => request('GET',  '/api/fandom/admin/activities'),
+  adminCreateActivity: (data)       => request('POST', '/api/fandom/admin/activities', data),
+  adminUpdateActivity: (id, data)   => request('PATCH', `/api/fandom/admin/activities/${id}`, data),
+  adminDeleteActivity: (id)         => request('DELETE', `/api/fandom/admin/activities/${id}`),
+}
+
+// ── ANIME (planning à venir/en cours) ────────────────
+export const animeApi = {
+  getAll:   (p = {}) => request('GET', `/api/anime?${new URLSearchParams(p)}`, null, false),
+  getById:  (id)     => request('GET', `/api/anime/${id}`, null, false),
+  create:   (data)   => request('POST', '/api/anime', data),
+  update:   (id, d)  => request('PATCH', `/api/anime/${id}`, d),
+  delete:   (id)     => request('DELETE', `/api/anime/${id}`),
 }
 
 // ── HEALTH ────────────────────────────────────────────

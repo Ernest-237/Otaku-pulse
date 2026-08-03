@@ -5,7 +5,7 @@ import styles from './Apropos.module.css'
 const STORY = [
   { year:'2024', iconFr:'💡', iconEn:'💡', textFr:"L'idée naît : créer une plateforme de evenementiel Otaku pour les fans camerounais.", textEn:"The idea is born: create an Otaku goods store for Cameroonian fans." },
   { year:'2025', iconFr:'🛒', iconEn:'🛒', textFr:"Lancement de la boutique en ligne avec posters, mangas et accessoires.", textEn:"Launch of the online store with posters, manga and accessories." },
-  { year:'2026', iconFr:'🚀', iconEn:'🚀', textFr:"Expansion : Yaoundé, Douala, Bafoussam — livraison dans tout le Cameroun !", textEn:"Expansion: Yaoundé, Douala, Bafoussam — delivery across Cameroon!" },
+  { year:'2026', iconFr:'🚀', iconEn:'🚀', textFr:"Expansion : Yaoundé, Douala — livraison dans tout le Cameroun !", textEn:"Expansion: Yaoundé, Douala — delivery across Cameroon!" },
 ]
 
 export default function Apropos() {

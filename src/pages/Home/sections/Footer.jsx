@@ -21,7 +21,7 @@ const SOCIALS = [
   { name: 'Facebook', href: 'https://facebook.com/otakupulse', icon: <MessagesSquare size={18} strokeWidth={2.1} /> },
   { name: 'Instagram', href: 'https://instagram.com/otakupulse', icon: <Camera size={18} strokeWidth={2.1} /> },
   { name: 'TikTok', href: 'https://tiktok.com/@otakupulse', icon: <Play size={18} strokeWidth={2.1} /> },
-  { name: 'WhatsApp', href: 'https://wa.me/+237675712739', icon: <MessageCircle size={18} strokeWidth={2.1} /> },
+  { name: 'WhatsApp', href: 'https://wa.me/+237670633670', icon: <MessageCircle size={18} strokeWidth={2.1} /> },
 ]
 
 export default function Footer() {
@@ -102,7 +102,7 @@ export default function Footer() {
               <h4 className={styles.colTitle}>{lang === 'fr' ? 'Contact' : 'Contact'}</h4>
               <ul className={styles.contactList}>
                 <li><Mail size={16} strokeWidth={2.1} /> contact@otaku-pulse.com</li>
-                <li><Phone size={16} strokeWidth={2.1} /> +237675712739</li>
+                <li><Phone size={16} strokeWidth={2.1} /> +237670633670</li>
                 <li><MessageCircle size={16} strokeWidth={2.1} /> WhatsApp disponible</li>
                 <li><MapPin size={16} strokeWidth={2.1} /> Yaoundé · Douala</li>
                 <li><Clock3 size={16} strokeWidth={2.1} /> Lun–Sam : 8h–20h</li>

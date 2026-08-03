@@ -26,8 +26,8 @@ async function seed() {
 
   // ── 2. Config Hero par défaut ─────────────────────────
   await HeroConfig.create({
-    taglineF:     'LANCEMENT · 30 JUIN 2026 · CAMEROUN',
-    taglineE:     'LAUNCH · JUNE 30, 2026 · CAMEROON',
+    taglineF:     'EN COURS · DEPUIS LE 30 JUIN 2026 · CAMEROUN',
+    taglineE:     'ONGOING · SINCE JUNE 30, 2026 · CAMEROON',
     line1F:       "VIVEZ L'EXPÉRIENCE",
     line1E:       'LIVE THE EXPERIENCE',
     line2F:       'AU-DELÀ DE',

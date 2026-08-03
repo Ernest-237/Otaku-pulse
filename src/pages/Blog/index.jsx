@@ -18,13 +18,15 @@ import {
 import { useLang } from '../../contexts/LangContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useApi } from '../../hooks/useApi'
-import { blogApi, newsletterApi } from '../../api'
+import { blogApi, newsletterApi, API_BASE } from '../../api'
 import Navbar from '../../components/Navbar'
 import Footer from '../Home/sections/Footer'
 import Modal from '../../components/ui/Modal'
 import { PageLoader, EmptyState } from '../../components/ui/Spinner'
 import Badge, { statusVariant } from '../../components/ui/Badge'
 import styles from './Blog.module.css'
+
+const resolveImg = url => (url && url.startsWith('/') ? `${API_BASE}${url}` : url)
 
 const copy = {
   fr: {
@@ -266,7 +268,7 @@ export default function BlogPage() {
                     onClick={() => setSelectedPost(post)}
                   >
                     <div className={styles.postThumb}>
-                      {post.imageUrl ? <img src={post.imageUrl} alt={post.title} loading="lazy" /> : <span>{post.emoji || '📰'}</span>}
+                      {post.imageUrl ? <img src={resolveImg(post.imageUrl)} alt={post.title} loading="lazy" /> : <span>{post.emoji || '📰'}</span>}
                     </div>
                     <div className={styles.postBody}>
                       <div className={styles.postMeta}>
@@ -356,7 +358,7 @@ export default function BlogPage() {
       <Modal isOpen={!!selectedPost} onClose={() => setSelectedPost(null)} title={selectedPost?.title}>
         {selectedPost && (
           <div className={styles.modalBody}>
-            {selectedPost.imageUrl && <img src={selectedPost.imageUrl} alt={selectedPost.title} className={styles.modalImage} />}
+            {selectedPost.imageUrl && <img src={resolveImg(selectedPost.imageUrl)} alt={selectedPost.title} className={styles.modalImage} />}
             <div className={styles.modalMeta}>
               <Badge variant={statusVariant(selectedPost.category)} style={{ fontSize: '.68rem' }}>
                 <span className={styles.badgeInner}>

@@ -179,8 +179,8 @@ const EventRegistration = sequelize.define('EventRegistration', {
 // ══ HERO CONFIG (existant) ══════════════════════════
 const HeroConfig = sequelize.define('HeroConfig', {
   id:           { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  taglineF:     { type: DataTypes.STRING(200), defaultValue:'LANCEMENT · 30 JUIN 2026 · CAMEROUN' },
-  taglineE:     { type: DataTypes.STRING(200), defaultValue:'LAUNCH · JUNE 30, 2026 · CAMEROON' },
+  taglineF:     { type: DataTypes.STRING(200), defaultValue:'EN COURS · DEPUIS LE 30 JUIN 2026 · CAMEROUN' },
+  taglineE:     { type: DataTypes.STRING(200), defaultValue:'ONGOING · SINCE JUNE 30, 2026 · CAMEROON' },
   line1F:       { type: DataTypes.STRING(200), defaultValue:"VIVEZ L'EXPÉRIENCE" },
   line1E:       { type: DataTypes.STRING(200), defaultValue:'LIVE THE EXPERIENCE' },
   line2F:       { type: DataTypes.STRING(200), defaultValue:'AU-DELÀ DE' },
@@ -579,7 +579,7 @@ User.belongsToMany(Product, { through:Wishlist, foreignKey:'userId',    as:'wish
 Product.belongsToMany(User, { through:Wishlist, foreignKey:'productId', as:'wishedBy' })
 
 Event.hasMany(EventRegistration,   { foreignKey:'eventId', as:'registrations' })
-EventRegistration.belongsTo(Event, { foreignKey:'eventId' })
+EventRegistration.belongsTo(Event, { foreignKey:'eventId', as:'event' })
 EventRegistration.belongsTo(User,  { foreignKey:'userId', as:'user' })
 User.hasMany(EventRegistration,    { foreignKey:'userId', as:'eventRegistrations' })
 
@@ -654,8 +654,7 @@ Chapter.hasMany(ChapterUnlock, { foreignKey: 'chapterId', as: 'unlocks' })
 
 
 // ╔═══════════════════════════════════════════════════════════╗
-// ║         FANDOM — OTAKU FEST WEST (à ajouter à             ║
-// ║         server/models/index.js, AVANT le bloc SYNC)       ║
+// ║                          FANDOM                             ║
 // ╚═══════════════════════════════════════════════════════════╝
 
 // ══ COSPLAY ENTRY (participation concours cosplay) ══════
@@ -742,6 +741,59 @@ const GameScore = sequelize.define('GameScore', {
   ]
 })
 
+// ══ FANDOM PAGE CONFIG (singleton, titraille/badge admin-gérés) ══
+const FandomPageConfig = sequelize.define('FandomPageConfig', {
+  id:           { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  titleF:       { type: DataTypes.STRING(200), defaultValue: 'FANDOM ARENA' },
+  titleE:       { type: DataTypes.STRING(200), defaultValue: 'FANDOM ARENA' },
+  badgeF:       { type: DataTypes.STRING(200), defaultValue: 'ESPACE FANDOM' },
+  badgeE:       { type: DataTypes.STRING(200), defaultValue: 'FANDOM SPACE' },
+  subtitleF:    { type: DataTypes.TEXT },
+  subtitleE:    { type: DataTypes.TEXT },
+  eventDateStart: { type: DataTypes.DATEONLY },
+  eventDateEnd:   { type: DataTypes.DATEONLY },
+}, { tableName: 'fandom_page_configs', timestamps: true })
+
+// ══ FANDOM ACTIVITY (cartes d'activités, gérées par admin) ══
+const FandomActivity = sequelize.define('FandomActivity', {
+  id:          { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  titleF:      { type: DataTypes.STRING(150), allowNull: false },
+  titleE:      { type: DataTypes.STRING(150) },
+  descF:       { type: DataTypes.TEXT },
+  descE:       { type: DataTypes.TEXT },
+  icon:        { type: DataTypes.STRING(10), defaultValue: '🎮' },
+  linkTab:     { type: DataTypes.ENUM('cosplay','quizz','classement','custom'), defaultValue: 'custom' },
+  externalUrl: { type: DataTypes.STRING(500) },
+  imageData:   { type: DataTypes.TEXT },
+  imageMime:   { type: DataTypes.STRING(50) },
+  order:       { type: DataTypes.INTEGER, defaultValue: 0 },
+  isActive:    { type: DataTypes.BOOLEAN, defaultValue: true },
+}, { tableName: 'fandom_activities', timestamps: true, indexes: [{ fields: ['isActive','order'] }] })
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║                  ANIME SCHEDULE — NOUVEAU                  ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+// ══ ANIME (planning à venir/en cours, thèmes/openings/persos) ══
+const Anime = sequelize.define('Anime', {
+  id:              { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  titleF:          { type: DataTypes.STRING(200), allowNull: false },
+  titleE:          { type: DataTypes.STRING(200) },
+  synopsisF:       { type: DataTypes.TEXT },
+  synopsisE:       { type: DataTypes.TEXT },
+  coverImageData:  { type: DataTypes.TEXT },
+  coverImageMime:  { type: DataTypes.STRING(50) },
+  status:          { type: DataTypes.ENUM('upcoming','airing','ended'), defaultValue: 'upcoming' },
+  month:           { type: DataTypes.DATEONLY, allowNull: false }, // 1er jour du mois concerné
+  weekday:         { type: DataTypes.STRING(20) }, // ex. 'Samedi'
+  studio:          { type: DataTypes.STRING(120) },
+  openingTitle:    { type: DataTypes.STRING(150) },
+  openingUrl:      { type: DataTypes.STRING(500) },
+  characters:      { type: DataTypes.JSONB, defaultValue: [] }, // [{ name, role, imageUrl }]
+  order:           { type: DataTypes.INTEGER, defaultValue: 0 },
+  isActive:        { type: DataTypes.BOOLEAN, defaultValue: true },
+}, { tableName: 'animes', timestamps: true, indexes: [{ fields: ['month','status'] }] })
+
 // ── FANDOM ASSOCIATIONS ─────────────────────────────
 User.hasMany(CosplayEntry,    { foreignKey: 'userId', as: 'cosplayEntries', onDelete: 'CASCADE' })
 CosplayEntry.belongsTo(User,  { foreignKey: 'userId', as: 'user' })
@@ -778,4 +830,7 @@ module.exports = {
   CoinWallet, CoinTransaction, CoinPurchaseRequest, ChapterUnlock,
   //fandom
   CosplayEntry, CosplayVote, QuizQuestion, QuizScore, GameScore,
+  FandomPageConfig, FandomActivity,
+  // Anime schedule
+  Anime,
 }

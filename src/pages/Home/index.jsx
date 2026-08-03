@@ -4,6 +4,7 @@ import Navbar              from '../../components/Navbar'
 import FloatingCharacter   from '../../components/FloatingCharacter'
 import Hero                from './sections/Hero'
 import AnimeCategories     from './sections/AnimeCategories'
+import AnimeSchedule       from './sections/AnimeSchedule'
 import Boutique            from './sections/Boutique'
 import Events              from './sections/Events'
 import Apropos             from './sections/Apropos'
@@ -19,6 +20,7 @@ export default function Home() {
       <main>
         <Hero />
         <AnimeCategories />
+        <AnimeSchedule />
         <section id="boutique"><Boutique /></section>
         <Events />
         <section id="apropos"><Apropos /></section>

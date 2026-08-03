@@ -3,7 +3,7 @@ import { useState, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth }  from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
-import { API_BASE } from '../../api'
+import { API_BASE, eventsApi } from '../../api'
 import { useApi } from '../../hooks/useApi'
 import Navbar  from '../../components/Navbar'
 import Footer  from '../Home/sections/Footer'
@@ -326,6 +326,9 @@ export default function MembershipPage() {
         </section>
       )}
 
+      {/* ══ ÉVÉNEMENTS À VENIR / BILLETTERIE ═══════════════ */}
+      <UpcomingEventsSection user={user} toast={toast} />
+
       {/* ══ CONCEPT ═══════════════════════════════════════ */}
       <section className={styles.concept}>
         <div className="container">
@@ -557,6 +560,89 @@ function PlanCard({ plan, onSelect, user }) {
       </button>
       {!user && <p className={styles.planCtaNote}>Connexion requise</p>}
     </div>
+  )
+}
+
+// ── Événements à venir + billetterie (RSVP) ──────────
+function UpcomingEventsSection({ user, toast }) {
+  const { data, loading } = useApi(() => eventsApi.getAll({ status:'upcoming', limit:6 }), [], true)
+  const { data: mineData, execute: refetchMine } = useApi(
+    () => user ? eventsApi.getMine() : Promise.resolve({ registrations: [] }),
+    [user?.id], true
+  )
+  const [busyId, setBusyId] = useState(null)
+
+  const events = data?.events || []
+  const myRegs = mineData?.registrations || []
+  const regByEvent = {}
+  myRegs.forEach(r => { regByEvent[r.eventId] = r })
+
+  const register = async (eventId) => {
+    if (!user) { toast.info("Connecte-toi d'abord !"); return }
+    setBusyId(eventId)
+    try {
+      const r = await eventsApi.register(eventId)
+      toast.success(r.message)
+      refetchMine()
+    } catch(err) { toast.error(err.message) }
+    finally { setBusyId(null) }
+  }
+
+  const cancelReg = async (registrationId) => {
+    setBusyId(registrationId)
+    try { await eventsApi.cancel(registrationId); toast.success('Inscription annulée'); refetchMine() }
+    catch(err) { toast.error(err.message) }
+    finally { setBusyId(null) }
+  }
+
+  if (loading || events.length === 0) return null
+
+  return (
+    <section className={styles.eventsSection}>
+      <div className="container">
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTag}>🎌 BILLETTERIE</div>
+          <h2 className={styles.sectionTitle}>ÉVÉNEMENTS <span style={{ color:'var(--green)' }}>À VENIR</span></h2>
+          <p className={styles.sectionSub}>Réserve ta place — inscription gratuite, paiement sur place.</p>
+        </div>
+
+        <div className={styles.eventsGrid}>
+          {events.map(e => {
+            const reg = regByEvent[e.id]
+            const isFull = e.registered >= e.capacity
+            return (
+              <div key={e.id} className={styles.eventCard}>
+                <div className={styles.eventCardTop}>
+                  <span className={styles.eventEmoji}>{e.img || '🎌'}</span>
+                  {!e.isFree && e.price > 0 && (
+                    <span className={styles.eventTicketBadge} style={{ background:'var(--green-pale)', color:'var(--green)' }}>
+                      {e.price} FCFA
+                    </span>
+                  )}
+                </div>
+                <h3 className={styles.eventCardTitle}>{e.titleF}</h3>
+                <div className={styles.eventCardMeta}>
+                  <span>📅 {new Date(e.date).toLocaleDateString('fr-FR', { day:'numeric', month:'long' })}{e.timeStart ? ` · ${e.timeStart}` : ''}</span>
+                  <span>📍 {e.venue || e.city}</span>
+                  <span>{e.registered}/{e.capacity} inscrits</span>
+                </div>
+
+                {reg ? (
+                  <button className={`${styles.eventCardBtn} ${styles.eventCardBtnGhost}`}
+                    disabled={busyId===reg.id} onClick={() => cancelReg(reg.id)}>
+                    {reg.status==='waitlist' ? "🕒 Sur liste d'attente — annuler" : '✅ Inscrit — annuler'}
+                  </button>
+                ) : (
+                  <button className={styles.eventCardBtn} disabled={busyId===e.id} onClick={() => register(e.id)}>
+                    {busyId===e.id ? '⏳...' : isFull ? "Rejoindre la liste d'attente" : 'Réserver ma place'}
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </section>
   )
 }
 

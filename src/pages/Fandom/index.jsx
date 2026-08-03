@@ -1,4 +1,4 @@
-// src/pages/Fandom/index.jsx — FANDOM Otaku Fest West
+// src/pages/Fandom/index.jsx — FANDOM (titraille/activités admin-gérées)
 // 3 onglets : Cosplay (upload + votes), Quizz, Classements
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -32,10 +32,28 @@ async function fileToBase64Safe(file) {
 
 export default function FandomPage() {
   const { isLoggedIn, user } = useAuth()
+  const { lang } = useLang()
   const toast = useToast()
   const [tab, setTab] = useState('cosplay')
+  const [config, setConfig] = useState(null)
+  const [activities, setActivities] = useState([])
 
-  useEffect(() => { document.title = '🎮 Fandom — Otaku Fest West' }, [])
+  useEffect(() => {
+    (async () => {
+      try {
+        const [c, a] = await Promise.all([fandomApi.getConfig(), fandomApi.getActivities()])
+        setConfig(c.config)
+        setActivities(a.activities || [])
+      } catch (_) {}
+    })()
+  }, [])
+
+  const badge = lang === 'en' ? config?.badgeE : config?.badgeF
+  const title = lang === 'en' ? config?.titleE : config?.titleF
+
+  useEffect(() => {
+    document.title = `🎮 Fandom — ${title || 'Otaku Pulse'}`
+  }, [title])
 
   return (
     <div className={styles.page}>
@@ -45,14 +63,40 @@ export default function FandomPage() {
       <section className={styles.hero}>
         <div className={styles.heroGlow} />
         <div className="container">
-          <span className={styles.heroBadge}><Sparkles size={12} /> OTAKU FEST WEST · CE WEEKEND</span>
-          <h1 className={styles.heroTitle}>FANDOM <span className={styles.heroAccent}>ARENA</span></h1>
+          <span className={styles.heroBadge}><Sparkles size={12} /> {badge || 'ESPACE FANDOM'}</span>
+          <h1 className={styles.heroTitle}>{title || 'FANDOM ARENA'}</h1>
           <p className={styles.heroSub}>
             Montre ton cosplay, teste tes connaissances otaku, grimpe au classement.
             {!isLoggedIn && ' Connecte-toi pour participer !'}
           </p>
         </div>
       </section>
+
+      {/* ACTIVITÉS (gérées depuis l'admin) */}
+      {activities.length > 0 && (
+        <div className="container">
+          <div className={styles.activitiesGrid}>
+            {activities.map(a => {
+              const aTitle = lang === 'en' ? (a.titleE || a.titleF) : a.titleF
+              const aDesc  = lang === 'en' ? (a.descE || a.descF) : a.descF
+              const onClick = a.linkTab && a.linkTab !== 'custom'
+                ? () => setTab(a.linkTab === 'classement' ? 'ranking' : a.linkTab)
+                : a.externalUrl ? () => window.open(a.externalUrl, '_blank') : undefined
+              return (
+                <button key={a.id} className={styles.activityCard} onClick={onClick} disabled={!onClick}>
+                  {a.imageUrl
+                    ? <img src={`${API_BASE}${a.imageUrl}`} alt={aTitle} className={styles.activityImg} />
+                    : <span className={styles.activityIcon}>{a.icon}</span>}
+                  <div className={styles.activityBody}>
+                    <h3>{aTitle}</h3>
+                    {aDesc && <p>{aDesc}</p>}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* TABS */}
       <div className={styles.tabsBar}>

@@ -21,6 +21,8 @@ import PublishersSection    from './sections/PublishersSection'
 import SubscriptionsSection from './sections/SubscriptionsSection'
 import MangaCommentsSection from './sections/MangaCommentsSection'
 import CoinsSection from './sections/CoinsSection'
+import FandomSection from './sections/FandomSection'
+import AnimeSection from './sections/AnimeSection'
 
 const ALL_CATS = ['posters','stickers','accessoires','kits','manga','livre','dessin','nutrition','echange','jeux']
 
@@ -32,6 +34,8 @@ const SECTIONS = [
   { id:'events',      icon:'🎌', label:'Événements'     },
   { id:'blog',        icon:'📝', label:'Blog & Promos'  },
   { id:'hero',        icon:'🖼️', label:'Hero dynamique' },
+  { id:'fandom',      icon:'🎮', label:'Fandom'         },
+  { id:'anime',       icon:'📺', label:'Planning Anime' },
   { id:'contacts',    icon:'📬', label:'Réservations'   },
   { id:'users',       icon:'👥', label:'Membres'        },
   { id:'membership',  icon:'🎴', label:'Carte Membre'   },
@@ -112,9 +116,11 @@ export default function Admin() {
           {section==='orders'     && <OrdersSection     toast={toast} />}
           {section==='products'   && <ProductsSection   toast={toast} />}
           {section==='suppliers'  && <SuppliersSection  toast={toast} />}
-          {section==='events'     && <EventsSection     />}
+          {section==='events'     && <EventsSection     toast={toast} />}
           {section==='blog'       && <BlogSection       toast={toast} />}
           {section==='hero'       && <HeroSection       toast={toast} />}
+          {section==='fandom'     && <FandomSection     toast={toast} />}
+          {section==='anime'      && <AnimeSection      toast={toast} />}
           {section==='contacts'   && <ContactsSection   toast={toast} />}
           {section==='users'      && <UsersSection      toast={toast} />}
           {section==='membership' && <MembershipSection toast={toast} />}
@@ -413,18 +419,29 @@ function ProductModal({ product:p, onClose, onSave, toast }) {
 }
 
 // ══ EVENTS ════════════════════════════════════════════
-function EventsSection() {
-  const { data, loading } = useApi(() => eventsApi.getAll({ limit:50 }), [], true)
-  if (loading) return <PageLoader />
+function EventsSection({ toast }) {
+  const { data, loading, execute } = useApi(() => eventsApi.getAll({ limit:50 }), [], true)
+  const [modal,   setModal]   = useState(false)
+  const [editing, setEditing] = useState(null)
   const events = data?.events || []
+
+  const save = async (form) => {
+    try {
+      editing ? await eventsApi.update(editing.id, form) : await eventsApi.create(form)
+      toast.success('✅ Événement enregistré'); execute(); setModal(false); setEditing(null)
+    } catch(err) { toast.error(err.message) }
+  }
+
+  if (loading) return <PageLoader />
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
         <span className={styles.cardTitle}>🎌 Événements ({events.length})</span>
+        <Button variant="primary" size="sm" onClick={() => { setEditing(null); setModal(true) }}>+ Événement</Button>
       </div>
       <div style={{ overflowX:'auto' }}>
         <table className={styles.table}>
-          <thead><tr><th>Événement</th><th>Type</th><th>Date</th><th>Lieu</th><th>Inscrits</th><th>Statut</th></tr></thead>
+          <thead><tr><th>Événement</th><th>Type</th><th>Date</th><th>Lieu</th><th>Inscrits</th><th>Statut</th><th></th></tr></thead>
           <tbody>
             {events.map(e => (
               <tr key={e.id} className={styles.tr}>
@@ -434,13 +451,83 @@ function EventsSection() {
                 <td style={{ fontSize:'.82rem' }}>{e.venue||e.location||'—'}</td>
                 <td><Badge variant={e.registered>=e.capacity?'red':'green'} style={{ fontSize:'.65rem' }}>{e.registered}/{e.capacity}</Badge></td>
                 <td><Badge variant={statusVariant(e.status)} style={{ fontSize:'.65rem' }}>{STATUS_LABELS[e.status]||e.status}</Badge></td>
+                <td><Button variant="ghost" size="sm" onClick={() => { setEditing(e); setModal(true) }}>✏️</Button></td>
               </tr>
             ))}
           </tbody>
         </table>
         {!events.length && <EmptyState icon="🎌" title="Aucun événement" />}
       </div>
+      {modal && <EventModal event={editing} onClose={() => { setModal(false); setEditing(null) }} onSave={save} toast={toast} />}
     </div>
+  )
+}
+
+function EventModal({ event:e, onClose, onSave, toast }) {
+  const [form, setForm] = useState({
+    titleF: e?.titleF||'', titleE: e?.titleE||'', descF: e?.descF||'', descE: e?.descE||'',
+    date: e?.date||'', timeStart: e?.timeStart||'', timeEnd: e?.timeEnd||'',
+    venue: e?.venue||'', city: e?.city||'Yaoundé', type: e?.type||'custom',
+    capacity: e?.capacity??50, price: e?.price??0, isFree: e?.isFree||false,
+    img: e?.img||'🎌', status: e?.status||'upcoming', featured: e?.featured||false,
+    imageUrl: e?.imageUrl||'',
+  })
+  const s = (k,v) => setForm(f => ({ ...f, [k]:v }))
+
+  const submit = () => {
+    if (!form.titleF.trim()) return toast.error('Titre requis')
+    if (!form.date) return toast.error('Date requise')
+    onSave(form)
+  }
+
+  return (
+    <Modal isOpen dark title={e ? '✏️ Modifier événement' : '🎌 Nouvel événement'} onClose={onClose} wide
+      footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={submit}>💾 Enregistrer</Button></>}>
+      <div className={styles.formGrid2}>
+        <AInput label="Titre FR *" value={form.titleF} onChange={v=>s('titleF',v)} />
+        <AInput label="Titre EN" value={form.titleE} onChange={v=>s('titleE',v)} />
+      </div>
+      <div className={styles.formGrid2}>
+        <ATextarea label="Description FR" value={form.descF} onChange={v=>s('descF',v)} rows={2} />
+        <ATextarea label="Description EN" value={form.descE} onChange={v=>s('descE',v)} rows={2} />
+      </div>
+      <div className={styles.formGrid2}>
+        <AInput label="Date *" type="date" value={form.date} onChange={v=>s('date',v)} />
+        <AInput label="Lieu" value={form.venue} onChange={v=>s('venue',v)} />
+      </div>
+      <div className={styles.formGrid2}>
+        <AInput label="Heure début" type="time" value={form.timeStart} onChange={v=>s('timeStart',v)} />
+        <AInput label="Heure fin" type="time" value={form.timeEnd} onChange={v=>s('timeEnd',v)} />
+      </div>
+      <div className={styles.formGrid2}>
+        <AInput label="Ville" value={form.city} onChange={v=>s('city',v)} />
+        <ASelect label="Type" value={form.type} onChange={v=>s('type',v)}
+          options={[{v:'genin',l:'Genin'},{v:'chunin',l:'Chūnin'},{v:'hokage',l:'Hokage'},{v:'custom',l:'Custom'}]} />
+      </div>
+      <div className={styles.formGrid2}>
+        <AInput label="Capacité" type="number" value={form.capacity} onChange={v=>s('capacity',Number(v))} />
+        <AInput label="Prix (FCFA)" type="number" value={form.price} onChange={v=>s('price',Number(v))} />
+      </div>
+      <div className={styles.formGrid2}>
+        <ASelect label="Statut" value={form.status} onChange={v=>s('status',v)}
+          options={[{v:'upcoming',l:'À venir'},{v:'ongoing',l:'En cours'},{v:'past',l:'Passé'},{v:'cancelled',l:'Annulé'},{v:'draft',l:'Brouillon'}]} />
+        <AInput label="Emoji" value={form.img} onChange={v=>s('img',v)} />
+      </div>
+
+      <AField label="Image de l'événement">
+        <ImageUploader
+          currentUrl={form.imageUrl && form.imageUrl.startsWith('/') ? `${API_BASE}${form.imageUrl}` : form.imageUrl}
+          onUpload={async (data, mime) => { s('imageUrl', `data:${mime};base64,${data}`); toast?.success?.('📸 Image chargée') }}
+          onUrlChange={(url) => s('imageUrl', url)}
+          placeholder="Cliquer ou glisser une image d'événement"
+        />
+      </AField>
+
+      <div style={{ display:'flex', gap:'1.5rem', marginTop:'.8rem' }}>
+        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.isFree} onChange={e=>s('isFree',e.target.checked)} style={{ accentColor:'#33ff33' }} /> 🆓 Gratuit</label>
+        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.featured} onChange={e=>s('featured',e.target.checked)} style={{ accentColor:'#33ff33' }} /> ⭐ Mis en avant</label>
+      </div>
+    </Modal>
   )
 }
 

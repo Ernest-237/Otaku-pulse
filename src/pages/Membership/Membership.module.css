@@ -616,6 +616,31 @@
 }
 .compareCell:first-child { text-align: left; color: var(--text-muted); font-weight: 700; }
 
+/* ══ ÉVÉNEMENTS À VENIR / BILLETTERIE ══ */
+.eventsSection { padding: 4rem 0; background: var(--bg-soft); }
+.eventsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem; margin-top: 2rem; }
+.eventCard {
+  background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius-lg);
+  padding: 1.2rem; box-shadow: var(--shadow-sm);
+}
+.eventCardTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: .6rem; }
+.eventEmoji { font-size: 1.6rem; }
+.eventCardTitle { font-family: var(--font-title); font-size: 1.1rem; letter-spacing: 1px; color: var(--text-strong); margin: .4rem 0; }
+.eventCardMeta { font-size: .8rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px; margin-bottom: .9rem; }
+.eventCardBtn {
+  width: 100%; padding: 10px; border: none; border-radius: var(--radius-md);
+  background: var(--green); color: #fff; font-weight: 800; font-size: .85rem; cursor: pointer;
+  transition: all .18s;
+}
+.eventCardBtn:hover:not(:disabled) { background: var(--green-800); }
+.eventCardBtn:disabled { opacity: .65; cursor: not-allowed; }
+.eventCardBtnGhost { background: var(--bg-soft); color: var(--red); border: 1.5px solid var(--border); }
+.eventCardBtnGhost:hover:not(:disabled) { border-color: rgba(220,38,38,.3); }
+.eventTicketBadge {
+  display: inline-block; font-size: .7rem; font-weight: 800; padding: 3px 10px;
+  border-radius: var(--radius-full); margin-bottom: .6rem;
+}
+
 /* ══ FAQ ══ */
 .faq { padding: 5rem 0; background: var(--bg); }
 .faqList {

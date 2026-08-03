@@ -53,7 +53,7 @@ export default function AnimeCategories() {
         <div className={styles.header}>
           <div className={styles.tag}>
             <Sparkles size={14} strokeWidth={2.2} />
-            <span>{lang === 'fr' ? 'Univers Anime' : 'Anime Universe'}</span>
+            <span>{lang === 'fr' ? 'Otaku Verse' : 'Otaku Verse'}</span>
           </div>
 
           <h2 className={styles.title}>

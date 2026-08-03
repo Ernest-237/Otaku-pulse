@@ -1,14 +1,17 @@
-// server/routes/fandom.js — FANDOM Otaku Fest West
+// server/routes/fandom.js — FANDOM (titraille/activités administrables)
 // Cosplay (upload + votes), Quizz (questions + scores), Mini-jeux (scores), Classements
 const router = require('express').Router()
 const { Op, fn, col } = require('sequelize')
 const {
   sequelize, CosplayEntry, CosplayVote, QuizQuestion, QuizScore, GameScore, User,
+  FandomPageConfig, FandomActivity,
 } = require('../models/index')
 const { protect, restrictTo } = require('../middleware/auth')
 
 // Helper : reconstruit l'URL image d'un cosplay
 const cosplayUrl = (id) => `/api/fandom/cosplay/${id}/image`
+// Helper : reconstruit l'URL image d'une activité fandom
+const activityUrl = (id) => `/api/fandom/activities/${id}/image`
 
 /* ══════════════════════════════════════════════════════
    COSPLAY
@@ -244,6 +247,102 @@ router.get('/games/:gameKey/leaderboard', async (req, res, next) => {
       include: [{ model: User, as: 'user', attributes: ['pseudo', 'avatar'] }],
     })
     res.json({ leaderboard: top })
+  } catch (err) { next(err) }
+})
+
+/* ══════════════════════════════════════════════════════
+   PAGE CONFIG (titraille/badge, gérés par admin)
+   ══════════════════════════════════════════════════════ */
+
+// GET /api/fandom/config — config publique (créée à la volée si absente)
+router.get('/config', async (req, res, next) => {
+  try {
+    let config = await FandomPageConfig.findOne()
+    if (!config) config = await FandomPageConfig.create({})
+    res.json({ config })
+  } catch (err) { next(err) }
+})
+
+// PATCH /api/fandom/admin/config — admin met à jour la titraille
+router.patch('/admin/config', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    let config = await FandomPageConfig.findOne()
+    if (!config) config = await FandomPageConfig.create(req.body)
+    else await config.update(req.body)
+    res.json({ config })
+  } catch (err) { next(err) }
+})
+
+/* ══════════════════════════════════════════════════════
+   ACTIVITÉS FANDOM (cartes, gérées par admin)
+   ══════════════════════════════════════════════════════ */
+
+// GET /api/fandom/activities — liste publique, actives, triées
+router.get('/activities', async (req, res, next) => {
+  try {
+    const activities = await FandomActivity.findAll({
+      where: { isActive: true },
+      order: [['order', 'ASC'], ['createdAt', 'ASC']],
+      attributes: { exclude: ['imageData'] },
+    })
+    res.json({ activities: activities.map(a => {
+      const j = a.toJSON()
+      if (a.imageMime) j.imageUrl = activityUrl(j.id)
+      return j
+    }) })
+  } catch (err) { next(err) }
+})
+
+// GET /api/fandom/activities/:id/image
+router.get('/activities/:id/image', async (req, res, next) => {
+  try {
+    const activity = await FandomActivity.findByPk(req.params.id, { attributes: ['imageData','imageMime'] })
+    if (!activity || !activity.imageData) return res.status(404).send('No image')
+    const buffer = Buffer.from(activity.imageData, 'base64')
+    res.set('Content-Type', activity.imageMime || 'image/jpeg')
+    res.set('Cache-Control', 'public, max-age=3600')
+    res.send(buffer)
+  } catch (err) { next(err) }
+})
+
+// GET /api/fandom/admin/activities — toutes (actives + inactives)
+router.get('/admin/activities', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    const activities = await FandomActivity.findAll({
+      order: [['order', 'ASC'], ['createdAt', 'ASC']],
+      attributes: { exclude: ['imageData'] },
+    })
+    res.json({ activities: activities.map(a => {
+      const j = a.toJSON()
+      if (a.imageMime) j.imageUrl = activityUrl(j.id)
+      return j
+    }) })
+  } catch (err) { next(err) }
+})
+
+// POST /api/fandom/admin/activities
+router.post('/admin/activities', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    const activity = await FandomActivity.create(req.body)
+    res.status(201).json({ activity })
+  } catch (err) { next(err) }
+})
+
+// PATCH /api/fandom/admin/activities/:id
+router.patch('/admin/activities/:id', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    const activity = await FandomActivity.findByPk(req.params.id)
+    if (!activity) return res.status(404).json({ error: 'Activité introuvable' })
+    await activity.update(req.body)
+    res.json({ activity })
+  } catch (err) { next(err) }
+})
+
+// DELETE /api/fandom/admin/activities/:id
+router.delete('/admin/activities/:id', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    await FandomActivity.destroy({ where: { id: req.params.id } })
+    res.json({ message: 'Activité supprimée' })
   } catch (err) { next(err) }
 })
 

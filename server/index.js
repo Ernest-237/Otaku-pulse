@@ -69,6 +69,7 @@ app.use('/api/follows',        require('./routes/follows'))
 
 // ── Routes Fandom ────────────────────────────
 app.use('/api/fandom', require('./routes/fandom'))
+app.use('/api/anime',  require('./routes/anime'))
 
 // Health
 app.get('/api/health', async (req, res) => {
