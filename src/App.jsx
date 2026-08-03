@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { PageLoader } from './components/ui/Spinner'
 import Music from './components/Music'
+import { MusicProvider } from './contexts/MusicContext'
 
 // Pages existantes
 import Home          from './pages/Home'
@@ -41,7 +42,7 @@ function PrivateRoute({ children }) {
 
 export default function App() {
   return (
-    <>
+    <MusicProvider>
     <Music />
     <Routes>
       {/* Pages publiques */}
@@ -70,6 +71,6 @@ export default function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-    </>
+    </MusicProvider>
   )
 }

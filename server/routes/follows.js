@@ -59,7 +59,7 @@ router.get('/my', protect, async (req, res, next) => {
       order: [['createdAt', 'DESC']],
       include: [{
         model: Manga, as: 'manga',
-        attributes: { exclude: ['coverImageData','bannerImageData','synopsisF','synopsisE'] },
+        attributes: { exclude: ['coverImageData','bannerImageData','bgMusicData','synopsisF','synopsisE'] },
       }],
     })
     const result = follows.map(f => {

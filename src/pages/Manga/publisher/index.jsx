@@ -23,6 +23,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrende
 
 const GENRES_OPTIONS = ['action','aventure','romance','fantasy','sci-fi','shonen','seinen','slice of life','mystery','drame','horreur','sport','comédie']
 const MAX_IMAGE_MB = 10
+const MAX_AUDIO_MB = 10
 
 /* ══ HELPER : Lecture safe d'un fichier en base64 ══ */
 async function readFileToBase64Safe(file) {
@@ -207,6 +208,7 @@ export default function PublisherPage() {
   const [chapterModalOpen, setChapterModalOpen] = useState(false)
   const [selectedManga, setSelectedManga] = useState(null)
   const [manageManga, setManageManga] = useState(null)
+  const [musicManga, setMusicManga] = useState(null)
 
   const canPublish = isPublisher || ['admin','superadmin'].includes(user?.role)
 
@@ -324,7 +326,8 @@ export default function PublisherPage() {
               <MangasTab myMangas={myMangas} t={t} lang={lang}
                 onNewManga={() => setMangaModalOpen(true)}
                 onAddChapter={(m) => { setSelectedManga(m); setChapterModalOpen(true) }}
-                onManageChapters={(m) => setManageManga(m)} />
+                onManageChapters={(m) => setManageManga(m)}
+                onEditMusic={(m) => setMusicManga(m)} />
             )}
             {tab === 'stats' && (
               <StatsTab stats={stats} myMangas={myMangas} t={t} lang={lang} />
@@ -350,6 +353,13 @@ export default function PublisherPage() {
       {manageManga && (
         <ManageChaptersModal manga={manageManga} lang={lang}
           onClose={() => setManageManga(null)}
+          onChanged={() => refresh()}
+          toast={toast} />
+      )}
+
+      {musicManga && (
+        <MangaMusicModal manga={musicManga} lang={lang}
+          onClose={() => setMusicManga(null)}
           onChanged={() => refresh()}
           toast={toast} />
       )}
@@ -453,7 +463,7 @@ function OverviewTab({ stats, topMangas, t, lang, onNewManga }) {
 /* ══════════════════════════════════════════════════════
    ONGLET : MES MANGAS
    ══════════════════════════════════════════════════════ */
-function MangasTab({ myMangas, t, lang, onNewManga, onAddChapter, onManageChapters }) {
+function MangasTab({ myMangas, t, lang, onNewManga, onAddChapter, onManageChapters, onEditMusic }) {
   if (!myMangas.length) {
     return (
       <div className={styles.tabContent}>
@@ -473,7 +483,8 @@ function MangasTab({ myMangas, t, lang, onNewManga, onAddChapter, onManageChapte
         {myMangas.map(m => (
           <MyMangaCard key={m.id} manga={m} lang={lang} t={t}
             onAddChapter={() => onAddChapter(m)}
-            onManageChapters={() => onManageChapters(m)} />
+            onManageChapters={() => onManageChapters(m)}
+            onEditMusic={() => onEditMusic(m)} />
         ))}
       </div>
     </div>
@@ -623,7 +634,7 @@ function PublisherApplicationFlow({ existingApp, t, toast }) {
 }
 
 /* ══ MANGA CARD ══ */
-function MyMangaCard({ manga, lang, t, onAddChapter, onManageChapters }) {
+function MyMangaCard({ manga, lang, t, onAddChapter, onManageChapters, onEditMusic }) {
   const title = lang === 'fr' ? manga.titleF : (manga.titleE || manga.titleF)
   const STATUS_COLORS = { pending:'#f59e0b', approved:'#22c55e', rejected:'#ef4444', suspended:'#6b7280' }
 
@@ -675,6 +686,9 @@ function MyMangaCard({ manga, lang, t, onAddChapter, onManageChapters }) {
                   <Layers size={12} /> Gérer les chapitres
                 </button>
               )}
+              <button onClick={onEditMusic} className={styles.mangaActionGhost}>
+                🎵 {manga.bgMusicUrl ? 'Musique' : 'Ajouter musique'}
+              </button>
             </>
           )}
         </div>
@@ -989,6 +1003,27 @@ function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
     setEditing(c => ({ ...c, pages: c.pages.filter((_, i) => i !== idx) }))
   }
 
+  const addPages = async (files) => {
+    const all = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'))
+    const tooLarge = all.filter(f => f.size > MAX_IMAGE_MB * 1024 * 1024)
+    const ok = all.filter(f => f.size <= MAX_IMAGE_MB * 1024 * 1024)
+    if (tooLarge.length) {
+      toast.error(`${tooLarge.length} image(s) trop lourde(s) (max ${MAX_IMAGE_MB}Mo) : ${tooLarge.map(f => f.name).join(', ')}`)
+    }
+    if (!ok.length) return
+    setBusy(true)
+    try {
+      const newPages = []
+      for (const f of ok) {
+        const result = await readFileToBase64Safe(f)
+        newPages.push({ data: result.data, mime: result.mime })
+      }
+      setEditing(c => ({ ...c, pages: [...c.pages, ...newPages] }))
+      toast.success(`${newPages.length} page(s) ajoutée(s) — clique "Enregistrer" pour valider`)
+    } catch (err) { toast.error(err.message || "Erreur lors de l'ajout des pages") }
+    finally { setBusy(false) }
+  }
+
   const savePages = async () => {
     if (editing.pages.length === 0) { toast.error('Un chapitre doit garder au moins 1 page'); return }
     setBusy(true)
@@ -1021,6 +1056,19 @@ function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
       }>
       {editing ? (
         <div className={styles.pagesList}>
+          <div className={styles.dropZone}
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => { e.preventDefault(); addPages(e.dataTransfer.files) }}
+            style={{ marginBottom: '1rem' }}>
+            <input type="file" multiple accept="image/*"
+              onChange={e => { addPages(e.target.files); e.target.value = '' }}
+              id="addPages" style={{ display: 'none' }} disabled={busy} />
+            <label htmlFor="addPages" className={styles.dropZoneLabel}>
+              <ImageIcon size={24} />
+              <strong>Ajouter des pages</strong>
+              <span>Glisse-dépose ou clique pour choisir (max {MAX_IMAGE_MB}Mo/image)</span>
+            </label>
+          </div>
           {editing.pages.map((p, i) => {
             const src = p.url ? `${API_BASE}${p.url}` : (p.data ? `data:${p.mime || 'image/jpeg'};base64,${p.data}` : null)
             return (
@@ -1059,6 +1107,91 @@ function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
             </div>
           ))}
         </div>
+      )}
+    </Modal>
+  )
+}
+
+/* ══ MUSIQUE DE FOND DU MANGA (optionnelle, jouée pendant la lecture) ══ */
+function MangaMusicModal({ manga, lang, onClose, onChanged, toast }) {
+  const title = lang === 'fr' ? manga.titleF : (manga.titleE || manga.titleF)
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  const pickFile = (f) => {
+    if (!f) return
+    if (!f.type || !f.type.startsWith('audio/')) { toast.error('Fichier audio uniquement (mp3, ogg, wav...)'); return }
+    if (f.size > MAX_AUDIO_MB * 1024 * 1024) { toast.error(`Fichier trop lourd (${(f.size/(1024*1024)).toFixed(1)}Mo) — max ${MAX_AUDIO_MB}Mo`); return }
+    setFile(f)
+    setPreview(URL.createObjectURL(f))
+  }
+
+  const save = async () => {
+    if (!file) return toast.error('Choisis un fichier audio')
+    setBusy(true)
+    try {
+      const result = await readFileToBase64Safe(file)
+      await mangaApi.update(manga.id, { bgMusicData: result.data, bgMusicMime: result.mime, bgMusicName: file.name })
+      toast.success('🎵 Musique de fond enregistrée')
+      onChanged()
+      onClose()
+    } catch (err) { toast.error(err.message || "Erreur lors de l'envoi") }
+    finally { setBusy(false) }
+  }
+
+  const remove = async () => {
+    if (!confirm('Retirer la musique de fond de ce manga ?')) return
+    setBusy(true)
+    try {
+      await mangaApi.update(manga.id, { bgMusicData: null, bgMusicMime: null, bgMusicName: null })
+      toast.success('🗑️ Musique retirée')
+      onChanged()
+      onClose()
+    } catch (err) { toast.error(err.message) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <Modal isOpen onClose={onClose} title={`🎵 Musique de fond — ${title}`}
+      footer={
+        <>
+          <button onClick={onClose} className={styles.modalBtnGhost}>Fermer</button>
+          <button onClick={save} disabled={busy || !file} className={styles.modalBtnPrimary}>
+            {busy ? <Loader2 size={14} className={styles.spinIcon} /> : <Upload size={14} />}
+            Enregistrer
+          </button>
+        </>
+      }>
+      <p style={{ fontSize: '.85rem', color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', lineHeight: 1.6 }}>
+        Ajoute une mélodie de fond spécifique qui se jouera automatiquement pendant la lecture de ce manga
+        (elle remplace la playlist générale du site le temps de la lecture). Format audio, max {MAX_AUDIO_MB}Mo.
+      </p>
+
+      {manga.bgMusicUrl && !file && (
+        <div style={{ marginBottom: '1rem', padding: '.8rem', background: 'rgba(34,197,94,.06)', border: '1px solid rgba(34,197,94,.2)', borderRadius: 10 }}>
+          <div style={{ fontSize: '.8rem', fontWeight: 700, marginBottom: 6 }}>🎶 Musique actuelle : {manga.bgMusicName || 'fichier audio'}</div>
+          <audio controls src={`${API_BASE}${manga.bgMusicUrl}`} style={{ width: '100%', height: 36 }} />
+          <button onClick={remove} disabled={busy} className={styles.pageItemRemove} style={{ marginTop: 8 }}>
+            <Trash2 size={12} /> Retirer
+          </button>
+        </div>
+      )}
+
+      <div className={styles.dropZone}
+        onDragOver={e => e.preventDefault()}
+        onDrop={e => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]) }}>
+        <input type="file" accept="audio/*" id="bgMusicFile"
+          onChange={e => pickFile(e.target.files?.[0])} style={{ display: 'none' }} />
+        <label htmlFor="bgMusicFile" className={styles.dropZoneLabel}>
+          <Upload size={24} />
+          <strong>{file ? file.name : 'Choisir un fichier audio'}</strong>
+          <span>Glisse-dépose ou clique pour choisir (max {MAX_AUDIO_MB}Mo)</span>
+        </label>
+      </div>
+
+      {preview && (
+        <audio controls src={preview} style={{ width: '100%', marginTop: '1rem' }} />
       )}
     </Modal>
   )

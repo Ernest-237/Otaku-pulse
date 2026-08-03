@@ -46,7 +46,7 @@ router.get('/', protect, async (req, res, next) => {
       include: [{
         model: Manga,
         as: 'manga',
-        attributes: { exclude: ['coverImageData','bannerImageData'] },
+        attributes: { exclude: ['coverImageData','bannerImageData','bgMusicData'] },
         include: [{ model: User, as: 'author', attributes: ['pseudo'] }],
       }],
     })

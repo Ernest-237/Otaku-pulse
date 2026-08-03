@@ -48,7 +48,7 @@ router.get('/', optionalAuth, async (req, res) => {
       where, order,
       limit: Math.min(parseInt(limit), 100),
       offset: (parseInt(page) - 1) * parseInt(limit),
-      attributes: { exclude: ['coverImageData','bannerImageData'] },
+      attributes: { exclude: ['coverImageData','bannerImageData','bgMusicData'] },
       include: [{ model: User, as: 'author', attributes: ['id','pseudo'] }],
     })
     const total = await Manga.count({ where })
@@ -56,8 +56,9 @@ router.get('/', optionalAuth, async (req, res) => {
     // Ajouter URL images
     const result = mangas.map(m => {
       const j = m.toJSON()
-      if (m.coverImageMime)  j.coverUrl  = `/api/manga/${m.id}/cover`
-      if (m.bannerImageMime) j.bannerUrl = `/api/manga/${m.id}/banner`
+      if (m.coverImageMime)  j.coverUrl   = `/api/manga/${m.id}/cover`
+      if (m.bannerImageMime) j.bannerUrl  = `/api/manga/${m.id}/banner`
+      if (m.bgMusicMime)     j.bgMusicUrl = `/api/manga/${m.id}/music`
       return j
     })
 
@@ -76,7 +77,7 @@ router.get('/continue-reading', protect, async (req, res) => {
         {
           model: Manga, as: 'manga',
           where: { moderationStatus: 'approved' },
-          attributes: { exclude: ['coverImageData','bannerImageData','synopsisF','synopsisE'] },
+          attributes: { exclude: ['coverImageData','bannerImageData','bgMusicData','synopsisF','synopsisE'] },
         },
         { model: Chapter, as: 'chapter', attributes: ['id','chapterNumber','title','pageCount'] },
       ],
@@ -95,7 +96,7 @@ router.get('/:slug', optionalAuth, async (req, res) => {
   try {
     const m = await Manga.findOne({
       where: { slug: req.params.slug, moderationStatus: 'approved' },
-      attributes: { exclude: ['coverImageData','bannerImageData'] },
+      attributes: { exclude: ['coverImageData','bannerImageData','bgMusicData'] },
       include: [{ model: User, as: 'author', attributes: ['id','pseudo','avatar','bio','publisherInfo'] }],
     })
     if (!m) return res.status(404).json({ error: 'Manga introuvable' })
@@ -115,8 +116,9 @@ router.get('/:slug', optionalAuth, async (req, res) => {
     }
 
     const j = m.toJSON()
-    if (m.coverImageMime)  j.coverUrl  = `/api/manga/${m.id}/cover`
-    if (m.bannerImageMime) j.bannerUrl = `/api/manga/${m.id}/banner`
+    if (m.coverImageMime)  j.coverUrl   = `/api/manga/${m.id}/cover`
+    if (m.bannerImageMime) j.bannerUrl  = `/api/manga/${m.id}/banner`
+    if (m.bgMusicMime)     j.bgMusicUrl = `/api/manga/${m.id}/music`
 
     res.json({ manga: j, chapters, progress, inLibrary })
   } catch (err) { res.status(500).json({ error: err.message }) }
@@ -140,6 +142,38 @@ router.get('/:id/banner', async (req, res) => {
     res.set('Content-Type', m.bannerImageMime || 'image/jpeg')
     res.set('Cache-Control', 'public, max-age=86400')
     res.send(Buffer.from(m.bannerImageData, 'base64'))
+  } catch { res.status(500).end() }
+})
+
+// ── GET /api/manga/:id/music — sert la mélodie de fond (avec support Range) ──
+router.get('/:id/music', async (req, res) => {
+  try {
+    const m = await Manga.findByPk(req.params.id, { attributes: ['bgMusicData','bgMusicMime'] })
+    if (!m || !m.bgMusicData) return res.status(404).end()
+    const buffer = Buffer.from(m.bgMusicData, 'base64')
+    const mime = m.bgMusicMime || 'audio/mpeg'
+    res.set('Cache-Control', 'public, max-age=86400')
+    res.set('Accept-Ranges', 'bytes')
+
+    const range = req.headers.range
+    if (!range) {
+      res.set('Content-Type', mime)
+      res.set('Content-Length', buffer.length)
+      return res.send(buffer)
+    }
+
+    const match = range.match(/bytes=(\d+)-(\d*)/)
+    const start = match ? parseInt(match[1], 10) : 0
+    const end = match && match[2] ? parseInt(match[2], 10) : buffer.length - 1
+    if (start >= buffer.length || end >= buffer.length) {
+      res.set('Content-Range', `bytes */${buffer.length}`)
+      return res.status(416).end()
+    }
+    res.status(206)
+    res.set('Content-Range', `bytes ${start}-${end}/${buffer.length}`)
+    res.set('Content-Length', end - start + 1)
+    res.set('Content-Type', mime)
+    res.send(buffer.subarray(start, end + 1))
   } catch { res.status(500).end() }
 })
 
@@ -264,7 +298,7 @@ router.get('/my/list', protect, async (req, res, next) => {
     const { rows: mangas, count } = await Manga.findAndCountAll({
       where: { authorId: req.user.id },
       order: [['createdAt','DESC']],
-      attributes: { exclude: ['coverImageData','bannerImageData'] },
+      attributes: { exclude: ['coverImageData','bannerImageData','bgMusicData'] },
     })
     const result = mangas.map(m => {
       const j = m.toJSON()

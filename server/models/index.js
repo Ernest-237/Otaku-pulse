@@ -286,6 +286,10 @@ const Manga = sequelize.define('Manga', {
   coverImageMime:   { type: DataTypes.STRING(50) },
   bannerImageData:  { type: DataTypes.TEXT },
   bannerImageMime:  { type: DataTypes.STRING(50) },
+  // Musique de fond optionnelle jouée pendant la lecture
+  bgMusicData:      { type: DataTypes.TEXT },
+  bgMusicMime:      { type: DataTypes.STRING(50) },
+  bgMusicName:      { type: DataTypes.STRING(150) },
   // Metadata
   genres:           { type: DataTypes.JSONB, defaultValue: [] },    // ['action','romance','shonen']
   tags:             { type: DataTypes.JSONB, defaultValue: [] },
@@ -599,18 +603,18 @@ Chapter.belongsTo(Manga,  { foreignKey: 'mangaId', as: 'manga' })
 User.hasMany(ReadingProgress,    { foreignKey: 'userId', as: 'readingProgress' })
 ReadingProgress.belongsTo(User,  { foreignKey: 'userId', as: 'user' })
 ReadingProgress.belongsTo(Manga, { foreignKey: 'mangaId', as: 'manga' })
-ReadingProgress.belongsTo(Chapter, { foreignKey: 'chapterId', as: 'chapter' })
-Manga.hasMany(ReadingProgress,   { foreignKey: 'mangaId', as: 'progressList' })
+ReadingProgress.belongsTo(Chapter, { foreignKey: 'chapterId', as: 'chapter', onDelete: 'CASCADE' })
+Manga.hasMany(ReadingProgress,   { foreignKey: 'mangaId', as: 'progressList', onDelete: 'CASCADE' })
 
 User.hasMany(LibraryItem,    { foreignKey: 'userId', as: 'library' })
 LibraryItem.belongsTo(User,  { foreignKey: 'userId', as: 'user' })
 LibraryItem.belongsTo(Manga, { foreignKey: 'mangaId', as: 'manga' })
-Manga.hasMany(LibraryItem,   { foreignKey: 'mangaId', as: 'libraryEntries' })
+Manga.hasMany(LibraryItem,   { foreignKey: 'mangaId', as: 'libraryEntries', onDelete: 'CASCADE' })
 
 ChapterView.belongsTo(Chapter, { foreignKey: 'chapterId', as: 'chapter' })
-ChapterView.belongsTo(Manga,   { foreignKey: 'mangaId', as: 'manga' })
+ChapterView.belongsTo(Manga,   { foreignKey: 'mangaId', as: 'manga', onDelete: 'CASCADE' })
 ChapterView.belongsTo(User,    { foreignKey: 'userId', as: 'user' })
-Chapter.hasMany(ChapterView,   { foreignKey: 'chapterId', as: 'views' })
+Chapter.hasMany(ChapterView,   { foreignKey: 'chapterId', as: 'views', onDelete: 'CASCADE' })
 
 User.hasMany(Subscription,    { foreignKey: 'userId', as: 'subscriptions' })
 Subscription.belongsTo(User,  { foreignKey: 'userId', as: 'user' })
@@ -618,13 +622,13 @@ Subscription.belongsTo(User,  { foreignKey: 'userId', as: 'user' })
 User.hasMany(PublisherApplication,    { foreignKey: 'userId', as: 'publisherApplications' })
 PublisherApplication.belongsTo(User,  { foreignKey: 'userId', as: 'user' })
 
-Manga.hasMany(MangaComment,    { foreignKey: 'mangaId', as: 'comments' })
+Manga.hasMany(MangaComment,    { foreignKey: 'mangaId', as: 'comments', onDelete: 'CASCADE' })
 MangaComment.belongsTo(Manga,  { foreignKey: 'mangaId', as: 'manga' })
 MangaComment.belongsTo(User,   { foreignKey: 'userId', as: 'user' })
-MangaComment.belongsTo(Chapter,{ foreignKey: 'chapterId', as: 'chapter' })
+MangaComment.belongsTo(Chapter,{ foreignKey: 'chapterId', as: 'chapter', onDelete: 'CASCADE' })
 User.hasMany(MangaComment,     { foreignKey: 'userId', as: 'mangaComments' })
 
-Manga.hasMany(MangaRating,     { foreignKey: 'mangaId', as: 'ratings' })
+Manga.hasMany(MangaRating,     { foreignKey: 'mangaId', as: 'ratings', onDelete: 'CASCADE' })
 MangaRating.belongsTo(Manga,   { foreignKey: 'mangaId', as: 'manga' })
 MangaRating.belongsTo(User,    { foreignKey: 'userId', as: 'user' })
 User.hasMany(MangaRating,      { foreignKey: 'userId', as: 'mangaRatings' })
@@ -634,7 +638,7 @@ User.hasMany(MangaFollow,    { foreignKey: 'userId', as: 'mangaFollows', onDelet
 MangaFollow.belongsTo(User,  { foreignKey: 'userId', as: 'follower' })
 MangaFollow.belongsTo(Manga, { foreignKey: 'mangaId', as: 'manga' })
 MangaFollow.belongsTo(User,  { foreignKey: 'authorId', as: 'author' })
-Manga.hasMany(MangaFollow,   { foreignKey: 'mangaId', as: 'followers' })
+Manga.hasMany(MangaFollow,   { foreignKey: 'mangaId', as: 'followers', onDelete: 'CASCADE' })
 
 // ── COINS ASSOCIATIONS ──────────────────────────────
 User.hasOne(CoinWallet,   { foreignKey: 'userId', as: 'coinWallet', onDelete: 'CASCADE' })
@@ -650,8 +654,8 @@ User.hasMany(ChapterUnlock,    { foreignKey: 'userId', as: 'chapterUnlocks', onD
 ChapterUnlock.belongsTo(User,  { foreignKey: 'userId', as: 'user' })
 ChapterUnlock.belongsTo(Chapter, { foreignKey: 'chapterId', as: 'chapter' })
 ChapterUnlock.belongsTo(Manga, { foreignKey: 'mangaId', as: 'manga' })
-Manga.hasMany(ChapterUnlock,   { foreignKey: 'mangaId', as: 'unlocks' })
-Chapter.hasMany(ChapterUnlock, { foreignKey: 'chapterId', as: 'unlocks' })
+Manga.hasMany(ChapterUnlock,   { foreignKey: 'mangaId', as: 'unlocks', onDelete: 'CASCADE' })
+Chapter.hasMany(ChapterUnlock, { foreignKey: 'chapterId', as: 'unlocks', onDelete: 'CASCADE' })
 
 
 // ╔═══════════════════════════════════════════════════════════╗
@@ -834,6 +838,36 @@ const syncDatabase = async (force = false) => {
       console.log('✅ Tagline Hero : message obsolète remplacé')
     }
   } catch (err) { console.warn('⚠️ Correction tagline Hero ignorée:', err.message) }
+
+  // Corrige les contraintes de clé étrangère existantes (chapterId/mangaId) qui
+  // n'étaient pas en ON DELETE CASCADE — sync({alter:true}) ne modifie pas les
+  // contraintes déjà créées, donc on le fait explicitement ici. Sans ça, supprimer
+  // un manga/chapitre ayant des vues, favoris, notes ou commentaires échoue avec
+  // une erreur de contrainte de clé étrangère brute.
+  try {
+    const [rows] = await sequelize.query(`
+      SELECT tc.constraint_name, tc.table_name, kcu.column_name,
+             rc.delete_rule, ccu.table_name AS referenced_table, ccu.column_name AS referenced_column
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+      JOIN information_schema.referential_constraints rc
+        ON tc.constraint_name = rc.constraint_name AND tc.table_schema = rc.constraint_schema
+      JOIN information_schema.constraint_column_usage ccu
+        ON rc.unique_constraint_name = ccu.constraint_name
+      WHERE tc.constraint_type = 'FOREIGN KEY'
+        AND tc.table_schema = 'public'
+        AND kcu.column_name IN ('chapterId','mangaId')
+        AND rc.delete_rule != 'CASCADE'
+    `)
+    for (const r of rows) {
+      try {
+        await sequelize.query(`ALTER TABLE "${r.table_name}" DROP CONSTRAINT "${r.constraint_name}"`)
+        await sequelize.query(`ALTER TABLE "${r.table_name}" ADD CONSTRAINT "${r.constraint_name}" FOREIGN KEY ("${r.column_name}") REFERENCES "${r.referenced_table}"("${r.referenced_column}") ON DELETE CASCADE`)
+        console.log(`✅ Contrainte ${r.constraint_name} (${r.table_name}.${r.column_name}) passée en ON DELETE CASCADE`)
+      } catch (err) { console.warn(`⚠️ Impossible de corriger ${r.constraint_name}:`, err.message) }
+    }
+  } catch (err) { console.warn('⚠️ Vérification des contraintes FK ignorée:', err.message) }
 }
 
 module.exports = {

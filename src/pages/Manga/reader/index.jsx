@@ -3,12 +3,13 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft, ChevronRight, X, Crown, List, Lock, Play,
-  ArrowLeft, ArrowRight, Loader2, Settings, Eye, EyeOff,
+  ArrowLeft, ArrowRight, Loader2, Settings, Eye, EyeOff, Music2, VolumeX,
 } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { mangaApi, chaptersApi, readingApi, coinsApi } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
+import { useMusicControls } from '../../../contexts/MusicContext'
 import ChapterUnlockGate from './ChapterUnlockGate'
 import styles from './Reader.module.css'
 
@@ -76,6 +77,9 @@ export default function ReaderPage() {
   const { user, isLoggedIn, hasActiveSubscription } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  const { pauseForOverride, resumeFromOverride } = useMusicControls()
+  const bgAudioRef = useRef(null)
+  const [bgMuted, setBgMuted] = useState(false)
 
   const [manga, setManga] = useState(null)
   const [chapter, setChapter] = useState(null)
@@ -216,6 +220,34 @@ export default function ReaderPage() {
       document.title = `${title} — Ch.${chapter.chapterNumber} — Otaku Pulse`
     }
   }, [manga, chapter, lang])
+
+  /* ── Musique de fond du manga (coupe la playlist générale le temps de la lecture) ── */
+  useEffect(() => {
+    if (!manga?.bgMusicUrl) return
+    pauseForOverride()
+    const audio = bgAudioRef.current
+    if (audio) {
+      audio.src = `${API_BASE}${manga.bgMusicUrl}`
+      audio.loop = true
+      audio.volume = 0.25
+      if (!bgMuted) audio.play().catch(() => {})
+    }
+    return () => {
+      if (audio) audio.pause()
+      resumeFromOverride()
+    }
+  }, [manga?.bgMusicUrl]) // eslint-disable-line
+
+  const toggleBgMusic = () => {
+    if (!bgAudioRef.current) return
+    if (bgMuted) {
+      bgAudioRef.current.play().catch(() => {})
+      setBgMuted(false)
+    } else {
+      bgAudioRef.current.pause()
+      setBgMuted(true)
+    }
+  }
 
   /* ── Auto-hide header après 3s ── */
   const showHeaderTransient = useCallback(() => {
@@ -394,6 +426,8 @@ export default function ReaderPage() {
       onClick={showHeaderTransient}
       onMouseMove={showHeaderTransient}
     >
+      <audio ref={bgAudioRef} preload="none" style={{ display: 'none' }} />
+
       {/* ── HEADER FLOATING ── */}
       <header className={`${styles.header} ${!headerVisible ? styles.headerHidden : ''}`}>
         <div className={styles.headerInner}>
@@ -417,6 +451,11 @@ export default function ReaderPage() {
           </div>
 
           <div className={styles.headerActions} onClick={e => e.stopPropagation()}>
+            {manga?.bgMusicUrl && (
+              <button className={styles.iconBtn} onClick={toggleBgMusic} title={bgMuted ? 'Activer la musique' : 'Couper la musique'}>
+                {bgMuted ? <VolumeX size={18} /> : <Music2 size={18} />}
+              </button>
+            )}
             <button className={styles.iconBtn} onClick={() => setShowChapList(true)} title={t.listChapters}>
               <List size={18} />
             </button>

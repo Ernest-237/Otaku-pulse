@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Music3, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { useMusicControls } from '../contexts/MusicContext'
 
 const PLAYLIST = [
+  '/assets/music/track-08.mpeg',
+  '/assets/music/track-09.mpeg',
   '/assets/music/track-01.mp3',
   '/assets/music/track-00.mp3',
   '/assets/music/track-02.mp3',
@@ -10,6 +13,7 @@ const PLAYLIST = [
   '/assets/music/track-05.mp3',
   '/assets/music/track-06.mp3',
   '/assets/music/track-07.mp3',
+
 ]
 
 const LEGACY_SINGLE = '/assets/music/generique.mp3'
@@ -20,6 +24,10 @@ export default function Music() {
   const [showPrompt, setShowPrompt] = useState(false)
   const [trackIdx, setTrackIdx] = useState(0)
   const [trackName, setTrackName] = useState('')
+  const { registerControls } = useMusicControls()
+  const wasPlayingRef = useRef(false)
+  const playingRef = useRef(playing)
+  playingRef.current = playing
 
   const getPlaylist = useCallback(() => {
     return PLAYLIST.length > 0 ? PLAYLIST : [LEGACY_SINGLE]
@@ -78,6 +86,23 @@ export default function Music() {
     audio.addEventListener('ended', onEnded)
     return () => audio.removeEventListener('ended', onEnded)
   }, [nextTrack])
+
+  // Permet à d'autres pages (ex: lecteur manga) de couper temporairement
+  // la playlist globale puis de la reprendre exactement où elle en était.
+  useEffect(() => {
+    registerControls({
+      pause: () => {
+        wasPlayingRef.current = playingRef.current
+        if (audioRef.current) audioRef.current.pause()
+        setPlaying(false)
+      },
+      resume: () => {
+        if (wasPlayingRef.current && audioRef.current) {
+          audioRef.current.play().then(() => setPlaying(true)).catch(() => {})
+        }
+      },
+    })
+  }, [registerControls])
 
   const toggle = async (e) => {
     e.stopPropagation()

@@ -85,11 +85,12 @@ router.get('/dashboard', protect, async (req, res, next) => {
     const myMangas = await Manga.findAll({
       where: { authorId: req.user.id },
       order: [['createdAt', 'DESC']],
-      attributes: { exclude: ['coverImageData','bannerImageData','synopsisF','synopsisE'] },
+      attributes: { exclude: ['coverImageData','bannerImageData','bgMusicData','synopsisF','synopsisE'] },
     })
     const mangasWithUrl = myMangas.map(m => {
       const j = m.toJSON()
       if (m.coverImageMime) j.coverUrl = `/api/manga/${m.id}/cover`
+      if (m.bgMusicMime)    j.bgMusicUrl = `/api/manga/${m.id}/music`
       return j
     })
 

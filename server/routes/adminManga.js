@@ -185,7 +185,7 @@ router.get('/list', async (req, res, next) => {
       order: [['createdAt','DESC']],
       limit: parseInt(limit),
       offset: (parseInt(page) - 1) * parseInt(limit),
-      attributes: { exclude: ['coverImageData','bannerImageData','synopsisF','synopsisE'] },
+      attributes: { exclude: ['coverImageData','bannerImageData','bgMusicData','synopsisF','synopsisE'] },
       include: [{ model: User, as: 'author', attributes: ['id','pseudo','email'] }],
     })
 
