@@ -108,12 +108,14 @@ router.post('/register', protect, async (req, res, next) => {
     const isFull  = event.registered >= event.capacity;
     const status  = isFull ? 'waitlist' : 'confirmed';
 
+    const ticketCode = `OP-${Date.now().toString(36).toUpperCase()}`;
+
     await EventRegistration.create({
       eventId, userId: req.user.id,
       name:  `${req.user.firstName || ''} ${req.user.lastName || req.user.pseudo}`.trim(),
       email: req.user.email,
       phone: req.user.phone,
-      guests, status,
+      guests, status, ticketCode,
     });
 
     if (!isFull) await event.increment('registered', { by: guests });

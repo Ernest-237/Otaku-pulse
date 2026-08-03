@@ -1,24 +1,14 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  CalendarDays,
-  FileText,
-  MapPin,
-  PlayCircle,
-  Search,
-  ShoppingBag,
-  Sparkles,
-  Star,
-  Zap,
-} from 'lucide-react'
+import { CalendarDays, MapPin, PlayCircle, ShoppingBag, Sparkles } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { API_BASE } from '../../../api'
 import AnimeCarousel from '../../../components/AnimeCarousel'
 import styles from './Hero.module.css'
 
 const HERO_DEFAULT = {
-  taglineF: 'Goodies Anime · Livraison Cameroun',
-  taglineE: 'Anime Goods · Cameroon Delivery',
+  taglineF: "Tente l'expérience Otaku",
+  taglineE: 'Try the Otaku experience',
   line1F: "VIVEZ L'EXPÉRIENCE",
   line1E: 'LIVE THE EXPERIENCE',
   line2F: 'AU-DELÀ DE',
@@ -37,73 +27,10 @@ const HERO_DEFAULT = {
 const HERO_IMAGE = '/assets/hero/flowers.jpg'
 const HERO_GIF = '/assets/hero/follow.gif'
 
-const QUICK_TAGS = ['Naruto', 'One Piece', 'Demon Slayer', 'Posters', 'Stickers']
-
-const SITE_PAGES = [
-  {
-    keywords: ['boutique', 'shop', 'produit', 'article', 'acheter', 'achat', 'goodies'],
-    path: '/boutique',
-    label: 'Boutique goodies',
-    icon: ShoppingBag,
-  },
-  {
-    keywords: ['événement', 'event', 'réserver', 'reservation', 'fête', 'anniversaire', 'pack'],
-    path: '/reservation',
-    label: 'Réserver un événement',
-    icon: CalendarDays,
-  },
-  {
-    keywords: ['fandom', 'communauté', 'community', 'quiz', 'classement'],
-    path: '/fandom',
-    label: 'Espace fandom',
-    icon: Star,
-  },
-  {
-    keywords: ['blog', 'actus', 'news', 'promo'],
-    path: '/blog',
-    label: 'Blog & actus',
-    icon: FileText,
-  },
-  {
-    keywords: ['contact', 'whatsapp', 'appeler', 'appel'],
-    path: '/#footer',
-    label: 'Nous contacter',
-    icon: MapPin,
-  },
-  {
-    keywords: ['membership', 'membre', 'carte', 'abonnement', 'basic', 'plus', 'elite'],
-    path: '/membership',
-    label: 'Carte membre',
-    icon: Sparkles,
-  },
-  {
-    keywords: ['legal', 'cgv', 'politique', 'confidentialité', 'droits'],
-    path: '/legal',
-    label: 'Droits & politique',
-    icon: FileText,
-  },
-  {
-    keywords: ['profil', 'compte', 'panier', 'commande', 'suivi'],
-    path: '/profil',
-    label: 'Mon profil',
-    icon: FileText,
-  },
-  {
-    keywords: ['naruto', 'one piece', 'demon slayer', 'jujutsu', 'dragon ball', 'bleach', 'titan', 'hero academia'],
-    path: '/boutique',
-    label: 'Boutique anime',
-    icon: ShoppingBag,
-  },
-]
-
 export default function Hero() {
   const { lang } = useLang()
   const navigate = useNavigate()
   const [hero, setHero] = useState(HERO_DEFAULT)
-  const [search, setSearch] = useState('')
-  const [focused, setFocused] = useState(false)
-  const [suggestions, setSuggestions] = useState([])
-  const searchRef = useRef(null)
 
   useEffect(() => {
     fetch(`${API_BASE}/api/hero?_=${Date.now()}`)
@@ -113,38 +40,6 @@ export default function Hero() {
       })
       .catch(() => {})
   }, [])
-
-  useEffect(() => {
-    if (!search.trim() || search.length < 2) {
-      setSuggestions([])
-      return
-    }
-
-    const q = search.toLowerCase()
-    const matches = SITE_PAGES.filter((p) =>
-      p.keywords.some((k) => k.includes(q) || q.includes(k))
-    )
-
-    setSuggestions(matches.slice(0, 4))
-  }, [search])
-
-  const handleSearch = (e) => {
-    e?.preventDefault()
-    const q = search.trim()
-    if (!q) return
-
-    const pageMatch = SITE_PAGES.find((p) =>
-      p.keywords.some((k) => k.includes(q.toLowerCase()) || q.toLowerCase().includes(k))
-    )
-
-    if (pageMatch && !q.match(/^[a-z]{2,}$/)) {
-      navigate(pageMatch.path === '/boutique' ? `/boutique?q=${encodeURIComponent(q)}` : pageMatch.path)
-    } else {
-      navigate(`/boutique?q=${encodeURIComponent(q)}`)
-    }
-
-    setSuggestions([])
-  }
 
   const h = hero
   const stats = [
@@ -177,73 +72,6 @@ export default function Hero() {
           </h1>
 
           <p className={styles.subtitle}>{lang === 'fr' ? h.subtitleF : h.subtitleE}</p>
-
-          <div className={styles.searchWrap}>
-            <form className={`${styles.searchBar} ${focused ? styles.searchFocused : ''}`} onSubmit={handleSearch}>
-              <span className={styles.searchIcon}>
-                <Search size={18} strokeWidth={2.3} />
-              </span>
-
-              <input
-                ref={searchRef}
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setTimeout(() => {
-                  setFocused(false)
-                  setSuggestions([])
-                }, 150)}
-                placeholder={lang === 'fr' ? 'Rechercher goodies, pages, animes...' : 'Search goods, pages, anime...'}
-                className={styles.searchInput}
-                autoComplete="off"
-              />
-
-              <button type="submit" className={styles.searchBtn}>
-                <Search size={16} strokeWidth={2.3} />
-                <span>{lang === 'fr' ? 'Chercher' : 'Search'}</span>
-              </button>
-            </form>
-
-            {suggestions.length > 0 && focused && (
-              <div className={styles.suggestions}>
-                {suggestions.map((s, i) => {
-                  const Icon = s.icon
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      className={styles.suggestionItem}
-                      onMouseDown={() => {
-                        navigate(s.path.includes('/boutique') && search ? `/boutique?q=${encodeURIComponent(search)}` : s.path)
-                        setSuggestions([])
-                      }}
-                    >
-                      <span className={styles.suggestionIcon}>
-                        <Icon size={16} strokeWidth={2.2} />
-                      </span>
-                      <span className={styles.suggestionLabel}>{s.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className={styles.searchTags}>
-            {QUICK_TAGS.map((tag) => (
-              <button
-                key={tag}
-                className={styles.searchTag}
-                onClick={() => {
-                  setSearch(tag)
-                  navigate(`/boutique?q=${encodeURIComponent(tag)}`)
-                }}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
 
           <div className={styles.ctas}>
             <button className={styles.ctaPrimary} onClick={() => navigate('/reservation')}>
@@ -327,13 +155,8 @@ export default function Hero() {
               </div>
             }
           />
-
-          <div className={styles.deco1}><Sparkles size={18} strokeWidth={2.2} /></div>
-          <div className={styles.deco2}><Zap size={18} strokeWidth={2.2} /></div>
-          <div className={styles.deco3}><Star size={16} strokeWidth={2.2} /></div>
         </div>
       </div>
     </section>
   )
 }
-

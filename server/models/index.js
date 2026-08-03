@@ -174,13 +174,14 @@ const EventRegistration = sequelize.define('EventRegistration', {
   guests:  { type: DataTypes.INTEGER, defaultValue: 1 },
   status:  { type: DataTypes.ENUM('pending','confirmed','waitlist','cancelled'), defaultValue:'pending' },
   notes:   { type: DataTypes.TEXT },
+  ticketCode: { type: DataTypes.STRING(20) }, // code lisible affiché sur le billet (ex. OP-ABC123)
 }, { tableName: 'event_registrations', timestamps: true })
 
 // ══ HERO CONFIG (existant) ══════════════════════════
 const HeroConfig = sequelize.define('HeroConfig', {
   id:           { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  taglineF:     { type: DataTypes.STRING(200), defaultValue:'Goodies Anime · Livraison Cameroun' },
-  taglineE:     { type: DataTypes.STRING(200), defaultValue:'Anime Goods · Cameroon Delivery' },
+  taglineF:     { type: DataTypes.STRING(200), defaultValue:"Tente l'expérience Otaku" },
+  taglineE:     { type: DataTypes.STRING(200), defaultValue:'Try the Otaku experience' },
   line1F:       { type: DataTypes.STRING(200), defaultValue:"VIVEZ L'EXPÉRIENCE" },
   line1E:       { type: DataTypes.STRING(200), defaultValue:'LIVE THE EXPERIENCE' },
   line2F:       { type: DataTypes.STRING(200), defaultValue:'AU-DELÀ DE' },
@@ -820,14 +821,17 @@ const syncDatabase = async (force = false) => {
   // s'il traîne encore dans la config Hero existante (le simple changement
   // de defaultValue ci-dessus n'affecte pas une ligne déjà créée en base).
   try {
-    const oldTaglines = ['EN COURS · DEPUIS LE 30 JUIN 2026 · CAMEROUN', 'LANCEMENT · 30 JUIN 2026 · CAMEROUN']
+    const oldTaglines = [
+      'EN COURS · DEPUIS LE 30 JUIN 2026 · CAMEROUN', 'LANCEMENT · 30 JUIN 2026 · CAMEROUN',
+      'Goodies Anime · Livraison Cameroun',
+    ]
     const hero = await HeroConfig.findOne({ where: { isActive: true } })
     if (hero && oldTaglines.includes(hero.taglineF)) {
       await hero.update({
-        taglineF: 'Goodies Anime · Livraison Cameroun',
-        taglineE: 'Anime Goods · Cameroon Delivery',
+        taglineF: "Tente l'expérience Otaku",
+        taglineE: 'Try the Otaku experience',
       })
-      console.log('✅ Tagline Hero : message de lancement retiré')
+      console.log('✅ Tagline Hero : message obsolète remplacé')
     }
   } catch (err) { console.warn('⚠️ Correction tagline Hero ignorée:', err.message) }
 }

@@ -231,9 +231,12 @@ function MembershipModal({ request:r, onClose, onSave }) {
 
   const inputStyle = {
     width:'100%', padding:'9px 12px', borderRadius:10,
-    background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)',
-    color:'#e2e8f0', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none'
+    background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)',
+    color:'#e2e8f0', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none',
+    transition:'border-color .15s, background .15s',
   }
+  const onFocusField = e => { e.target.style.borderColor='#22c55e'; e.target.style.background='rgba(34,197,94,.06)' }
+  const onBlurField  = e => { e.target.style.borderColor='rgba(255,255,255,.12)'; e.target.style.background='rgba(255,255,255,.04)' }
   const labelStyle = {
     display:'block', fontSize:'.68rem', fontWeight:800,
     letterSpacing:1, color:'rgba(180,190,220,.45)',
@@ -285,11 +288,13 @@ function MembershipModal({ request:r, onClose, onSave }) {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:'1rem' }}>
           <div>
             <label style={labelStyle}>ID Carte *</label>
-            <input value={cardId} onChange={e=>setCardId(e.target.value)} style={{ ...inputStyle, fontFamily:'monospace', letterSpacing:2 }} />
+            <input value={cardId} onChange={e=>setCardId(e.target.value)} style={{ ...inputStyle, fontFamily:'monospace', letterSpacing:2 }}
+              onFocus={onFocusField} onBlur={onBlurField} />
           </div>
           <div>
             <label style={labelStyle}>Date d'expiration *</label>
-            <input type="date" value={expiresAt} onChange={e=>setExpiresAt(e.target.value)} style={inputStyle} />
+            <input type="date" value={expiresAt} onChange={e=>setExpiresAt(e.target.value)} style={inputStyle}
+              onFocus={onFocusField} onBlur={onBlurField} />
           </div>
         </div>
 
@@ -339,7 +344,8 @@ function MembershipModal({ request:r, onClose, onSave }) {
       {/* Statut select */}
       <div style={{ marginBottom:'1rem' }}>
         <label style={labelStyle}>Statut de la demande</label>
-        <select value={status} onChange={e=>setStatus(e.target.value)} style={inputStyle}>
+        <select value={status} onChange={e=>setStatus(e.target.value)} style={inputStyle}
+          onFocus={onFocusField} onBlur={onBlurField}>
           {Object.entries(STATUS_LABELS).map(([v,l]) => (
             <option key={v} value={v} style={{ background:'#11142a' }}>{l}</option>
           ))}
@@ -351,7 +357,8 @@ function MembershipModal({ request:r, onClose, onSave }) {
         <label style={labelStyle}>Notes admin (internes)</label>
         <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3}
           placeholder="Suivi, contact effectué, paiement reçu, remarques..."
-          style={{ ...inputStyle, resize:'vertical', lineHeight:1.6 }} />
+          style={{ ...inputStyle, resize:'vertical', lineHeight:1.6 }}
+          onFocus={onFocusField} onBlur={onBlurField} />
       </div>
     </Modal>
   )

@@ -26,8 +26,8 @@ async function seed() {
 
   // ── 2. Config Hero par défaut ─────────────────────────
   await HeroConfig.create({
-    taglineF:     'Goodies Anime · Livraison Cameroun',
-    taglineE:     'Anime Goods · Cameroon Delivery',
+    taglineF:     "Tente l'expérience Otaku",
+    taglineE:     'Try the Otaku experience',
     line1F:       "VIVEZ L'EXPÉRIENCE",
     line1E:       'LIVE THE EXPERIENCE',
     line2F:       'AU-DELÀ DE',

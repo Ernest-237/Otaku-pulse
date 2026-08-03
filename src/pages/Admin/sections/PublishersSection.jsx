@@ -216,7 +216,9 @@ function ApplicationDetail({ app, onClose, onReview }) {
 
           <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
             placeholder="Note (optionnelle pour approbation, conseillée pour rejet)..."
-            style={{ width:'100%', padding:'9px 12px', background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', borderRadius:8, color:'#e2e8f0', fontSize:'.85rem', resize:'vertical', outline:'none', marginBottom:'1rem', fontFamily:'var(--font-body)', lineHeight:1.5 }} />
+            style={{ width:'100%', padding:'9px 12px', background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', borderRadius:8, color:'#e2e8f0', fontSize:'.85rem', resize:'vertical', outline:'none', marginBottom:'1rem', fontFamily:'var(--font-body)', lineHeight:1.5, transition:'border-color .15s, background .15s' }}
+            onFocus={e => { e.target.style.borderColor='#22c55e'; e.target.style.background='rgba(34,197,94,.06)' }}
+            onBlur={e => { e.target.style.borderColor='rgba(255,255,255,.12)'; e.target.style.background='rgba(255,255,255,.04)' }} />
 
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             <Button variant="primary" onClick={() => onReview(app, 'approved', notes)}>

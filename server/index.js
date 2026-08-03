@@ -37,8 +37,8 @@ app.use((req, res, next) => {
 
 app.use('/api/',      rateLimit({ windowMs:15*60*1000, max:300, standardHeaders:true }))
 app.use('/api/auth/', rateLimit({ windowMs:15*60*1000, max:25,  standardHeaders:true }))
-app.use(express.json({ limit: '20mb' }))  // 20MB pour les images base64
-app.use(express.urlencoded({ extended:true, limit:'20mb' }))
+app.use(express.json({ limit: '60mb' }))  // 60MB : couvre un chapitre manga de ~15 pages à 10MB chacune (base64)
+app.use(express.urlencoded({ extended:true, limit:'60mb' }))
 
 // ── Routes ────────────────────────────────────────────
 app.use('/api/auth',       require('./routes/auth'))
@@ -92,6 +92,8 @@ app.use((err, req, res, next) => {
   console.error('🔥', err.message)
   if (err.name === 'SequelizeUniqueConstraintError')
     return res.status(409).json({ error: err.errors[0]?.message || 'Valeur déjà utilisée.' })
+  if (err.type === 'entity.too.large' || err.status === 413)
+    return res.status(413).json({ error: 'Fichiers trop volumineux au total — réduis le nombre de pages ou compresse tes images.' })
   res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Erreur serveur' : err.message })
 })
 

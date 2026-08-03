@@ -1,0 +1,63 @@
+/* src/pages/Poles/Poles.module.css */
+.page { min-height: 100vh; background: var(--bg, #fafaf7); }
+
+.hero {
+  position: relative; overflow: hidden; padding: 4rem 0 3rem;
+  background: linear-gradient(135deg, #0a0e0a, #11181a);
+  text-align: center;
+}
+.heroGlow {
+  position: absolute; top: -40%; left: 50%; transform: translateX(-50%);
+  width: 560px; height: 560px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(51,255,51,.16), transparent 70%);
+  pointer-events: none;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(51,255,51,.12); border: 1px solid rgba(51,255,51,.3);
+  color: #33ff33; font-size: .72rem; font-weight: 800; letter-spacing: 1.5px;
+  padding: 5px 14px; border-radius: 100px; margin-bottom: 1.2rem; position: relative;
+}
+.title {
+  font-family: var(--font-title, sans-serif); font-size: clamp(2rem, 5vw, 3.2rem);
+  letter-spacing: 3px; color: #fff; margin: 0 0 .8rem; position: relative; line-height: 1.15;
+}
+.accent { color: #33ff33; text-shadow: 0 0 20px rgba(51,255,51,.5); }
+.sub { color: #9aa6c0; font-size: 1rem; max-width: 560px; margin: 0 auto; position: relative; }
+
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.4rem; margin: 3rem 0 4rem;
+}
+
+.card {
+  --pc: #22c55e;
+  display: flex; flex-direction: column; align-items: flex-start; gap: .6rem;
+  text-align: left; background: var(--bg-card, #fff); border: 1.5px solid var(--border, #e7e5e4);
+  border-radius: 20px; padding: 1.6rem; cursor: pointer;
+  transition: transform .22s, box-shadow .22s, border-color .22s;
+}
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 34px rgba(0,0,0,.1);
+  border-color: var(--pc);
+}
+.cardIcon {
+  width: 52px; height: 52px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--pc) 14%, transparent);
+  color: var(--pc);
+}
+.cardTitle { font-size: 1.1rem; font-weight: 800; color: var(--text-strong, #0a0a0a); margin: 0; }
+.cardDesc { font-size: .85rem; color: var(--text-muted, #525252); line-height: 1.55; margin: 0; flex: 1; }
+.cardCta {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .82rem; font-weight: 800; color: var(--pc); margin-top: .3rem;
+  transition: gap .2s;
+}
+.card:hover .cardCta { gap: 10px; }
+
+@media (max-width: 480px) {
+  .hero { padding: 3rem 0 2rem; }
+  .grid { grid-template-columns: 1fr; margin: 2rem 0 3rem; }
+}

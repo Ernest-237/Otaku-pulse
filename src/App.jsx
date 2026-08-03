@@ -14,6 +14,7 @@ import Profil        from './pages/Profil'
 import Admin         from './pages/Admin'
 import FandomPage    from './pages/Fandom'
 import MembershipPage from './pages/Membership'
+import PolesPage      from './pages/Poles'
 
 // ── Manga Platform ──
 import MangaCatalog   from './pages/Manga'
@@ -50,6 +51,7 @@ export default function App() {
       <Route path="/blog"        element={<Blog />} />
       <Route path="/legal"       element={<LegalPage />} />
       <Route path="/membership"  element={<MembershipPage />} />
+      <Route path="/poles"       element={<PolesPage />} />
       <Route path="/fandom" element={<FandomPage />} />
 
       {/* Manga Platform */}

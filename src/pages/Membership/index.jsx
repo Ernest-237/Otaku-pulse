@@ -1,5 +1,5 @@
 // src/pages/Membership/index.jsx — v3 Interactive, light, palette uniforme
-import { useState, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth }  from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
@@ -7,6 +7,7 @@ import { API_BASE, eventsApi } from '../../api'
 import { useApi } from '../../hooks/useApi'
 import Navbar  from '../../components/Navbar'
 import Footer  from '../Home/sections/Footer'
+import TicketStub from '../../components/ui/TicketStub'
 import styles  from './Membership.module.css'
 
 // Palette unifiée — vert brand + violet, plus d'orange
@@ -69,104 +70,29 @@ const FAQ = [
   { q: "Comment se passe le paiement ?", a: "Après votre demande, notre équipe vous contacte pour finaliser le paiement via MTN Money, Orange Money ou virement. Aucun paiement en ligne automatique pour l'instant." },
 ]
 
-// ── Carte interactive 3D ──────────────────────────────
+// ── Carte membre façon billet ──────────────────────────
 function MemberCard({ user, myMembership, isActive }) {
-  const cardRef  = useRef(null)
-  const glareRef = useRef(null)
-  const rafRef   = useRef(null)
-
   const planData = PLANS.find(p => p.id === (myMembership?.plan || 'elite'))
   const cardColor = planData?.color || '#7c3aed'
 
-  const handleMouseMove = useCallback((e) => {
-    if (!cardRef.current) return
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    rafRef.current = requestAnimationFrame(() => {
-      const rect   = cardRef.current.getBoundingClientRect()
-      const cx     = rect.left + rect.width  / 2
-      const cy     = rect.top  + rect.height / 2
-      const dx     = (e.clientX - cx) / (rect.width  / 2) // -1 à 1
-      const dy     = (e.clientY - cy) / (rect.height / 2)
-      const rotX   = -dy * 16
-      const rotY   =  dx * 16
-      const shine  = `${50 + dx * 30}% ${50 + dy * 30}%`
-
-      cardRef.current.style.transform = `perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale3d(1.04,1.04,1)`
-      if (glareRef.current) {
-        glareRef.current.style.background = `radial-gradient(circle at ${shine}, rgba(255,255,255,0.35) 0%, transparent 65%)`
-        glareRef.current.style.opacity = '1'
-      }
-    })
-  }, [])
-
-  const handleMouseLeave = useCallback(() => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    if (cardRef.current) {
-      cardRef.current.style.transform = 'perspective(900px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)'
-    }
-    if (glareRef.current) glareRef.current.style.opacity = '0'
-  }, [])
-
   const expiryStr = myMembership?.expiresAt
-    ? `${String(new Date(myMembership.expiresAt).getMonth()+1).padStart(2,'0')}/${new Date(myMembership.expiresAt).getFullYear()}`
-    : '12/2025'
+    ? new Date(myMembership.expiresAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' })
+    : '—'
 
   return (
-    <div className={styles.cardWrap} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
-      <div ref={cardRef} className={styles.card3d}>
-        {/* Reflet lumineux */}
-        <div ref={glareRef} className={styles.cardGlare} />
-
-        {/* Fond holographique */}
-        <div className={styles.cardHolo} style={{ background: `linear-gradient(135deg, ${cardColor}33, ${cardColor}11, transparent)` }} />
-
-        {/* Contenu carte */}
-        <div className={styles.cardContent}>
-          <div className={styles.cardTop}>
-            <div className={styles.cardBrand}>
-              <span className={styles.cardBolt}>⚡</span>
-              <span className={styles.cardBrandName}>OTAKU PULSE</span>
-            </div>
-            <div className={styles.cardStatus} style={{ color: isActive ? '#4ade80' : '#94a3b8' }}>
-              <span className={styles.cardStatusDot} style={{ background: isActive ? '#4ade80' : '#94a3b8', boxShadow: isActive ? '0 0 8px #4ade80' : 'none' }} />
-              {isActive ? 'ACTIF' : 'EN ATTENTE'}
-            </div>
-          </div>
-
-          {/* Chip */}
-          <div className={styles.cardChip}>
-            <div className={styles.chipInner} />
-          </div>
-
-          <div className={styles.cardName}>{(user?.pseudo || 'TON PSEUDO').toUpperCase()}</div>
-
-          <div className={styles.cardMeta}>
-            <div>
-              <div className={styles.cardMetaLabel}>NIVEAU</div>
-              <div className={styles.cardMetaVal} style={{ color: cardColor }}>
-                {(myMembership?.plan || 'ELITE').toUpperCase()}
-              </div>
-            </div>
-            <div>
-              <div className={styles.cardMetaLabel}>EXPIRE</div>
-              <div className={styles.cardMetaVal}>{expiryStr}</div>
-            </div>
-            <div>
-              <div className={styles.cardMetaLabel}>ID</div>
-              <div className={styles.cardMetaVal} style={{ fontSize:'.65rem', letterSpacing:1 }}>
-                {isActive ? (myMembership?.cardId || 'OP-XXXXX') : 'PENDING'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Déco cercles */}
-        <div className={styles.cardCircle1} style={{ background: cardColor }} />
-        <div className={styles.cardCircle2} style={{ background: cardColor }} />
-      </div>
-      {/* Ombre dynamique */}
-      <div className={styles.cardShadow} style={{ background: `radial-gradient(ellipse, ${cardColor}40, transparent)` }} />
-    </div>
+    <TicketStub
+      color={cardColor}
+      icon="🎴"
+      statusLabel={isActive ? 'ACTIF' : 'EN ATTENTE'}
+      statusActive={isActive}
+      title={(user?.pseudo || 'Ton pseudo').toUpperCase()}
+      subtitle={`Carte ${(planData?.name || 'Otaku Pulse')}`}
+      meta={[
+        { label: 'Niveau', value: (myMembership?.plan || 'elite').toUpperCase() },
+        { label: 'Expire', value: expiryStr },
+      ]}
+      code={isActive ? (myMembership?.cardId || 'OP-XXXXX') : 'EN ATTENTE'}
+    />
   )
 }
 
@@ -262,10 +188,9 @@ export default function MembershipPage() {
               </a>
             </div>
 
-            {/* Carte droite — interactive 3D */}
+            {/* Carte droite — billet */}
             <div className={styles.heroRight}>
               <MemberCard user={user} myMembership={myMembership} isActive={isActive} />
-              <p className={styles.cardHint}>↕ Survole la carte</p>
             </div>
           </div>
         </div>
@@ -600,6 +525,40 @@ function UpcomingEventsSection({ user, toast }) {
   return (
     <section className={styles.eventsSection}>
       <div className="container">
+        {myRegs.length > 0 && (
+          <div style={{ marginBottom: '3rem' }}>
+            <div className={styles.sectionHeader}>
+              <div className={styles.sectionTag}>🎟️ MES BILLETS</div>
+              <h2 className={styles.sectionTitle}>TES <span style={{ color:'var(--green)' }}>INSCRIPTIONS</span></h2>
+            </div>
+            <div className={styles.ticketsGrid}>
+              {myRegs.map(reg => (
+                <TicketStub
+                  key={reg.id}
+                  color={reg.status === 'waitlist' ? '#f59e0b' : '#22c55e'}
+                  icon="🎟️"
+                  statusLabel={reg.status === 'waitlist' ? "LISTE D'ATTENTE" : 'CONFIRMÉ'}
+                  statusActive={reg.status !== 'waitlist'}
+                  title={reg.event?.titleF || 'Événement'}
+                  subtitle={reg.event?.date ? new Date(reg.event.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : ''}
+                  meta={[
+                    { label: 'Lieu', value: reg.event?.venue || reg.event?.city || '—' },
+                    { label: 'Invités', value: reg.guests || 1 },
+                  ]}
+                  code={reg.ticketCode || reg.id.slice(0, 8).toUpperCase()}
+                  footer={
+                    <button className={`${styles.eventCardBtn} ${styles.eventCardBtnGhost}`}
+                      style={{ padding: '6px 14px', fontSize: '.78rem' }}
+                      disabled={busyId === reg.id} onClick={() => cancelReg(reg.id)}>
+                      Annuler
+                    </button>
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className={styles.sectionHeader}>
           <div className={styles.sectionTag}>🎌 BILLETTERIE</div>
           <h2 className={styles.sectionTitle}>ÉVÉNEMENTS <span style={{ color:'var(--green)' }}>À VENIR</span></h2>

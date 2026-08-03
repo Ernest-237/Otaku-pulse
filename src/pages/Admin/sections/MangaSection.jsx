@@ -371,7 +371,9 @@ function MangaDetailModal({ manga: m, onClose, onModerate, onToggleFeature, onTo
           <div style={{ marginTop:'1rem', padding:'1rem', background:'rgba(239,68,68,.05)', borderRadius:10, border:'1px solid rgba(239,68,68,.15)' }}>
             <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)}
               rows={3} placeholder="Motif du rejet (visible par l'auteur)..."
-              style={{ width:'100%', padding:'9px 12px', background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', borderRadius:8, color:'#e2e8f0', fontSize:'.85rem', resize:'vertical', outline:'none', marginBottom:8 }} />
+              style={{ width:'100%', padding:'9px 12px', background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', borderRadius:8, color:'#e2e8f0', fontSize:'.85rem', resize:'vertical', outline:'none', marginBottom:8, transition:'border-color .15s, background .15s' }}
+              onFocus={e => { e.target.style.borderColor='#22c55e'; e.target.style.background='rgba(34,197,94,.06)' }}
+              onBlur={e => { e.target.style.borderColor='rgba(255,255,255,.12)'; e.target.style.background='rgba(255,255,255,.04)' }} />
             <div style={{ display:'flex', gap:8 }}>
               <Button variant="ghost" size="sm" onClick={() => { setShowReject(false); setRejectReason('') }}>Annuler</Button>
               <Button variant="danger" size="sm" onClick={() => {

@@ -229,7 +229,9 @@ function OrderDetail({ order:o, onClose, onUpdateStatus }) {
         <div style={{ background:'rgba(34,197,94,.05)', border:'1px solid rgba(34,197,94,.15)', borderRadius:12, padding:'1rem' }}>
           <div style={{ fontSize:'.72rem', fontWeight:700, color:'var(--green)', letterSpacing:1, textTransform:'uppercase', marginBottom:'1rem' }}>⚡ Changer le statut</div>
           <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} rows={2} placeholder="Note optionnelle (ex: Colis déposé à la boutique...)"
-            style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.85rem', outline:'none', resize:'none', marginBottom:'1rem', lineHeight:1.5 }} />
+            style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.85rem', outline:'none', resize:'none', marginBottom:'1rem', lineHeight:1.5, transition:'border-color .15s, background .15s' }}
+            onFocus={e => { e.target.style.borderColor='#22c55e'; e.target.style.background='rgba(34,197,94,.06)' }}
+            onBlur={e => { e.target.style.borderColor='rgba(255,255,255,.12)'; e.target.style.background='rgba(255,255,255,.04)' }} />
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             {STATUSES.filter(s => !['pending'].includes(s.key)).map(s => (
               <button key={s.key} onClick={() => { onUpdateStatus(s.key, noteText); setNoteText('') }}

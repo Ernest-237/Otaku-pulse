@@ -189,7 +189,7 @@ export default function Navbar() {
     { label: T.manga,  href: '/manga' },
     { label: T.about,  action: () => scrollTo('apropos')  },
     { label: T.blog,   href: '/blog' },
-    { label: lang==='fr'?'🎴 Carte Membre':'🎴 Membership', href: '/membership' },
+    { label: lang==='fr'?'🎫 Nos Pôles':'🎫 Our Poles', href: '/poles' },
   ]
 
   const openAuthModal = (tab = 'login') => {

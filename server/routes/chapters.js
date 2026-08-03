@@ -173,7 +173,11 @@ router.patch('/:id', protect, async (req, res) => {
     if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Non autorisé' })
 
     const updates = { ...req.body }
-    if (Array.isArray(updates.pages)) updates.pageCount = updates.pages.length
+    if (Array.isArray(updates.pages)) {
+      if (updates.pages.length === 0) return res.status(400).json({ error: 'Un chapitre doit garder au moins une page.' })
+      updates.pages = updates.pages.map((p, i) => ({ ...p, order: i }))
+      updates.pageCount = updates.pages.length
+    }
 
     // Si publication pour la 1ère fois : set publishedAt
     if (updates.isPublished && !chapter.isPublished) updates.publishedAt = new Date()

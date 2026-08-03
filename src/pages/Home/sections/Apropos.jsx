@@ -3,9 +3,18 @@ import { useLang } from '../../../contexts/LangContext'
 import styles from './Apropos.module.css'
 
 const STORY = [
-  { year:'2024', iconFr:'💡', iconEn:'💡', textFr:"L'idée naît : créer une plateforme de evenementiel Otaku pour les fans camerounais.", textEn:"The idea is born: create an Otaku goods store for Cameroonian fans." },
-  { year:'2025', iconFr:'🛒', iconEn:'🛒', textFr:"Lancement de la boutique en ligne avec posters, mangas et accessoires.", textEn:"Launch of the online store with posters, manga and accessories." },
-  { year:'2026', iconFr:'🚀', iconEn:'🚀', textFr:"Expansion : Yaoundé, Douala — livraison dans tout le Cameroun !", textEn:"Expansion: Yaoundé, Douala — delivery across Cameroon!" },
+  {
+    year: '💡', iconFr: '💡', iconEn: '💡',
+    labelFr: "L'origine", labelEn: 'The origin',
+    textFr: "Otaku Pulse naît en février 2026, d'un constat simple : il existe peu ou pas de plateforme dédiée aux services événementiels otaku au Cameroun, pour les petits comme les grands événements.",
+    textEn: "Otaku Pulse was born in February 2026, from a simple observation: there was little to no platform dedicated to otaku event services in Cameroon, for small and large events alike.",
+  },
+  {
+    year: '🚀', iconFr: '🚀', iconEn: '🚀',
+    labelFr: "Aujourd'hui", labelEn: 'Today',
+    textFr: "Au fil de son développement, la plateforme est devenue un vrai pôle : rassembler, partager, réserver, vendre et communiquer autour des événements de culture nippone et otaku — tout en un seul endroit.",
+    textEn: "As it grew, the platform became a real hub: bringing together, sharing, booking, selling and communicating around Japanese pop culture and otaku events — all in one place.",
+  },
 ]
 
 export default function Apropos() {
@@ -45,7 +54,7 @@ export default function Apropos() {
             <div className={styles.timeline}>
               {STORY.map((s,i) => (
                 <div key={i} className={styles.timelineItem}>
-                  <div className={styles.timelineYear}>{s.year}</div>
+                  <div className={styles.timelineYear}>{lang==='fr' ? s.labelFr : s.labelEn}</div>
                   <div className={styles.timelineDot}>{s.iconFr}</div>
                   <div className={styles.timelineText}>{lang==='fr' ? s.textFr : s.textEn}</div>
                 </div>

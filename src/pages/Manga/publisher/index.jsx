@@ -22,6 +22,7 @@ import styles from './Publisher.module.css'
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'
 
 const GENRES_OPTIONS = ['action','aventure','romance','fantasy','sci-fi','shonen','seinen','slice of life','mystery','drame','horreur','sport','comédie']
+const MAX_IMAGE_MB = 10
 
 /* ══ HELPER : Lecture safe d'un fichier en base64 ══ */
 async function readFileToBase64Safe(file) {
@@ -205,6 +206,7 @@ export default function PublisherPage() {
   const [mangaModalOpen, setMangaModalOpen] = useState(false)
   const [chapterModalOpen, setChapterModalOpen] = useState(false)
   const [selectedManga, setSelectedManga] = useState(null)
+  const [manageManga, setManageManga] = useState(null)
 
   const canPublish = isPublisher || ['admin','superadmin'].includes(user?.role)
 
@@ -321,7 +323,8 @@ export default function PublisherPage() {
             {tab === 'mangas' && (
               <MangasTab myMangas={myMangas} t={t} lang={lang}
                 onNewManga={() => setMangaModalOpen(true)}
-                onAddChapter={(m) => { setSelectedManga(m); setChapterModalOpen(true) }} />
+                onAddChapter={(m) => { setSelectedManga(m); setChapterModalOpen(true) }}
+                onManageChapters={(m) => setManageManga(m)} />
             )}
             {tab === 'stats' && (
               <StatsTab stats={stats} myMangas={myMangas} t={t} lang={lang} />
@@ -341,6 +344,13 @@ export default function PublisherPage() {
         <CreateChapterModal manga={selectedManga} t={t}
           onClose={() => { setChapterModalOpen(false); setSelectedManga(null) }}
           onSuccess={() => { toast.success(t.successChapter); refresh(); setChapterModalOpen(false); setSelectedManga(null) }}
+          toast={toast} />
+      )}
+
+      {manageManga && (
+        <ManageChaptersModal manga={manageManga} lang={lang}
+          onClose={() => setManageManga(null)}
+          onChanged={() => refresh()}
           toast={toast} />
       )}
 
@@ -443,7 +453,7 @@ function OverviewTab({ stats, topMangas, t, lang, onNewManga }) {
 /* ══════════════════════════════════════════════════════
    ONGLET : MES MANGAS
    ══════════════════════════════════════════════════════ */
-function MangasTab({ myMangas, t, lang, onNewManga, onAddChapter }) {
+function MangasTab({ myMangas, t, lang, onNewManga, onAddChapter, onManageChapters }) {
   if (!myMangas.length) {
     return (
       <div className={styles.tabContent}>
@@ -462,7 +472,8 @@ function MangasTab({ myMangas, t, lang, onNewManga, onAddChapter }) {
       <div className={styles.mangasGrid}>
         {myMangas.map(m => (
           <MyMangaCard key={m.id} manga={m} lang={lang} t={t}
-            onAddChapter={() => onAddChapter(m)} />
+            onAddChapter={() => onAddChapter(m)}
+            onManageChapters={() => onManageChapters(m)} />
         ))}
       </div>
     </div>
@@ -612,7 +623,7 @@ function PublisherApplicationFlow({ existingApp, t, toast }) {
 }
 
 /* ══ MANGA CARD ══ */
-function MyMangaCard({ manga, lang, t, onAddChapter }) {
+function MyMangaCard({ manga, lang, t, onAddChapter, onManageChapters }) {
   const title = lang === 'fr' ? manga.titleF : (manga.titleE || manga.titleF)
   const STATUS_COLORS = { pending:'#f59e0b', approved:'#22c55e', rejected:'#ef4444', suspended:'#6b7280' }
 
@@ -655,9 +666,16 @@ function MyMangaCard({ manga, lang, t, onAddChapter }) {
             <Eye size={12} /> Voir
           </Link>
           {manga.moderationStatus === 'approved' && (
-            <button onClick={onAddChapter} className={styles.mangaActionPrimary}>
-              <Plus size={12} /> {t.addChapter}
-            </button>
+            <>
+              <button onClick={onAddChapter} className={styles.mangaActionPrimary}>
+                <Plus size={12} /> {t.addChapter}
+              </button>
+              {manga.totalChapters > 0 && (
+                <button onClick={onManageChapters} className={styles.mangaActionGhost}>
+                  <Layers size={12} /> Gérer les chapitres
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -801,8 +819,13 @@ function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
   const [progress, setProgress] = useState(0)
 
   const handleFiles = (files) => {
-    const arr = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'))
-    setForm(f => ({ ...f, pageFiles: [...f.pageFiles, ...arr] }))
+    const all = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'))
+    const tooLarge = all.filter(f => f.size > MAX_IMAGE_MB * 1024 * 1024)
+    const ok = all.filter(f => f.size <= MAX_IMAGE_MB * 1024 * 1024)
+    if (tooLarge.length) {
+      toast.error(`${tooLarge.length} image(s) trop lourde(s) (max ${MAX_IMAGE_MB}Mo) : ${tooLarge.map(f => f.name).join(', ')} — compresse-les ou choisis-en d'autres.`)
+    }
+    setForm(f => ({ ...f, pageFiles: [...f.pageFiles, ...ok] }))
   }
   const removePage = (idx) => setForm(f => ({ ...f, pageFiles: f.pageFiles.filter((_, i) => i !== idx) }))
   const movePage = (from, to) => {
@@ -843,6 +866,8 @@ function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
       setProgress(0)
     }
   }
+
+  const totalMB = form.pageFiles.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024)
 
   return (
     <Modal isOpen onClose={onClose} title={t.formChapterTitle(title)} wide
@@ -891,7 +916,13 @@ function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
 
         {form.pageFiles.length > 0 && (
           <>
-            <div className={styles.pagesCount}>{t.pagesCount(form.pageFiles.length)}</div>
+            <div className={styles.pagesCount}>
+              {t.pagesCount(form.pageFiles.length)}
+              {' · '}
+              <span style={{ color: totalMB > 40 ? '#dc2626' : 'inherit' }}>
+                {totalMB.toFixed(1)} Mo au total
+              </span>
+            </div>
             <div className={styles.pagesList}>
               {form.pageFiles.map((f, i) => (
                 <div key={i} className={styles.pageItem}>
@@ -915,6 +946,124 @@ function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
   )
 }
 
+/* ══ GESTION DES CHAPITRES (suppression chapitre/page) ══ */
+function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
+  const title = lang === 'fr' ? manga.titleF : (manga.titleE || manga.titleF)
+  const [chapters, setChapters] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(null) // chapitre complet (avec pages) en cours d'édition
+  const [busy, setBusy] = useState(false)
+
+  const loadChapters = async () => {
+    setLoading(true)
+    try {
+      const res = await chaptersApi.getByManga(manga.id)
+      setChapters((res.chapters || []).sort((a,b) => parseFloat(a.chapterNumber) - parseFloat(b.chapterNumber)))
+    } catch (err) { toast.error(err.message) }
+    finally { setLoading(false) }
+  }
+  useEffect(() => { loadChapters() }, [manga.id]) // eslint-disable-line
+
+  const deleteChapter = async (chapterId) => {
+    if (!confirm('Supprimer définitivement ce chapitre ?')) return
+    setBusy(true)
+    try {
+      await chaptersApi.delete(chapterId)
+      toast.success('🗑️ Chapitre supprimé')
+      await loadChapters()
+      onChanged()
+    } catch (err) { toast.error(err.message) }
+    finally { setBusy(false) }
+  }
+
+  const openEdit = async (chapterId) => {
+    setBusy(true)
+    try {
+      const res = await chaptersApi.getById(chapterId)
+      setEditing(res.chapter)
+    } catch (err) { toast.error(err.message) }
+    finally { setBusy(false) }
+  }
+
+  const removePage = (idx) => {
+    setEditing(c => ({ ...c, pages: c.pages.filter((_, i) => i !== idx) }))
+  }
+
+  const savePages = async () => {
+    if (editing.pages.length === 0) { toast.error('Un chapitre doit garder au moins 1 page'); return }
+    setBusy(true)
+    try {
+      const pages = editing.pages.map((p, i) => ({ ...p, order: i }))
+      await chaptersApi.update(editing.id, { pages })
+      toast.success('✅ Pages mises à jour')
+      setEditing(null)
+      await loadChapters()
+      onChanged()
+    } catch (err) { toast.error(err.message) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <Modal isOpen onClose={editing ? () => setEditing(null) : onClose}
+      title={editing ? `Pages — Ch. ${editing.chapterNumber}` : `Chapitres — ${title}`} wide
+      footer={
+        editing ? (
+          <>
+            <button onClick={() => setEditing(null)} className={styles.modalBtnGhost}>← Retour</button>
+            <button onClick={savePages} disabled={busy} className={styles.modalBtnPrimary}>
+              {busy ? <Loader2 size={14} className={styles.spinIcon} /> : <CheckCircle2 size={14} />}
+              Enregistrer
+            </button>
+          </>
+        ) : (
+          <button onClick={onClose} className={styles.modalBtnGhost}>Fermer</button>
+        )
+      }>
+      {editing ? (
+        <div className={styles.pagesList}>
+          {editing.pages.map((p, i) => {
+            const src = p.url ? `${API_BASE}${p.url}` : (p.data ? `data:${p.mime || 'image/jpeg'};base64,${p.data}` : null)
+            return (
+              <div key={i} className={styles.pageItem}>
+                {src && <img src={src} alt={`Page ${i+1}`} style={{ width:36, height:48, objectFit:'cover', borderRadius:4, flexShrink:0 }} />}
+                <span className={styles.pageItemNum}>{i + 1}</span>
+                <span className={styles.pageItemName}>Page {i + 1}</span>
+                <div className={styles.pageItemActions}>
+                  <button onClick={() => removePage(i)} title="Retirer" className={styles.pageItemRemove}>
+                    <X size={12} />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : loading ? (
+        <PageLoader />
+      ) : chapters.length === 0 ? (
+        <EmptyState icon="📖" title="Aucun chapitre" />
+      ) : (
+        <div className={styles.pagesList}>
+          {chapters.map(c => (
+            <div key={c.id} className={styles.pageItem}>
+              <span className={styles.pageItemNum}>{c.chapterNumber}</span>
+              <span className={styles.pageItemName}>{c.title || `Chapitre ${c.chapterNumber}`}</span>
+              <span className={styles.pageItemSize}>{c.pageCount} pages</span>
+              <div className={styles.pageItemActions}>
+                <button onClick={() => openEdit(c.id)} disabled={busy} title="Modifier les pages">
+                  <Edit3 size={12} />
+                </button>
+                <button onClick={() => deleteChapter(c.id)} disabled={busy} title="Supprimer" className={styles.pageItemRemove}>
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 /* ══ HELPERS UI ══ */
 function FormField({ label, children }) {
   return (
@@ -925,12 +1074,26 @@ function FormField({ label, children }) {
   )
 }
 
-function FileInput({ file, onChange, accept, label }) {
+function FileInput({ file, onChange, accept, label, maxSizeMB = MAX_IMAGE_MB }) {
   const id = `file-${Math.random().toString(36).slice(2, 8)}`
+  const [error, setError] = useState(null)
+
+  const handleChange = (e) => {
+    const f = e.target.files?.[0] || null
+    if (f && f.size > maxSizeMB * 1024 * 1024) {
+      setError(`Trop lourd (${(f.size / (1024*1024)).toFixed(1)}Mo) — max ${maxSizeMB}Mo`)
+      onChange(null)
+      e.target.value = ''
+      return
+    }
+    setError(null)
+    onChange(f)
+  }
+
   return (
     <div className={styles.fileInputWrap}>
       <input type="file" id={id} accept={accept}
-        onChange={e => onChange(e.target.files?.[0] || null)} style={{ display: 'none' }} />
+        onChange={handleChange} style={{ display: 'none' }} />
       <label htmlFor={id} className={styles.fileInputLabel}>
         <Upload size={14} />
         <span>{file ? file.name : label}</span>
@@ -940,6 +1103,7 @@ function FileInput({ file, onChange, accept, label }) {
           <X size={12} />
         </button>
       )}
+      {error && <span style={{ color:'#dc2626', fontSize:'.75rem', display:'block', marginTop:4 }}>{error}</span>}
     </div>
   )
 }
