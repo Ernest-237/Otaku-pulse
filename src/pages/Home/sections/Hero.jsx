@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CalendarDays, MapPin, PlayCircle, ShoppingBag, Sparkles } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
-import { API_BASE } from '../../../api'
+import { heroApi } from '../../../api'
 import AnimeCarousel from '../../../components/AnimeCarousel'
 import styles from './Hero.module.css'
 
@@ -33,8 +33,7 @@ export default function Hero() {
   const [hero, setHero] = useState(HERO_DEFAULT)
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/hero?_=${Date.now()}`)
-      .then((r) => (r.ok ? r.json() : null))
+    heroApi.get()
       .then((d) => {
         if (d?.hero) setHero((prev) => ({ ...HERO_DEFAULT, ...d.hero }))
       })

@@ -16,6 +16,7 @@ import Admin         from './pages/Admin'
 import FandomPage    from './pages/Fandom'
 import MembershipPage from './pages/Membership'
 import PolesPage      from './pages/Poles'
+import PartnerShopPage from './pages/Boutique/partner'
 
 // ── Manga Platform ──
 import MangaCatalog   from './pages/Manga'
@@ -48,6 +49,7 @@ export default function App() {
       {/* Pages publiques */}
       <Route path="/"            element={<Home />} />
       <Route path="/boutique"    element={<BoutiquePage />} />
+      <Route path="/boutique/partenaire" element={<PrivateRoute><PartnerShopPage /></PrivateRoute>} />
       <Route path="/reservation" element={<ReservationPage />} />
       <Route path="/blog"        element={<Blog />} />
       <Route path="/legal"       element={<LegalPage />} />

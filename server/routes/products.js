@@ -46,6 +46,85 @@ router.get('/', async (req, res) => {
   } catch(err) { res.status(500).json({ error: err.message }) }
 })
 
+/* ══════════════════════════════════════════════════════
+   MES PRODUITS — boutique partenaire en libre-service
+   ══════════════════════════════════════════════════════ */
+
+async function findMySupplier(req, res) {
+  const supplier = await Supplier.findOne({ where: { userId: req.user.id } })
+  if (!supplier) { res.status(404).json({ error: 'Aucune boutique.' }); return null }
+  if (supplier.status !== 'approved') { res.status(403).json({ error: 'Boutique pas encore validée.' }); return null }
+  return supplier
+}
+
+// ── GET /api/products/mine — mes produits ──────────────
+router.get('/mine', protect, async (req, res) => {
+  try {
+    const supplier = await findMySupplier(req, res)
+    if (!supplier) return
+    const products = await Product.findAll({
+      where: { supplierId: supplier.id },
+      order: [['createdAt','DESC']],
+      attributes: { exclude: ['imageData'] },
+    })
+    const withUrl = products.map(p => {
+      const j = p.toJSON()
+      if (p.imageMime) j.imageUrl = `/api/upload/product/${p.id}/image`
+      return j
+    })
+    res.json({ products: withUrl })
+  } catch (err) { res.status(500).json({ error: err.message }) }
+})
+
+// ── POST /api/products/mine — créer un produit ─────────
+router.post('/mine', protect, async (req, res) => {
+  try {
+    const supplier = await findMySupplier(req, res)
+    if (!supplier) return
+    if (!ALL_CATS.includes(req.body.category))
+      return res.status(400).json({ error: `Catégorie invalide. Valides: ${ALL_CATS.join(', ')}` })
+
+    const product = await Product.create({ ...req.body, supplierId: supplier.id, isOwnProduct: false })
+    res.status(201).json({ product })
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError')
+      return res.status(409).json({ error: 'Ce slug existe déjà.' })
+    res.status(400).json({ error: err.message })
+  }
+})
+
+// ── PATCH /api/products/mine/:id — éditer un de mes produits ─
+router.patch('/mine/:id', protect, async (req, res) => {
+  try {
+    const supplier = await findMySupplier(req, res)
+    if (!supplier) return
+    const product = await Product.findByPk(req.params.id)
+    if (!product) return res.status(404).json({ error: 'Produit introuvable' })
+    if (product.supplierId !== supplier.id) return res.status(403).json({ error: 'Ce produit ne t\'appartient pas.' })
+    if (req.body.category && !ALL_CATS.includes(req.body.category))
+      return res.status(400).json({ error: 'Catégorie invalide' })
+
+    const { supplierId, isOwnProduct, ...allowed } = req.body // pas de réassignation possible depuis cet écran
+    await product.update(allowed)
+    const pJson = product.toJSON()
+    if (product.imageMime) pJson.imageUrl = `/api/upload/product/${product.id}/image`
+    res.json({ product: pJson })
+  } catch (err) { res.status(400).json({ error: err.message }) }
+})
+
+// ── DELETE /api/products/mine/:id — désactiver un de mes produits ─
+router.delete('/mine/:id', protect, async (req, res) => {
+  try {
+    const supplier = await findMySupplier(req, res)
+    if (!supplier) return
+    const product = await Product.findByPk(req.params.id)
+    if (!product) return res.status(404).json({ error: 'Produit introuvable' })
+    if (product.supplierId !== supplier.id) return res.status(403).json({ error: 'Ce produit ne t\'appartient pas.' })
+    await product.update({ isActive: false })
+    res.json({ success: true })
+  } catch (err) { res.status(500).json({ error: err.message }) }
+})
+
 // ── GET /api/products/:slug ────────────────────────────
 router.get('/:slug', async (req, res) => {
   try {

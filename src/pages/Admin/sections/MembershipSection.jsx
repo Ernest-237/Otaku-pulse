@@ -1,6 +1,6 @@
 // src/pages/Admin/sections/MembershipSection.jsx — v2
 import { useState } from 'react'
-import { API_BASE } from '../../../api'
+import { API_BASE, request } from '../../../api'
 import { useApi } from '../../../hooks/useApi'
 import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
 import Badge from '../../../components/ui/Badge'
@@ -34,9 +34,7 @@ export default function MembershipSection({ toast }) {
   const [search,   setSearch]   = useState('')
 
   const { data, loading, execute } = useApi(
-    () => fetch(`${API_BASE}/api/membership${filter !== 'all' ? `?status=${filter}` : ''}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('op_token')}` }
-    }).then(r => r.json()),
+    () => request('GET', `/api/membership${filter !== 'all' ? `?status=${filter}` : ''}`),
     [filter], true
   )
   const allRequests = data?.requests || []
@@ -48,12 +46,7 @@ export default function MembershipSection({ toast }) {
 
   const updateMembership = async (id, payload) => {
     try {
-      const res = await fetch(`${API_BASE}/api/membership/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('op_token')}` },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
+      await request('PATCH', `/api/membership/${id}`, payload)
       toast.success('✅ Mis à jour')
       execute()
       setSelected(null)

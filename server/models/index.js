@@ -24,7 +24,7 @@ const User = sequelize.define('User', {
   membershipExpiry:    { type: DataTypes.DATE, allowNull: true },
   membershipCardId:    { type: DataTypes.STRING(50), allowNull: true },
   lang:                { type: DataTypes.ENUM('fr','en'), defaultValue:'fr' },
-  role:                { type: DataTypes.ENUM('user','publisher','admin','superadmin'), defaultValue:'user' },
+  role:                { type: DataTypes.ENUM('user','publisher','partner','admin','superadmin'), defaultValue:'user' },
   isVerified:          { type: DataTypes.BOOLEAN, defaultValue: false },
   isBanned:            { type: DataTypes.BOOLEAN, defaultValue: false },
   refreshToken:        { type: DataTypes.TEXT },
@@ -37,6 +37,8 @@ const User = sequelize.define('User', {
   isPublisher:         { type: DataTypes.BOOLEAN, defaultValue: false },
   publisherInfo:       { type: DataTypes.JSONB, defaultValue: null },
   // ex: { bio, banner, social: {twitter, instagram}, validatedAt, totalMangas }
+  // ── BOUTIQUE PARTENAIRE ────────────────────────────
+  isPartner:           { type: DataTypes.BOOLEAN, defaultValue: false }, // boutique (Supplier) validée
   // ── REVENUS ÉDITEUR (coins gagnés via déblocages) ──
   coinsEarned:         { type: DataTypes.INTEGER, defaultValue: 0 },   // total coins gagnés (lifetime)
   coinsBalance:        { type: DataTypes.INTEGER, defaultValue: 0 },   // coins gagnés non encore "payés"
@@ -54,6 +56,7 @@ User.prototype.toJSON = function() {
 // ══ SUPPLIER (existant) ══════════════════════════════
 const Supplier = sequelize.define('Supplier', {
   id:          { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  userId:      { type: DataTypes.UUID }, // compte partenaire lié (nul pour un fournisseur interne géré uniquement par l'admin)
   name:        { type: DataTypes.STRING(150), allowNull: false },
   email:       { type: DataTypes.STRING(255) },
   phone:       { type: DataTypes.STRING(20) },
@@ -66,6 +69,13 @@ const Supplier = sequelize.define('Supplier', {
   commission:  { type: DataTypes.FLOAT, defaultValue: 0.25 },
   bankName:    { type: DataTypes.STRING(100) },
   bankAccount: { type: DataTypes.STRING(100) },
+  // Paiement mobile money du partenaire (pour lui reverser sa part)
+  orangeMoneyNumber: { type: DataTypes.STRING(20) },
+  mtnMoneyNumber:    { type: DataTypes.STRING(20) },
+  // Validation de la candidature boutique partenaire — 'approved' par défaut pour
+  // rester rétrocompatible avec les fournisseurs déjà créés directement par l'admin.
+  status:        { type: DataTypes.ENUM('pending','approved','rejected','suspended'), defaultValue: 'approved' },
+  rejectedReason:{ type: DataTypes.TEXT },
   isActive:    { type: DataTypes.BOOLEAN, defaultValue: true },
   notes:       { type: DataTypes.TEXT },
 }, { tableName: 'suppliers', timestamps: true })
@@ -592,6 +602,8 @@ Supplier.hasMany(Product,    { foreignKey:'supplierId', as:'products' })
 MembershipRequest.belongsTo(User, { as: 'user', foreignKey: 'userId' })
 User.hasMany(MembershipRequest,   { as: 'membershipRequests', foreignKey: 'userId' })
 Product.belongsTo(Supplier,  { foreignKey:'supplierId', as:'supplier' })
+Supplier.belongsTo(User,     { foreignKey:'userId', as:'user' })
+User.hasOne(Supplier,        { foreignKey:'userId', as:'shop' })
 
 // ── MANGA ASSOCIATIONS ──────────────────────────────
 User.hasMany(Manga,    { foreignKey: 'authorId', as: 'mangas' })

@@ -10,31 +10,77 @@ function headers(auth = true) {
 async function refreshToken() {
   const rt = localStorage.getItem('op_refresh')
   if (!rt) return false
+  const opts = { method:'POST', headers:headers(false), body:JSON.stringify({ refreshToken:rt }) }
+  // 1 tentative + 1 retry : une connexion instable ne doit pas déconnecter l'utilisateur pour rien.
+  for (let attempt = 0; attempt <= 1; attempt++) {
+    try {
+      const res = await fetchWithTimeout(`${API_BASE}/api/auth/refresh`, opts)
+      if (!res.ok) return false
+      const data = await res.json()
+      localStorage.setItem('op_token',   data.accessToken)
+      localStorage.setItem('op_refresh', data.refreshToken)
+      return true
+    } catch (err) {
+      const isNetworkError = err.name === 'AbortError' || err instanceof TypeError
+      if (!isNetworkError || attempt === 1) return false
+      await sleep(900)
+    }
+  }
+  return false
+}
+
+// ── Résilience réseau ─────────────────────────────────
+// Le backend (Render, plan gratuit) se met en veille après inactivité et peut
+// prendre 20-50s à se réveiller ; combiné à des connexions mobiles instables
+// (coupures, ERR_CONNECTION_RESET), une seule tentative sans délai suffisant
+// fait échouer beaucoup de requêtes pour rien. On retente automatiquement les
+// échecs réseau (jamais les erreurs applicatives 4xx/5xx, déjà traitées par le serveur).
+const REQUEST_TIMEOUT_MS = 15000
+const MAX_RETRIES = 2
+const RETRY_BASE_DELAY_MS = 900
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+
+async function fetchWithTimeout(url, opts) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   try {
-    const res  = await fetch(`${API_BASE}/api/auth/refresh`, { method:'POST', headers:headers(false), body:JSON.stringify({ refreshToken:rt }) })
-    if (!res.ok) return false
-    const data = await res.json()
-    localStorage.setItem('op_token',   data.accessToken)
-    localStorage.setItem('op_refresh', data.refreshToken)
-    return true
-  } catch { return false }
+    return await fetch(url, { ...opts, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export async function request(method, path, body = null, auth = true) {
   const opts = { method, headers: headers(auth) }
   if (body) opts.body = JSON.stringify(body)
-  let res = await fetch(`${API_BASE}${path}`, opts)
-  if (res.status === 401 && auth) {
-    const ok = await refreshToken()
-    if (ok) { opts.headers = headers(true); res = await fetch(`${API_BASE}${path}`, opts) }
-    else { localStorage.removeItem('op_token'); localStorage.removeItem('op_refresh'); localStorage.removeItem('op_user'); window.location.href = '/'; return null }
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      let res = await fetchWithTimeout(`${API_BASE}${path}`, opts)
+
+      if (res.status === 401 && auth) {
+        const ok = await refreshToken()
+        if (ok) { opts.headers = headers(true); res = await fetchWithTimeout(`${API_BASE}${path}`, opts) }
+        else { localStorage.removeItem('op_token'); localStorage.removeItem('op_refresh'); localStorage.removeItem('op_user'); window.location.href = '/'; return null }
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        if (err.details?.length) throw new Error(err.details.map(d => d.msg).join(', '))
+        throw new Error(err.error || `Erreur ${res.status}`)
+      }
+      return await res.json()
+    } catch (err) {
+      const isNetworkError = err.name === 'AbortError' || err instanceof TypeError
+      if (!isNetworkError || attempt === MAX_RETRIES) {
+        throw isNetworkError
+          ? new Error('Connexion instable — vérifie ta connexion internet et réessaie dans quelques secondes.')
+          : err
+      }
+      await sleep(RETRY_BASE_DELAY_MS * 2 ** attempt)
+    }
   }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    if (err.details?.length) throw new Error(err.details.map(d => d.msg).join(', '))
-    throw new Error(err.error || `Erreur ${res.status}`)
-  }
-  return res.json()
 }
 
 // ── AUTH ──────────────────────────────────────────────
@@ -54,6 +100,11 @@ export const productsApi = {
   delete:   (id)     => request('DELETE', `/api/products/${id}`),
   uploadImage: (id, imageData, imageMime) => request('POST', `/api/upload/product/${id}`, { imageData, imageMime }),
   getImageUrl: (id)  => `${API_BASE}/api/upload/product/${id}/image`,
+  // ── Mes produits (boutique partenaire) ──
+  getMine:   ()       => request('GET', '/api/products/mine'),
+  createMine:(data)   => request('POST', '/api/products/mine', data),
+  updateMine:(id, d)  => request('PATCH', `/api/products/mine/${id}`, d),
+  deleteMine:(id)     => request('DELETE', `/api/products/mine/${id}`),
 }
 
 // ── ORDERS ────────────────────────────────────────────
@@ -135,6 +186,11 @@ export const suppliersApi = {
   getStats:    (id)     => request('GET', `/api/suppliers/${id}/stats`),
   getLogoUrl:  (id)     => `${API_BASE}/api/upload/supplier/${id}/logo`,
   uploadLogo:  (id, imageData, imageMime) => request('POST', `/api/upload/supplier/${id}`, { imageData, imageMime }),
+  // ── Boutique partenaire en libre-service ──
+  apply:       (data)   => request('POST',  '/api/suppliers/apply', data),
+  getMy:       ()       => request('GET',   '/api/suppliers/my'),
+  updateMe:    (data)   => request('PATCH', '/api/suppliers/me', data),
+  review:      (id, status, reason) => request('PATCH', `/api/suppliers/${id}/review`, { status, reason }),
 }
 
 // ── UPLOAD helper ─────────────────────────────────────

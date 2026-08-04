@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth }  from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
-import { API_BASE, eventsApi } from '../../api'
+import { API_BASE, eventsApi, request } from '../../api'
 import { useApi } from '../../hooks/useApi'
 import Navbar  from '../../components/Navbar'
 import Footer  from '../Home/sections/Footer'
@@ -103,9 +103,7 @@ export default function MembershipPage() {
   const navigate = useNavigate()
 
   const { data: mData } = useApi(
-    () => user ? fetch(`${API_BASE}/api/membership/my`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('op_token')}` }
-    }).then(r => r.json()) : Promise.resolve({ membership: null }),
+    () => user ? request('GET', '/api/membership/my') : Promise.resolve({ membership: null }),
     [user?.id], true
   )
   const myMembership = mData?.membership || null
@@ -131,12 +129,7 @@ export default function MembershipPage() {
     if (!form.nom || !form.email || !form.phone) { toast.error('Remplis tous les champs'); return }
     setSending(true)
     try {
-      const res = await fetch(`${API_BASE}/api/membership/request`, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('op_token')}` },
-        body: JSON.stringify({ ...form, userId: user?.id }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error || 'Erreur serveur')
+      await request('POST', '/api/membership/request', { ...form, userId: user?.id })
       setDone(true); setFormOpen(false)
       toast.success('✅ Demande envoyée ! Notre équipe vous contacte sous 24h.')
     } catch(err) { toast.error(err.message) }

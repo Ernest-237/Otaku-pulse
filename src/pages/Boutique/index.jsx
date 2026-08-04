@@ -26,7 +26,8 @@ import styles from './Boutique.module.css'
 
 const CATS = [
   { key: 'all', fr: 'Tous', en: 'All' },
-  { key: 'nutrition', fr: '🍜 Menus Otaku', en: '🍜 Otaku Menus' },
+  // 🍜 Menus Otaku retiré temporairement (changement d'axe produit) — remettre
+  // cette ligne pour réactiver : { key: 'nutrition', fr: '🍜 Menus Otaku', en: '🍜 Otaku Menus' },
   { key: 'posters', fr: 'Posters', en: 'Posters' },
   { key: 'stickers', fr: 'Stickers', en: 'Stickers' },
   { key: 'accessoires', fr: 'Accessoires', en: 'Accessories' },

@@ -29,7 +29,6 @@ const CATS = [
   { key: 'manga', fr: 'Manga', en: 'Manga' },
   { key: 'livre', fr: 'Livres', en: 'Books' },
   { key: 'dessin', fr: 'Dessin/Art', en: 'Art/Drawing' },
-  { key: 'nutrition', fr: 'Nutrition', en: 'Nutrition' },
   { key: 'echange', fr: 'Échange', en: 'Exchange' },
   { key: 'jeux', fr: 'Jeux Vidéo', en: 'Video Games' },
 ]

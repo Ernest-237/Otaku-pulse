@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }  from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
-import { adminApi, productsApi, eventsApi, contactApi, blogApi, suppliersApi, fileToBase64, API_BASE } from '../../api'
+import { adminApi, productsApi, eventsApi, contactApi, blogApi, suppliersApi, fileToBase64, API_BASE, request } from '../../api'
 import { useApi } from '../../hooks/useApi'
 import { PageLoader, EmptyState } from '../../components/ui/Spinner'
 import ImageUploader from '../../components/ui/ImageUploader'
@@ -151,12 +151,7 @@ function ContactsSection({ toast }) {
 
   const save = async (id, status, adminNotes) => {
     try {
-      const res = await fetch(`${API_BASE}/api/contact/${id}`, {
-        method:'PATCH',
-        headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${localStorage.getItem('op_token')}` },
-        body: JSON.stringify({ status, adminNotes }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
+      await request('PATCH', `/api/contact/${id}`, { status, adminNotes })
       toast.success('✅ Mis à jour')
       execute()
       setSelected(null)
@@ -383,7 +378,7 @@ function ProductModal({ product:p, onClose, onSave, toast }) {
       <ASelectRaw label="Fournisseur" value={form.supplierId}
         onChange={e => { s('supplierId',e.target.value); s('isOwnProduct',!e.target.value) }}>
         <option value="">⚡ Otaku Pulse (notre produit)</option>
-        {suppliers.filter(sp=>sp.isActive).map(sp => <option key={sp.id} value={sp.id}>🤝 {sp.name}</option>)}
+        {suppliers.filter(sp=>sp.isActive && sp.status==='approved').map(sp => <option key={sp.id} value={sp.id}>🤝 {sp.name}</option>)}
       </ASelectRaw>
 
       {/* ── IMAGE : fichier OU lien ── */}

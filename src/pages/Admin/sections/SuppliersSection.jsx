@@ -9,12 +9,22 @@ import Badge   from '../../../components/ui/Badge'
 import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
 import styles from '../Admin.module.css'
 
+const STATUS_META = {
+  pending:   { label:'En attente',  variant:'amber' },
+  approved:  { label:'Actif',       variant:'green' },
+  rejected:  { label:'Rejeté',      variant:'red'   },
+  suspended: { label:'Suspendu',    variant:'gray'  },
+}
+
 export default function SuppliersSection({ toast }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing,   setEditing]   = useState(null)
   const [statsId,   setStatsId]   = useState(null)
+  const [viewTab,   setViewTab]   = useState('all') // 'all' | 'pending'
   const { data, loading, execute } = useApi(() => suppliersApi.getAll(), [], true)
   const suppliers = data?.suppliers || []
+  const pending = suppliers.filter(s => s.status === 'pending')
+  const shown = viewTab === 'pending' ? pending : suppliers
 
   const save = async (payload) => {
     try {
@@ -30,6 +40,19 @@ export default function SuppliersSection({ toast }) {
     catch(err) { toast.error(err.message) }
   }
 
+  const review = async (id, status) => {
+    let reason = null
+    if (status === 'rejected') {
+      reason = prompt('Motif du refus (visible par le partenaire) :')
+      if (reason === null) return
+    }
+    try {
+      await suppliersApi.review(id, status, reason)
+      execute()
+      toast.success(status === 'approved' ? '✅ Boutique approuvée' : '❌ Candidature rejetée')
+    } catch(err) { toast.error(err.message) }
+  }
+
   if (loading) return <PageLoader />
 
   return (
@@ -39,7 +62,7 @@ export default function SuppliersSection({ toast }) {
         {[
           { ico:'🤝', val:suppliers.length, lbl:'Fournisseurs' },
           { ico:'✅', val:suppliers.filter(s=>s.isActive).length, lbl:'Actifs' },
-          { ico:'💰', val:'25%', lbl:'Commission moy.' },
+          { ico:'⏳', val:pending.length, lbl:'Candidatures en attente' },
         ].map((c,i) => (
           <div key={i} className={styles.statCard}>
             <div className={styles.statTop}><span style={{ fontSize:'1.5rem' }}>{c.ico}</span></div>
@@ -51,14 +74,25 @@ export default function SuppliersSection({ toast }) {
 
       <div className={styles.card}>
         <div className={styles.cardHeader}>
-          <span className={styles.cardTitle}>🤝 Fournisseurs partenaires</span>
+          <span className={styles.cardTitle}>🤝 Fournisseurs & partenaires</span>
           <Button variant="primary" size="sm" onClick={() => { setEditing(null); setModalOpen(true) }}>+ Ajouter</Button>
         </div>
 
-        {suppliers.length === 0 && <EmptyState icon="🤝" title="Aucun fournisseur" message="Ajoutez votre premier partenaire fournisseur." />}
+        <div style={{ display:'flex', gap:8, padding:'0 1rem', marginTop:'1rem' }}>
+          <button onClick={() => setViewTab('all')}
+            style={{ padding:'6px 14px', borderRadius:99, border:'1px solid var(--border)', background: viewTab==='all' ? 'var(--green)' : 'transparent', color: viewTab==='all' ? '#fff' : 'var(--text)', fontSize:'.8rem', fontWeight:700, cursor:'pointer' }}>
+            Tous ({suppliers.length})
+          </button>
+          <button onClick={() => setViewTab('pending')}
+            style={{ padding:'6px 14px', borderRadius:99, border:'1px solid var(--border)', background: viewTab==='pending' ? 'var(--green)' : 'transparent', color: viewTab==='pending' ? '#fff' : 'var(--text)', fontSize:'.8rem', fontWeight:700, cursor:'pointer' }}>
+            🏪 Candidatures partenaires ({pending.length})
+          </button>
+        </div>
+
+        {shown.length === 0 && <EmptyState icon="🤝" title={viewTab==='pending' ? 'Aucune candidature en attente' : 'Aucun fournisseur'} />}
 
         <div style={{ padding:'1rem', display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:12 }}>
-          {suppliers.map(s => (
+          {shown.map(s => (
             <div key={s.id} style={{
               background:'rgba(255,255,255,.03)', border:'1px solid var(--border)',
               borderRadius:14, padding:'1.2rem', transition:'all .3s',
@@ -74,8 +108,8 @@ export default function SuppliersSection({ toast }) {
                   <div style={{ fontWeight:700, fontSize:'.9rem', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name}</div>
                   <div style={{ fontSize:'.75rem', color:'var(--muted)' }}>{s.city || '—'}</div>
                 </div>
-                <Badge variant={s.isActive ? 'green' : 'gray'} style={{ fontSize:'.65rem' }}>
-                  {s.isActive ? 'Actif' : 'Inactif'}
+                <Badge variant={STATUS_META[s.status]?.variant || 'gray'} style={{ fontSize:'.65rem' }}>
+                  {s.userId ? (STATUS_META[s.status]?.label || s.status) : (s.isActive ? 'Interne actif' : 'Interne inactif')}
                 </Badge>
               </div>
 
@@ -94,11 +128,18 @@ export default function SuppliersSection({ toast }) {
 
               {s.description && <p style={{ fontSize:'.78rem', color:'var(--muted)', lineHeight:1.5, marginBottom:'1rem' }}>{s.description}</p>}
 
-              <div style={{ display:'flex', gap:6 }}>
-                <Button variant="ghost" size="sm" style={{ flex:1 }} onClick={() => { setEditing(s); setModalOpen(true) }}>✏️ Modifier</Button>
-                <Button variant="ghost" size="sm" onClick={() => setStatsId(statsId === s.id ? null : s.id)}>📊</Button>
-                <Button variant="danger" size="sm" onClick={() => del(s.id, s.name)}>🗑️</Button>
-              </div>
+              {s.status === 'pending' ? (
+                <div style={{ display:'flex', gap:6 }}>
+                  <Button variant="primary" size="sm" style={{ flex:1 }} onClick={() => review(s.id, 'approved')}>✅ Approuver</Button>
+                  <Button variant="danger" size="sm" style={{ flex:1 }} onClick={() => review(s.id, 'rejected')}>❌ Rejeter</Button>
+                </div>
+              ) : (
+                <div style={{ display:'flex', gap:6 }}>
+                  <Button variant="ghost" size="sm" style={{ flex:1 }} onClick={() => { setEditing(s); setModalOpen(true) }}>✏️ Modifier</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setStatsId(statsId === s.id ? null : s.id)}>📊</Button>
+                  <Button variant="danger" size="sm" onClick={() => del(s.id, s.name)}>🗑️</Button>
+                </div>
+              )}
 
               {/* Stats inline */}
               {statsId === s.id && <SupplierStats id={s.id} />}

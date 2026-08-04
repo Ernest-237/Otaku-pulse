@@ -202,7 +202,7 @@ export default function Navbar() {
         <div className={styles.navInner}>
           {/* Logo */}
           <Link to="/" className={styles.logo}>
-            <span className={styles.logoBolt}>⚡</span>
+            <img src="/assets/logo/otaku-pulse-icon.svg" alt="Otaku Pulse" className={styles.logoBolt} width={40} height={40} />
             <div>
               <div className={styles.logoName}>OTAKU PULSE</div>
               <div className={styles.logoSub}>VIVEZ L'EXPÉRIENCE</div>
@@ -301,6 +301,12 @@ export default function Navbar() {
                         <span className={styles.dropIcon}>🎴</span> Ma Carte Membre
                       </Link>
                     )}
+
+                    {/* Espace Partenaire — visible par TOUS, libellé selon statut */}
+                    <Link to="/boutique/partenaire" className={styles.dropItem} onClick={() => setUserDropdown(false)}>
+                      <span className={styles.dropIcon}>🏪</span>
+                      {(user.isPartner || ['admin','superadmin'].includes(user.role)) ? 'Ma Boutique' : 'Espace Partenaire'}
+                    </Link>
 
                     {isAdmin && (
                       <>
@@ -495,7 +501,7 @@ export default function Navbar() {
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>{T.pseudo}</label>
                 <input name="pseudo" type="text" required minLength={3} maxLength={20}
-                  pattern="[a-zA-Z0-9_-]+" className={styles.formInput} placeholder="SaiyanDuCameroun"/>
+                  pattern="[a-zA-Z0-9_\-]+" className={styles.formInput} placeholder="SaiyanDuCameroun"/>
                 <span className={styles.formHint}>{T.pseudoHint}</span>
               </div>
               <div className={styles.formGroup}>
