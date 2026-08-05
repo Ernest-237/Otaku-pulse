@@ -692,6 +692,30 @@ async function sendPublisherRejected(user, reason) {
     `)
   })
 }
+
+// ── 17. Paiement confirmé — billet définitif envoyé (événements) ──
+async function sendTicketConfirmed(user, event, registration) {
+  const dateStr = event.date ? new Date(event.date).toLocaleDateString('fr-FR', { dateStyle: 'long' }) : '—'
+  return sendMail({
+    to: registration.email || user.email,
+    subject: `🎟️ Billet confirmé — ${event.titleF || event.title}`,
+    html: baseTemplate(`
+      <div class="title">🎟️ Ton billet est confirmé !</div>
+      <p class="text">Bonjour <strong>${registration.name || user.pseudo}</strong>,<br>
+      Nous avons bien reçu ton paiement. Voici ton billet définitif pour l'événement.</p>
+      <div class="box">
+        <div class="row"><span class="label">Événement</span><span class="value">${event.titleF || event.title}</span></div>
+        <div class="row"><span class="label">Date</span><span class="value">${dateStr}</span></div>
+        <div class="row"><span class="label">Lieu</span><span class="value">${event.location || event.city || '—'}</span></div>
+        <div class="row"><span class="label">Invités</span><span class="value">${registration.guests || 1}</span></div>
+        <div class="row"><span class="label">Code billet</span><span class="value" style="font-family:monospace;letter-spacing:2px">${registration.ticketCode}</span></div>
+        <div class="row"><span class="label">Statut</span><span class="value"><span class="badge badge-green">✅ Payé & confirmé</span></span></div>
+      </div>
+      <a href="https://otaku-pulse.com/profil" class="cta">🎟️ Voir mon billet</a>
+      <p class="text" style="font-size:.8rem;text-align:center">Présente ce code à l'entrée de l'événement.</p>
+    `)
+  })
+}
 module.exports = {
   sendReservationConfirmation,
   sendReservationNotifAdmin,
@@ -710,4 +734,5 @@ module.exports = {
   sendPublisherAdminNotif,
   sendPublisherApproved,
   sendPublisherRejected,
+  sendTicketConfirmed,
 }

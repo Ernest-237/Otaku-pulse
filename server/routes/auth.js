@@ -77,6 +77,21 @@ router.post('/logout', protect, async (req, res, next) => {
 // GET /api/auth/me
 router.get('/me', protect, (req, res) => res.json({ user: req.user.toJSON() }))
 
+// POST /api/auth/accept-policy — validation de la politique de confidentialité/utilisation
+const CURRENT_POLICY_VERSION = '1.0'
+router.post('/accept-policy', protect, async (req, res, next) => {
+  try {
+    const policyAcceptanceId = `CGU-${Date.now().toString(36).toUpperCase()}`
+    await req.user.update({
+      hasAcceptedPolicy: true,
+      policyAcceptedAt: new Date(),
+      policyVersion: CURRENT_POLICY_VERSION,
+      policyAcceptanceId,
+    })
+    res.json({ user: req.user.toJSON() })
+  } catch (err) { next(err) }
+})
+
 // POST /api/auth/forgot-password
 router.post('/forgot-password', [
   body('email').isEmail().normalizeEmail(), validate

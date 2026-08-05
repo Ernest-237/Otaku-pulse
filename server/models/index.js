@@ -42,6 +42,13 @@ const User = sequelize.define('User', {
   // ── REVENUS ÉDITEUR (coins gagnés via déblocages) ──
   coinsEarned:         { type: DataTypes.INTEGER, defaultValue: 0 },   // total coins gagnés (lifetime)
   coinsBalance:        { type: DataTypes.INTEGER, defaultValue: 0 },   // coins gagnés non encore "payés"
+  // ── POLITIQUE DE CONFIDENTIALITÉ / D'UTILISATION ───
+  // default false : les comptes déjà créés pendant les tests sont aussi concernés,
+  // le popup s'affiche donc automatiquement pour eux sans script de migration.
+  hasAcceptedPolicy:   { type: DataTypes.BOOLEAN, defaultValue: false },
+  policyAcceptedAt:    { type: DataTypes.DATE },
+  policyVersion:       { type: DataTypes.STRING(10) },
+  policyAcceptanceId:  { type: DataTypes.STRING(30) }, // ex: CGU-XXXXX, preuve d'acceptation traçable
 }, {
   tableName: 'users', timestamps: true,
   hooks: { beforeSave: async (u) => { if (u.changed('password') && u.password) u.password = await bcrypt.hash(u.password, 12) } },
@@ -185,6 +192,10 @@ const EventRegistration = sequelize.define('EventRegistration', {
   status:  { type: DataTypes.ENUM('pending','confirmed','waitlist','cancelled'), defaultValue:'pending' },
   notes:   { type: DataTypes.TEXT },
   ticketCode: { type: DataTypes.STRING(20) }, // code lisible affiché sur le billet (ex. OP-ABC123)
+  // ── PAIEMENT (confirmé manuellement par l'admin) ────
+  paymentStatus:  { type: DataTypes.ENUM('unpaid','paid'), defaultValue: 'unpaid' },
+  paidAt:         { type: DataTypes.DATE },
+  ticketIssuedAt: { type: DataTypes.DATE }, // billet définitif envoyé
 }, { tableName: 'event_registrations', timestamps: true })
 
 // ══ HERO CONFIG (existant) ══════════════════════════

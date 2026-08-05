@@ -2,6 +2,7 @@
 const express = require('express');
 const { Event, EventRegistration, User } = require('../models/index');
 const { protect, restrictTo } = require('../middleware/auth');
+const { sendTicketConfirmed } = require('../utils/mailer');
 const router  = express.Router();
 
 // ── Helper : normalise imageUrl (data URL → imageData/imageMime) ──
@@ -48,6 +49,18 @@ router.get('/:id/image', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/events/:id/registrations — admin, liste complète des inscrits (contact + paiement)
+router.get('/:id/registrations', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    const registrations = await EventRegistration.findAll({
+      where: { eventId: req.params.id },
+      order: [['createdAt', 'ASC']],
+      include: [{ model: User, as: 'user', attributes: ['id','pseudo','avatar'] }],
+    });
+    res.json({ registrations });
+  } catch (err) { next(err); }
+});
+
 // GET /api/events/mine — mes inscriptions ("mes billets")
 router.get('/mine', protect, async (req, res, next) => {
   try {
@@ -78,6 +91,22 @@ router.delete('/registrations/:id', protect, async (req, res, next) => {
     }
     await reg.destroy();
     res.json({ message: 'Inscription annulée.' });
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/events/registrations/:id/confirm-payment — admin, accuse réception du paiement et émet le billet définitif
+router.patch('/registrations/:id/confirm-payment', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    const reg = await EventRegistration.findByPk(req.params.id, {
+      include: [{ model: Event, as: 'event' }, { model: User, as: 'user' }],
+    });
+    if (!reg) return res.status(404).json({ error: 'Inscription introuvable.' });
+    const now = new Date();
+    await reg.update({ paymentStatus: 'paid', paidAt: now, ticketIssuedAt: now });
+    if (reg.event && reg.user) {
+      sendTicketConfirmed(reg.user, reg.event, reg).catch(e => console.error('❌ Email billet:', e.message));
+    }
+    res.json({ message: 'Paiement confirmé, billet envoyé.', registration: reg });
   } catch (err) { next(err); }
 });
 

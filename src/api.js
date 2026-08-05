@@ -89,6 +89,7 @@ export const authApi = {
   register: (pseudo, email, password) => request('POST', '/api/auth/register', { pseudo, email, password }, false),
   logout:   ()                        => request('POST', '/api/auth/logout'),
   me:       ()                        => request('GET',  '/api/auth/me'),
+  acceptPolicy: ()                    => request('POST', '/api/auth/accept-policy'),
 }
 
 // ── PRODUCTS ──────────────────────────────────────────
@@ -125,6 +126,9 @@ export const eventsApi = {
   update:   (id, d)  => request('PATCH', `/api/events/${id}`, d),
   getMine:  ()        => request('GET', '/api/events/mine'),
   cancel:   (registrationId) => request('DELETE', `/api/events/registrations/${registrationId}`),
+  // ── Admin : gestion des inscrits & paiement ──
+  getRegistrations: (eventId)        => request('GET', `/api/events/${eventId}/registrations`),
+  confirmPayment:   (registrationId) => request('PATCH', `/api/events/registrations/${registrationId}/confirm-payment`),
 }
 
 // ── USERS ─────────────────────────────────────────────

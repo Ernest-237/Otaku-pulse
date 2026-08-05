@@ -8,6 +8,7 @@ import { useApi } from '../../hooks/useApi'
 import Navbar  from '../../components/Navbar'
 import Footer  from '../Home/sections/Footer'
 import TicketStub from '../../components/ui/TicketStub'
+import MyTickets from '../../components/MyTickets'
 import styles  from './Membership.module.css'
 
 // Palette unifiée — vert brand + violet, plus d'orange
@@ -524,31 +525,7 @@ function UpcomingEventsSection({ user, toast }) {
               <div className={styles.sectionTag}>🎟️ MES BILLETS</div>
               <h2 className={styles.sectionTitle}>TES <span style={{ color:'var(--green)' }}>INSCRIPTIONS</span></h2>
             </div>
-            <div className={styles.ticketsGrid}>
-              {myRegs.map(reg => (
-                <TicketStub
-                  key={reg.id}
-                  color={reg.status === 'waitlist' ? '#f59e0b' : '#22c55e'}
-                  icon="🎟️"
-                  statusLabel={reg.status === 'waitlist' ? "LISTE D'ATTENTE" : 'CONFIRMÉ'}
-                  statusActive={reg.status !== 'waitlist'}
-                  title={reg.event?.titleF || 'Événement'}
-                  subtitle={reg.event?.date ? new Date(reg.event.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : ''}
-                  meta={[
-                    { label: 'Lieu', value: reg.event?.venue || reg.event?.city || '—' },
-                    { label: 'Invités', value: reg.guests || 1 },
-                  ]}
-                  code={reg.ticketCode || reg.id.slice(0, 8).toUpperCase()}
-                  footer={
-                    <button className={`${styles.eventCardBtn} ${styles.eventCardBtnGhost}`}
-                      style={{ padding: '6px 14px', fontSize: '.78rem' }}
-                      disabled={busyId === reg.id} onClick={() => cancelReg(reg.id)}>
-                      Annuler
-                    </button>
-                  }
-                />
-              ))}
-            </div>
+            <MyTickets title="" />
           </div>
         )}
 

@@ -1,22 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Check,
-  ChevronRight,
-  Heart,
-  LogOut,
-  MapPin,
-  MessageCircle,
-  Minus,
-  Package,
-  Pencil,
-  Plus,
-  ShieldCheck,
-  ShoppingCart,
-  Trash2,
-  UserRound,
-  X,
-} from 'lucide-react'
+  IconCheck as Check,
+  IconHeart as Heart,
+  IconLogOut as LogOut,
+  IconMapPin as MapPin,
+  IconMessageCircle as MessageCircle,
+  IconMinus as Minus,
+  IconPackage as Package,
+  IconEdit as Pencil,
+  IconPlus as Plus,
+  IconShieldCheck as ShieldCheck,
+  IconCart as ShoppingCart,
+  IconTrash as Trash2,
+  IconUser as UserRound,
+  IconTicket as Ticket,
+} from '../../components/icons'
 import { useLang } from '../../contexts/LangContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
@@ -25,6 +24,7 @@ import { useApi, useMutation } from '../../hooks/useApi'
 import { usersApi, ordersApi, API_BASE } from '../../api'
 import QUARTIERS from '../../data/quartiers'
 import Navbar from '../../components/Navbar'
+import MyTickets from '../../components/MyTickets'
 import Footer from '../Home/sections/Footer'
 import Modal from '../../components/ui/Modal'
 import Button from '../../components/ui/Button'
@@ -46,6 +46,7 @@ const copy = {
     cartTab: 'Panier',
     wishlistTab: 'Favoris',
     ordersTab: 'Commandes',
+    ticketsTab: 'Mes billets',
     edit: 'Modifier',
     logout: 'Déconnexion',
     cartCount: 'Panier',
@@ -135,6 +136,7 @@ const copy = {
     cartTab: 'Cart',
     wishlistTab: 'Wishlist',
     ordersTab: 'Orders',
+    ticketsTab: 'My tickets',
     edit: 'Edit',
     logout: 'Logout',
     cartCount: 'Cart',
@@ -244,6 +246,7 @@ export default function ProfilPage() {
     { id: 'cart',     label: t.cartTab,     icon: <ShoppingCart size={16} />, badge: count },
     { id: 'wishlist', label: t.wishlistTab, icon: <Heart size={16} /> },
     { id: 'orders',   label: t.ordersTab,   icon: <Package size={16} />,      badge: ordersCount },
+    { id: 'tickets',  label: t.ticketsTab,  icon: <Ticket size={16} /> },
     { id: 'profil',   label: t.profileTab,  icon: <UserRound size={16} /> },
   ]
 
@@ -419,6 +422,7 @@ export default function ProfilPage() {
 
           {tab === 'wishlist' && <WishlistTab t={t} toast={toast} addItem={addItem} setTab={setTab} />}
           {tab === 'orders'   && <OrdersTab t={t} orders={ordersData?.orders || []} loading={!ordersData} onSelect={setSelectedOrder} />}
+          {tab === 'tickets'  && <MyTickets title="" showEmptyState />}
           {tab === 'profil'   && <ProfilTab t={t} user={user} toast={toast} updateUser={updateUser} />}
         </div>
       </section>

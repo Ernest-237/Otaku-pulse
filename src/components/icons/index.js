@@ -1,0 +1,25 @@
+// src/components/icons/index.js — Système de pictogrammes sur-mesure Otaku Pulse
+// Silhouettes pleines arrondies (fond teinté + contour plein) pour les icônes de contenu,
+// traits nets et arrondis pour les icônes "chrome" (fermer, chevrons, actions...).
+// Phase 1 : navbar, panier, profil. Le reste du site suit par lots dans des passes suivantes.
+export { default as IconCart } from './IconCart'
+export { default as IconUser } from './IconUser'
+export { default as IconClose } from './IconClose'
+export { default as IconChevronLeft } from './IconChevronLeft'
+export { default as IconChevronRight } from './IconChevronRight'
+export { default as IconPlus } from './IconPlus'
+export { default as IconMinus } from './IconMinus'
+export { default as IconCheck } from './IconCheck'
+export { default as IconTrash } from './IconTrash'
+export { default as IconEdit } from './IconEdit'
+export { default as IconLoader } from './IconLoader'
+export { default as IconHeart } from './IconHeart'
+export { default as IconPackage } from './IconPackage'
+export { default as IconShieldCheck } from './IconShieldCheck'
+export { default as IconLogOut } from './IconLogOut'
+export { default as IconMapPin } from './IconMapPin'
+export { default as IconMessageCircle } from './IconMessageCircle'
+export { default as IconTicket } from './IconTicket'
+export { default as IconCalendar } from './IconCalendar'
+export { default as IconUsers } from './IconUsers'
+export { default as IconSearch } from './IconSearch'

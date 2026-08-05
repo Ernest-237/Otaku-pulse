@@ -4,6 +4,7 @@ import { useAuth } from './contexts/AuthContext'
 import { PageLoader } from './components/ui/Spinner'
 import Music from './components/Music'
 import { MusicProvider } from './contexts/MusicContext'
+import PolicyGate from './components/PolicyGate'
 
 // Pages existantes
 import Home          from './pages/Home'
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <MusicProvider>
     <Music />
+    <PolicyGate />
     <Routes>
       {/* Pages publiques */}
       <Route path="/"            element={<Home />} />

@@ -1,7 +1,7 @@
 // src/components/Navbar.jsx — Version complète avec icône user néon
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { User } from 'lucide-react'
+import { IconCart, IconUser } from './icons'
 import { useAuth }  from '../contexts/AuthContext'
 import { useCart }  from '../contexts/CartContext'
 import { useLang }  from '../contexts/LangContext'
@@ -236,7 +236,7 @@ export default function Navbar() {
 
             {/* Cart */}
             <button className={styles.cartBtn} onClick={() => navigate('/profil')} title='Mon panier'>
-              🛒{cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
+              <IconCart size={19} />{cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
             </button>
 
             {/* User — toujours bouton circulaire néon (logged in OU non) */}
@@ -333,7 +333,7 @@ export default function Navbar() {
                 aria-label={T.accountAccess}
                 title={T.accountAccess}
               >
-                <User size={18} strokeWidth={2.2} />
+                <IconUser size={18} />
               </button>
             )}
 

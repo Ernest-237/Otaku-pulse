@@ -418,6 +418,7 @@ function EventsSection({ toast }) {
   const { data, loading, execute } = useApi(() => eventsApi.getAll({ limit:50 }), [], true)
   const [modal,   setModal]   = useState(false)
   const [editing, setEditing] = useState(null)
+  const [regsFor, setRegsFor] = useState(null)
   const events = data?.events || []
 
   const save = async (form) => {
@@ -446,7 +447,10 @@ function EventsSection({ toast }) {
                 <td style={{ fontSize:'.82rem' }}>{e.venue||e.location||'—'}</td>
                 <td><Badge variant={e.registered>=e.capacity?'red':'green'} style={{ fontSize:'.65rem' }}>{e.registered}/{e.capacity}</Badge></td>
                 <td><Badge variant={statusVariant(e.status)} style={{ fontSize:'.65rem' }}>{STATUS_LABELS[e.status]||e.status}</Badge></td>
-                <td><Button variant="ghost" size="sm" onClick={() => { setEditing(e); setModal(true) }}>✏️</Button></td>
+                <td style={{ display:'flex', gap:6 }}>
+                  <Button variant="ghost" size="sm" onClick={() => setRegsFor(e)}>👥 Inscrits</Button>
+                  <Button variant="ghost" size="sm" onClick={() => { setEditing(e); setModal(true) }}>✏️</Button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -454,7 +458,60 @@ function EventsSection({ toast }) {
         {!events.length && <EmptyState icon="🎌" title="Aucun événement" />}
       </div>
       {modal && <EventModal event={editing} onClose={() => { setModal(false); setEditing(null) }} onSave={save} toast={toast} />}
+      {regsFor && <RegistrationsModal event={regsFor} onClose={() => setRegsFor(null)} toast={toast} onPaid={execute} />}
     </div>
+  )
+}
+
+// ── Modale "Inscrits" : liste des inscriptions + confirmation de paiement ──
+function RegistrationsModal({ event, onClose, toast, onPaid }) {
+  const { data, loading, execute } = useApi(() => eventsApi.getRegistrations(event.id), [event.id], true)
+  const [busyId, setBusyId] = useState(null)
+  const registrations = data?.registrations || []
+
+  const regBadge = (status) => ({ confirmed:'green', waitlist:'amber', cancelled:'red' }[status] || 'gray')
+  const payBadge = (status) => (status === 'paid' ? 'green' : 'orange')
+
+  const confirmPayment = async (reg) => {
+    setBusyId(reg.id)
+    try {
+      await eventsApi.confirmPayment(reg.id)
+      toast.success('✅ Paiement confirmé, billet envoyé au client')
+      execute(); onPaid?.()
+    } catch (err) { toast.error(err.message) }
+    finally { setBusyId(null) }
+  }
+
+  return (
+    <Modal isOpen dark wide title={`👥 Inscrits — ${event.titleF}`} onClose={onClose}>
+      {loading ? <PageLoader /> : (
+        <div style={{ overflowX:'auto' }}>
+          <table className={styles.table}>
+            <thead><tr><th>Nom</th><th>Contact</th><th>Invités</th><th>Statut</th><th>Paiement</th><th>Billet</th><th></th></tr></thead>
+            <tbody>
+              {registrations.map(r => (
+                <tr key={r.id} className={styles.tr}>
+                  <td><strong>{r.name || r.user?.pseudo || '—'}</strong></td>
+                  <td style={{ fontSize:'.8rem' }}>{r.email}{r.phone ? ` · ${r.phone}` : ''}</td>
+                  <td>{r.guests || 1}</td>
+                  <td><Badge variant={regBadge(r.status)} style={{ fontSize:'.65rem' }}>{r.status === 'waitlist' ? "Liste d'attente" : r.status === 'cancelled' ? 'Annulé' : 'Confirmé'}</Badge></td>
+                  <td><Badge variant={payBadge(r.paymentStatus)} style={{ fontSize:'.65rem' }}>{r.paymentStatus === 'paid' ? '✅ Payé' : '⏳ En attente'}</Badge></td>
+                  <td style={{ fontSize:'.75rem', fontFamily:'monospace' }}>{r.ticketCode}</td>
+                  <td>
+                    {r.paymentStatus !== 'paid' && (
+                      <Button variant="primary" size="sm" disabled={busyId === r.id} onClick={() => confirmPayment(r)}>
+                        {busyId === r.id ? '⏳...' : '✅ Confirmer paiement'}
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!registrations.length && <EmptyState icon="👥" title="Aucun inscrit pour le moment" />}
+        </div>
+      )}
+    </Modal>
   )
 }
 
