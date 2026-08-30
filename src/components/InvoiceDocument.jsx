@@ -191,6 +191,27 @@ export default function InvoiceDocument({ invoice, company }) {
               </>
             )}
           </div>
+
+          {/* Numéros de dépôt Mobile Money, en en-tête : c'est l'information
+              que le client cherche en premier pour payer. La faire figurer
+              tout en haut évite qu'il ait à parcourir la facture. */}
+          {(co.momoMtn || co.momoOrange) && (
+            <div className={styles.depotBox}>
+              <div className={styles.depotTitle}>Dépôt Mobile Money</div>
+              {co.momoMtn && (
+                <div className={styles.depotLine}>
+                  <span className={styles.depotOp}>MTN MoMo</span>
+                  <span className={styles.depotNum}>{co.momoMtn}</span>
+                </div>
+              )}
+              {co.momoOrange && (
+                <div className={styles.depotLine}>
+                  <span className={styles.depotOp}>Orange Money</span>
+                  <span className={styles.depotNum}>{co.momoOrange}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className={styles.docMeta}>
@@ -207,34 +228,6 @@ export default function InvoiceDocument({ invoice, company }) {
           <div className={`${styles.stamp} ${styles[status.cls]}`}>{status.label}</div>
         </div>
       </header>
-
-      {/* ── Client / livraison ── */}
-      <section className={styles.parties}>
-        <div className={styles.party}>
-          <div className={styles.partyTitle}>Facturé à</div>
-          <div className={styles.partyName}>{invoice.clientName}</div>
-          <div className={styles.partyLine}>
-            {invoice.clientPhone && <>Tél. <strong>{invoice.clientPhone}</strong><br /></>}
-            {invoice.clientEmail && <>{invoice.clientEmail}<br /></>}
-            {invoice.clientCity  && <>{invoice.clientCity}</>}
-            {invoice.clientQuartier && <> · {invoice.clientQuartier}</>}
-            {invoice.clientAddress && <><br />{invoice.clientAddress}</>}
-          </div>
-        </div>
-
-        {hasDelivery && (
-          <div className={styles.party}>
-            <div className={styles.partyTitle}>Livraison</div>
-            <div className={styles.partyName}>
-              {invoice.clientQuartier || invoice.clientCity || '—'}
-            </div>
-            {invoice.destLandmark && (
-              <div className={styles.partyLine}>Repère : <strong>{invoice.destLandmark}</strong></div>
-            )}
-            <MiniMap invoice={invoice} />
-          </div>
-        )}
-      </section>
 
       {/* ── Lignes ── */}
       <table className={styles.table}>
@@ -262,14 +255,16 @@ export default function InvoiceDocument({ invoice, company }) {
 
       {/* ── Totaux et paiement ── */}
       <section className={styles.bottom}>
+        {/* Les numéros de dépôt figurent en en-tête ; ce bloc ne rappelle que
+            le moyen retenu et la référence à mentionner au moment du paiement. */}
         <div className={styles.payBox}>
           <div className={styles.payTitle}>Règlement</div>
           <div className={styles.payLine}>
             {invoice.paymentMethod && (
               <>Moyen : <strong>{METHOD_LABELS[invoice.paymentMethod] || invoice.paymentMethod}</strong><br /></>
             )}
-            {co.momoMtn    && <>MTN MoMo : <strong>{co.momoMtn}</strong><br /></>}
-            {co.momoOrange && <>Orange Money : <strong>{co.momoOrange}</strong><br /></>}
+            Dépôt sur l'un des numéros Mobile Money indiqués en en-tête.
+            <br />
             Merci d'indiquer la référence <strong>{invoice.invoiceNumber}</strong> lors du paiement.
           </div>
         </div>
@@ -310,6 +305,41 @@ export default function InvoiceDocument({ invoice, company }) {
       </section>
 
       {invoice.notes && <div className={styles.notes}>{invoice.notes}</div>}
+
+      {/* ── Client et livraison, en bas de page ──
+          Bloc volontairement détaché du reste : les coordonnées du client et
+          l'adresse de livraison sont l'information que le livreur consulte,
+          et elle ne doit pas se mélanger aux coordonnées d'Otaku Pulse
+          imprimées juste en dessous. */}
+      <section className={styles.clientZone}>
+        <div className={styles.clientZoneTitle}>Informations client</div>
+        <div className={styles.parties}>
+          <div className={styles.party}>
+            <div className={styles.partyTitle}>Facturé à</div>
+            <div className={styles.partyName}>{invoice.clientName}</div>
+            <div className={styles.partyLine}>
+              {invoice.clientPhone && <>Tél. <strong>{invoice.clientPhone}</strong><br /></>}
+              {invoice.clientEmail && <>{invoice.clientEmail}<br /></>}
+              {invoice.clientCity  && <>{invoice.clientCity}</>}
+              {invoice.clientQuartier && <> · {invoice.clientQuartier}</>}
+              {invoice.clientAddress && <><br />{invoice.clientAddress}</>}
+            </div>
+          </div>
+
+          {hasDelivery && (
+            <div className={styles.party}>
+              <div className={styles.partyTitle}>Livraison</div>
+              <div className={styles.partyName}>
+                {invoice.clientQuartier || invoice.clientCity || '—'}
+              </div>
+              {invoice.destLandmark && (
+                <div className={styles.partyLine}>Repère : <strong>{invoice.destLandmark}</strong></div>
+              )}
+              <MiniMap invoice={invoice} />
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* ── Pied de page ── */}
       <footer className={styles.footer}>

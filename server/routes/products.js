@@ -28,18 +28,34 @@ router.get('/', async (req, res) => {
       include:[{
         model: Supplier,
         as: 'supplier',
-        attributes: ['id','name'],
+        // `slug` permet de lier chaque produit à la vitrine de sa boutique.
+        // `status` sert à n'afficher l'attribution que pour une boutique validée.
+        attributes: ['id','name','slug','status'],
         required: false,
       }]
     })
 
-    // Ajouter URL image servie par l'API si imageData existe
-    const productsWithImageUrl = await Promise.all(products.map(async p => {
-      const hasImageData = await Product.count({ where:{ id:p.id, imageData:{ [Op.ne]:null } } })
+    // Quels produits ont une image stockée en base ?
+    //
+    // Avant : un COUNT par produit, soit 51 requêtes SQL pour 50 produits (N+1).
+    // Sur Render, avec la latence Postgres, cela se voyait directement au
+    // chargement de la boutique. Une seule requête suffit pour tous les ids.
+    const ids = products.map(p => p.id)
+    const withImage = new Set(
+      ids.length === 0 ? [] : (await Product.findAll({
+        where: { id: { [Op.in]: ids }, imageData: { [Op.ne]: null } },
+        attributes: ['id'],
+        raw: true,
+      })).map(r => r.id)
+    )
+
+    const productsWithImageUrl = products.map(p => {
       const pJson = p.toJSON()
-      if (hasImageData) pJson.imageUrl = `/api/upload/product/${p.id}/image`
+      if (withImage.has(p.id)) pJson.imageUrl = `/api/upload/product/${p.id}/image`
+      // Une boutique non validée ne doit pas être mise en avant publiquement.
+      if (pJson.supplier && pJson.supplier.status !== 'approved') pJson.supplier = null
       return pJson
-    }))
+    })
 
     const total = await Product.count({ where })
     res.json({ products: productsWithImageUrl, total, page: parseInt(page) })
@@ -131,11 +147,17 @@ router.get('/:slug', async (req, res) => {
     const p = await Product.findOne({
       where: { slug: req.params.slug, isActive: true },
       attributes: { exclude: ['imageData'] },
-      include:[{ model:Supplier, as:'supplier', attributes:['id','name','logoMime'] }]
+      include:[{ model:Supplier, as:'supplier',
+        attributes:['id','name','slug','status','tagline','logoMime'] }]
     })
     if (!p) return res.status(404).json({ error: 'Produit introuvable' })
     const pJson = p.toJSON()
     if (p.imageMime) pJson.imageUrl = `/api/upload/product/${p.id}/image`
+    if (pJson.supplier) {
+      // Attribution masquée tant que la boutique n'est pas validée par l'admin.
+      if (pJson.supplier.status !== 'approved') pJson.supplier = null
+      else if (pJson.supplier.logoMime) pJson.supplier.logoUrl = `/api/suppliers/${pJson.supplier.id}/logo`
+    }
     res.json({ product: pJson })
   } catch(err) { res.status(500).json({ error: err.message }) }
 })

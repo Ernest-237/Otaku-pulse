@@ -1,0 +1,261 @@
+/* src/pages/Boutique/shop/Shop.module.css — vitrine publique d'une boutique
+   partenaire, accessible via /boutique/<slug>.
+
+   La couleur d'accent vient de la base (Supplier.accent) et est injectée en
+   variable CSS depuis le composant : chaque partenaire a donc sa propre
+   identité visuelle sans qu'on duplique la moindre règle. */
+
+.page {
+  --accent: #16a34a;              /* remplacé en ligne par la couleur du partenaire */
+  --ink: #10221a;
+  --ink-soft: #64748b;
+  --surface: #ffffff;
+  --surface-2: #f4f5f2;
+  --line: rgba(16, 34, 26, .10);
+
+  min-height: 100vh;
+  background: var(--surface-2);
+  padding-bottom: 4rem;
+}
+
+/* ── Bandeau ────────────────────────────────────────── */
+.hero {
+  position: relative;
+  overflow: hidden;
+  /* Repli d'abord : `color-mix` n'existe pas sur les navigateurs Android
+     anciens, et une déclaration invalide y serait simplement ignorée — sans
+     cette première ligne, le bandeau se retrouverait sans fond et le texte
+     blanc deviendrait illisible. */
+  background: linear-gradient(160deg, var(--accent), #0a1710 88%);
+
+  /* Dégradé enrichi à partir de la couleur du partenaire, sur les navigateurs
+     qui le supportent. Sert de repli élégant quand aucune image de couverture
+     n'a été téléversée. */
+  background:
+    radial-gradient(120% 90% at 15% 0%, color-mix(in srgb, var(--accent) 55%, #0b1a12) 0%, transparent 60%),
+    linear-gradient(160deg, color-mix(in srgb, var(--accent) 78%, #06120c), #0a1710 85%);
+  color: #fff;
+  padding: 1.1rem 0 2.4rem;
+}
+.heroImage {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: .34;
+}
+/* Voile sombre : sans lui, un logo ou un texte clair devient illisible
+   au-dessus d'une bannière claire. */
+.heroVeil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(6,18,12,.35) 0%, rgba(6,18,12,.82) 100%);
+}
+.heroInner { position: relative; z-index: 2; }
+
+.topBar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 1.6rem;
+}
+.roundBtn {
+  width: 40px; height: 40px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(255,255,255,.16);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: #fff; transition: background .18s, transform .18s;
+}
+.roundBtn:hover { background: rgba(255,255,255,.28); transform: translateY(-1px); }
+
+.shareWrap { position: relative; }
+.shareMenu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 20;
+  background: var(--surface); color: var(--ink);
+  border-radius: 14px; padding: 6px; min-width: 208px;
+  box-shadow: 0 14px 40px rgba(6,18,12,.30);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.shareItem {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border: none; background: none; cursor: pointer;
+  border-radius: 10px; font: inherit; font-size: .86rem; font-weight: 600;
+  color: var(--ink); text-align: left; width: 100%;
+}
+.shareItem:hover { background: var(--surface-2); }
+
+.identity { display: flex; align-items: center; gap: 14px; margin-bottom: 1rem; }
+.logo {
+  width: 68px; height: 68px; flex: 0 0 auto;
+  border-radius: 20px; object-fit: cover;
+  background: rgba(255,255,255,.14);
+  border: 2px solid rgba(255,255,255,.35);
+}
+.logoFallback {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.7rem; font-weight: 900; color: #fff;
+}
+.idText { min-width: 0; }
+.shopName {
+  font-family: var(--font-title, inherit);
+  font-size: clamp(1.5rem, 5.5vw, 2.3rem);
+  line-height: 1.1; margin: 0 0 4px; letter-spacing: .5px;
+}
+.verified {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .68rem; font-weight: 800; letter-spacing: .8px;
+  text-transform: uppercase;
+  background: rgba(255,255,255,.18); border-radius: 999px;
+  padding: 3px 10px; vertical-align: middle; margin-left: 8px;
+}
+.tagline {
+  font-size: .92rem; color: rgba(255,255,255,.82);
+  margin: 0; line-height: 1.5; max-width: 60ch;
+}
+
+.metaRow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
+.metaChip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px; padding: 6px 13px;
+  font-size: .78rem; font-weight: 600; color: rgba(255,255,255,.9);
+}
+
+/* ── Barre de recherche et filtres ──────────────────── */
+.controls { margin-top: -1.5rem; position: relative; z-index: 5; }
+.searchRow {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border-radius: 18px;
+  padding: 12px 16px; box-shadow: 0 10px 30px rgba(6,18,12,.12);
+}
+.searchInput {
+  flex: 1; min-width: 0; border: none; outline: none; background: none;
+  font: inherit; font-size: .95rem; color: var(--ink);
+}
+.searchInput::placeholder { color: var(--ink-soft); }
+
+.chips {
+  display: flex; gap: 8px; margin: 1.1rem 0 1.3rem;
+  overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); border-radius: 999px;
+  padding: 9px 18px; font: inherit; font-size: .84rem; font-weight: 700;
+  text-transform: capitalize; transition: background .15s, color .15s;
+}
+.chip:hover { border-color: var(--accent); }
+.chipActive {
+  background: var(--ink); color: #fff; border-color: var(--ink);
+}
+
+/* ── Grille produits ────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  position: relative;
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 12px;
+  display: flex; flex-direction: column;
+  transition: transform .18s, box-shadow .18s;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(6,18,12,.12); }
+
+.cardMedia {
+  position: relative;
+  border-radius: 14px; overflow: hidden;
+  background: var(--surface-2);
+  aspect-ratio: 1 / 1;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 10px;
+}
+.cardImg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cardFallback { color: var(--ink-soft); opacity: .5; }
+
+.discount {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--ink); color: #fff;
+  border-radius: 999px; padding: 3px 9px;
+  font-size: .7rem; font-weight: 900; letter-spacing: .3px;
+}
+.soldOut {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.72);
+  font-size: .78rem; font-weight: 800; color: var(--ink-soft);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+
+.cardName {
+  font-size: .9rem; font-weight: 700; color: var(--ink);
+  line-height: 1.35; margin-bottom: 4px;
+  /* Deux lignes maximum : au-delà, les cartes de la grille se désalignent. */
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cardFoot {
+  margin-top: auto; padding-top: 6px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.priceCol { min-width: 0; }
+.price { font-size: 1.02rem; font-weight: 900; color: var(--ink); white-space: nowrap; }
+.price small { font-size: .68rem; font-weight: 700; color: var(--ink-soft); }
+.oldPrice {
+  display: block; font-size: .74rem; color: var(--ink-soft);
+  text-decoration: line-through;
+}
+
+.addBtn {
+  width: 38px; height: 38px; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: none; cursor: pointer;
+  background: var(--ink); color: #fff;
+  transition: background .16s, transform .16s;
+}
+.addBtn:hover:not(:disabled) { background: var(--accent); transform: scale(1.06); }
+.addBtn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ── États ──────────────────────────────────────────── */
+.state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 4rem 1.5rem; text-align: center; color: var(--ink-soft);
+  min-height: 60vh;
+}
+.stateTitle { font-size: 1.2rem; font-weight: 800; color: var(--ink); }
+.backLink {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin-top: 6px; padding: 11px 22px; border-radius: 999px;
+  background: var(--ink); color: #fff; font-weight: 700; font-size: .88rem;
+}
+.empty {
+  grid-column: 1 / -1;
+  text-align: center; padding: 3rem 1rem; color: var(--ink-soft);
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 640px) {
+  .hero { padding-bottom: 2rem; }
+  .identity { gap: 11px; }
+  .logo { width: 56px; height: 56px; border-radius: 16px; }
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 11px; }
+  .card { padding: 9px; border-radius: 17px; }
+  .searchRow { padding: 10px 13px; }
+}
+
+@media (max-width: 380px) {
+  .grid { gap: 9px; }
+  .card { padding: 8px; }
+  .cardName { font-size: .84rem; }
+  .price { font-size: .95rem; }
+  .addBtn { width: 34px; height: 34px; }
+  .chip { padding: 8px 14px; font-size: .8rem; }
+}
+
+/* Rotation du chargeur. `@keyframes spin` existe globalement dans main.css,
+   mais aucune classe ne l'applique : on la déclare ici pour ce module. */
+.spin { animation: spin 1s linear infinite; }

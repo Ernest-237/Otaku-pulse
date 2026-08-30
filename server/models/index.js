@@ -1,6 +1,7 @@
 // server/models/index.js — OTAKU PULSE v2 PostgreSQL + Manga Platform + Coins
 const { DataTypes } = require('sequelize')
 const bcrypt        = require('bcryptjs')
+const { generateUniqueSlug } = require('../utils/slugify')
 const { sequelize } = require('../config/database')
 
 // ══ USER ══════════════════════════════════════════════
@@ -93,9 +94,35 @@ const Supplier = sequelize.define('Supplier', {
   // rester rétrocompatible avec les fournisseurs déjà créés directement par l'admin.
   status:        { type: DataTypes.ENUM('pending','approved','rejected','suspended'), defaultValue: 'approved' },
   rejectedReason:{ type: DataTypes.TEXT },
+  // ── VITRINE PUBLIQUE ───────────────────────────────
+  // `slug` est le lien partageable du partenaire : /boutique/<slug>.
+  // Généré depuis le nom à la création, modifiable ensuite par le partenaire.
+  // L'unicité est garantie par la base, pas par une vérification applicative :
+  // deux boutiques créées au même instant ne peuvent pas réclamer la même URL.
+  slug:        { type: DataTypes.STRING(50), unique: true },
+  tagline:     { type: DataTypes.STRING(120) },   // accroche affichée sous le nom
+  bannerData:  { type: DataTypes.TEXT },          // image de couverture (base64)
+  bannerMime:  { type: DataTypes.STRING(50) },
+  accent:      { type: DataTypes.STRING(7), defaultValue: '#16a34a' }, // couleur de la vitrine
+  instagram:   { type: DataTypes.STRING(120) },
+  tiktok:      { type: DataTypes.STRING(120) },
+  viewCount:   { type: DataTypes.INTEGER, defaultValue: 0 },  // visites de la vitrine
   isActive:    { type: DataTypes.BOOLEAN, defaultValue: true },
   notes:       { type: DataTypes.TEXT },
-}, { tableName: 'suppliers', timestamps: true })
+}, {
+  tableName: 'suppliers', timestamps: true,
+  indexes: [{ unique: true, fields: ['slug'] }, { fields: ['status','isActive'] }],
+  hooks: {
+    // Slug généré à la création si le partenaire n'en a pas choisi un.
+    beforeValidate: async (sup) => {
+      if (sup.slug || !sup.name) return
+      sup.slug = await generateUniqueSlug(
+        sup.name,
+        async (candidate) => !!(await Supplier.findOne({ where: { slug: candidate }, attributes: ['id'] })),
+      )
+    },
+  },
+})
 
 // ══ PRODUCT (existant) ══════════════════════════════
 const Product = sequelize.define('Product', {
@@ -932,6 +959,24 @@ const syncDatabase = async (force = false) => {
   await sequelize.sync({ force, alter: !force })
   console.log(`✅ Tables PostgreSQL ${force ? 'réinitialisées' : 'synchronisées'}`)
 
+  // Rattrapage des slugs de boutiques : les partenaires créés avant
+  // l'ajout du champ n'en ont pas, et leur vitrine serait inaccessible.
+  // Le hook beforeValidate ne couvre que les créations, pas les lignes
+  // déjà en base — ce rattrapage est donc nécessaire une seule fois.
+  try {
+    const sansSlug = await Supplier.findAll({
+      where: { slug: null },
+      attributes: ['id', 'name'],
+    })
+    for (const sup of sansSlug) {
+      const slug = await generateUniqueSlug(
+        sup.name || 'boutique',
+        async (c) => !!(await Supplier.findOne({ where: { slug: c }, attributes: ['id'] })),
+      )
+      await Supplier.update({ slug }, { where: { id: sup.id }, hooks: false })
+      console.log(`✅ Slug boutique généré : ${sup.name} → /boutique/${slug}`)
+    }
+  } catch (err) { console.warn('⚠️ Rattrapage des slugs boutiques ignoré:', err.message) }
   // Le site est lancé : on retire l'ancien message "countdown de lancement"
   // s'il traîne encore dans la config Hero existante (le simple changement
   // de defaultValue ci-dessus n'affecte pas une ligne déjà créée en base).

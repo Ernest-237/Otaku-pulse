@@ -84,10 +84,21 @@ production :
 GOOGLE_CLIENT_ID=123456789-abcdefg.apps.googleusercontent.com
 ```
 
-**Si la variable est absente, la connexion Google est simplement désactivée** :
-`GET /api/auth/google/config` renvoie `{ enabled: false }`, le bouton ne
-s'affiche pas, et le formulaire email/mot de passe continue de fonctionner. Il
-n'y a aucun risque à laisser la variable vide.
+**Si la variable est absente, la connexion Google est désactivée** :
+`GET /api/auth/google/config` renvoie `{ enabled: false }` et le formulaire
+email/mot de passe continue de fonctionner normalement. Il n'y a aucun risque à
+laisser la variable vide.
+
+Ce que voit l'utilisateur dans ce cas dépend du mode :
+
+| Mode | Affichage |
+|---|---|
+| `npm run dev` | Un bouton **grisé** avec la mention « Inactif : ajoute `GOOGLE_CLIENT_ID` » |
+| Build de production | **Rien du tout** |
+
+Cette distinction est volontaire. En production, un bouton mort déroute le
+visiteur. En développement, ne rien afficher donne l'impression que
+l'intégration n'a pas été faite — alors qu'il ne manque qu'une clé.
 
 Le frontend n'a **aucune** variable à configurer : il lit le Client ID depuis
 l'API. C'est délibéré — une variable `VITE_` est inlinée dans le bundle au build,

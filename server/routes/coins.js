@@ -18,8 +18,8 @@ const COIN_PACKS = {
 }
 
 const PAYMENT_NUMBERS = {
-  mtn_money:    { number: '675 71 27 39', label: 'MTN Mobile Money' },
-  orange_money: { number: '690 82 37 42', label: 'Orange Money' },
+  mtn_money:    { number: '+237 670 63 36 70', label: 'MTN Mobile Money' },
+  orange_money: { number: '+237 657 32 57 97', label: 'Orange Money' },
 }
 
 const DEFAULT_CHAPTER_COST = 5

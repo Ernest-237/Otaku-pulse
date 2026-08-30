@@ -13,6 +13,20 @@ import { API_BASE } from '../api'
 
 const GSI_SRC = 'https://accounts.google.com/gsi/client'
 
+// Le « G » officiel, en SVG inline. Sert uniquement à l'aperçu désactivé
+// affiché en développement — quand le SDK fonctionne, c'est Google qui rend
+// son propre bouton, et il impose son logo.
+function GoogleGlyph({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2.1 5-4.4 6.6v5.5h7.1c4.1-3.8 6.6-9.5 6.6-16.1z" />
+      <path fill="#34A853" d="M24 46c6 0 11-2 14.5-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.4v5.7C7.9 40.9 15.4 46 24 46z" />
+      <path fill="#FBBC05" d="M11.7 28.1c-.4-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.4C2.9 17.1 2 20.4 2 24s.9 6.9 2.4 9.8l7.3-5.7z" />
+      <path fill="#EA4335" d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 30 2 24 2 15.4 2 7.9 7.1 4.4 14.2l7.3 5.7c1.7-5.2 6.6-9.1 12.3-9.1z" />
+    </svg>
+  )
+}
+
 // Promesse mémorisée : le script n'est injecté qu'une fois, même si plusieurs
 // boutons sont montés (modale de connexion + page profil, par exemple).
 let gsiPromise = null
@@ -92,9 +106,33 @@ export default function GoogleSignInButton({ onCredential, onError, text = 'cont
     // `text` seul : les callbacks passent par des refs, inutile de re-rendre.
   }, [text]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Serveur sans GOOGLE_CLIENT_ID : on n'affiche rien du tout plutôt qu'un
-  // bouton mort. Le formulaire email/mot de passe reste pleinement fonctionnel.
-  if (state === 'disabled') return null
+  // Serveur sans GOOGLE_CLIENT_ID.
+  //
+  // En production : on n'affiche rien. Un bouton mort déroute le visiteur, et
+  // le formulaire email/mot de passe reste pleinement fonctionnel.
+  //
+  // En développement : on affiche au contraire un bouton désactivé qui dit ce
+  // qui manque. Sans ça, l'intégration est invisible tant que la clé n'est pas
+  // posée, et on croit qu'elle n'a pas été faite.
+  if (state === 'disabled') {
+    if (!import.meta.env.DEV) return null
+    return (
+      <div style={{ width: '100%', marginTop: 14 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          padding: '11px 16px', borderRadius: 999,
+          border: '1.5px dashed rgba(128,128,128,.45)',
+          opacity: .75, fontSize: '.85rem', fontWeight: 700,
+        }}>
+          <GoogleGlyph /> Continuer avec Google
+        </div>
+        <p style={{ textAlign: 'center', fontSize: '.72rem', opacity: .7, margin: '6px 0 0' }}>
+          Inactif : ajoute <code>GOOGLE_CLIENT_ID</code> dans <code>server/.env</code>.
+          <br />Ce message n'apparaît qu'en développement.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div style={{ width: '100%' }}>

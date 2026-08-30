@@ -503,13 +503,27 @@ function ProductCard({ product: p, lang, t, inWish, onAddCart, onToggleWish }) {
         )}
       </div>
 
+      {/* Attribution de la boutique d'origine. Cliquable dès que le partenaire
+          a un slug : le visiteur atterrit sur sa vitrine, ce qui donne de la
+          visibilité au partenaire depuis la boutique générale. Sans slug (cas
+          d'un fournisseur interne créé par l'admin), on reste sur du texte. */}
       {p.supplier && (
-        <div className={styles.supplierTag}>
-          <Truck size={14} />
-          <span>
-            {t.supplier}: {p.supplier.name}
-          </span>
-        </div>
+        p.supplier.slug ? (
+          <Link
+            to={`/boutique/${p.supplier.slug}`}
+            className={`${styles.supplierTag} ${styles.supplierLink}`}
+            title={`Voir la boutique ${p.supplier.name}`}
+          >
+            <Store size={14} />
+            <span>{p.supplier.name}</span>
+            <ChevronRight size={13} />
+          </Link>
+        ) : (
+          <div className={styles.supplierTag}>
+            <Truck size={14} />
+            <span>{t.supplier}: {p.supplier.name}</span>
+          </div>
+        )
       )}
 
       <div className={styles.catTag}>{p.category}</div>

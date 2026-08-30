@@ -39,8 +39,8 @@ const COMPANY = {
   // un identifiant fiscal faux est bien pire qu'une facture qui n'en porte pas.
   rccm:     process.env.COMPANY_RCCM    || '',
   niu:      process.env.COMPANY_NIU     || '',
-  momoMtn:    process.env.COMPANY_MOMO_MTN    || '675 71 27 39',
-  momoOrange: process.env.COMPANY_MOMO_ORANGE || '690 82 37 42',
+  momoMtn:    process.env.COMPANY_MOMO_MTN    || '+237 670 63 36 70',
+  momoOrange: process.env.COMPANY_MOMO_ORANGE || '+237 657 32 57 97',
 }
 
 const PAYMENT_METHODS = [

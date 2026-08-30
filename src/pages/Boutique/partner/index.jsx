@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom'
 import {
   Plus, Store, Eye, Trash2, Edit3, Upload, Loader2, X, Image as ImageIcon,
   ChevronLeft, LayoutDashboard, Package, Settings, Sparkles, TrendingUp, Coins,
+  Copy, Check, Share2, Link as LinkIcon, Palette,
 } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi, useMutation } from '../../../hooks/useApi'
-import { suppliersApi, productsApi, API_BASE } from '../../../api'
+import { suppliersApi, productsApi, API_BASE, shopUrl } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../Home/sections/Footer'
@@ -277,6 +278,81 @@ function PartnerApplicationFlow({ shop, toast, onApplied }) {
 }
 
 /* ══ VUE D'ENSEMBLE ══ */
+/* ══ LIEN PARTAGEABLE ══
+   La carte la plus importante du tableau de bord : c'est par ce lien que le
+   partenaire fait venir ses clients. Elle est donc placée tout en haut de la
+   vue d'ensemble, avant même les statistiques. */
+function ShopLinkCard({ shop }) {
+  const [copied, setCopied] = useState(false)
+  const link = shopUrl(shop.slug)
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2200)
+    } catch {
+      // Presse-papiers indisponible (HTTP non sécurisé, navigateur ancien) :
+      // on sélectionne le texte pour que l'utilisateur copie à la main.
+      window.prompt('Copie ton lien :', link)
+    }
+  }
+
+  const share = async () => {
+    const payload = { title: shop.name, text: `Découvre ${shop.name} sur Otaku Pulse`, url: link }
+    if (navigator.share) { try { await navigator.share(payload); return } catch { /* annulé */ } }
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${shop.name} — ${link}`)}`, '_blank', 'noopener')
+  }
+
+  // Une boutique validée avant l'ajout des slugs peut ne pas encore en avoir :
+  // le rattrapage tourne au démarrage du serveur, pas dans le navigateur.
+  if (!shop.slug) {
+    return (
+      <div className={styles.appCard} style={{ marginBottom: '1.2rem' }}>
+        <p style={{ margin: 0, fontSize: '.88rem' }}>
+          Ton lien de boutique sera généré au prochain redémarrage du serveur.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.appCard} style={{ marginBottom: '1.4rem', maxWidth: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <LinkIcon size={16} />
+        <strong style={{ fontSize: '.95rem' }}>Le lien de ta boutique</strong>
+      </div>
+      <p style={{ fontSize: '.82rem', opacity: .75, margin: '0 0 12px', lineHeight: 1.55 }}>
+        Partage-le sur WhatsApp, Instagram ou en bio. Il s'ouvre pour tout le monde,
+        même sans compte Otaku Pulse.
+      </p>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+        background: 'rgba(0,0,0,.04)', borderRadius: 12, padding: '10px 12px', marginBottom: 12,
+      }}>
+        <code style={{
+          flex: 1, minWidth: 180, fontSize: '.82rem', fontWeight: 700,
+          // Un slug long ne doit pas élargir la carte sur mobile.
+          overflowWrap: 'anywhere',
+        }}>{link}</code>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button onClick={copy} className={styles.btnPrimary} type="button">
+          {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Copié !' : 'Copier'}
+        </button>
+        <button onClick={share} className={styles.btnGhostInline} type="button">
+          <Share2 size={14} /> Partager
+        </button>
+        <Link to={`/boutique/${shop.slug}`} className={styles.btnGhostInline}>
+          <Eye size={14} /> Voir ma vitrine
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 function OverviewTab({ shop, stats, products }) {
   const cards = [
     { ico:<Package size={20}/>, val: products.length, lbl:'Produits actifs', color:'#22c55e' },
@@ -286,6 +362,7 @@ function OverviewTab({ shop, stats, products }) {
   ]
   return (
     <div className={styles.tabContent}>
+      <ShopLinkCard shop={shop} />
       <div className={styles.statsGrid}>
         {cards.map((c,i) => (
           <div key={i} className={styles.statCard} style={{ '--stat-color': c.color }}>
@@ -295,6 +372,11 @@ function OverviewTab({ shop, stats, products }) {
           </div>
         ))}
       </div>
+      {shop.viewCount > 0 && (
+        <p style={{ fontSize: '.8rem', opacity: .7, marginTop: '1rem' }}>
+          👁️ Ta vitrine a été consultée {shop.viewCount.toLocaleString('fr-FR')} fois.
+        </p>
+      )}
     </div>
   )
 }
@@ -456,20 +538,53 @@ function ShopSettingsTab({ shop, toast, onSaved }) {
     name: shop.name || '', description: shop.description || '',
     email: shop.email || '', phone: shop.phone || '', whatsapp: shop.whatsapp || '', city: shop.city || '',
     orangeMoneyNumber: shop.orangeMoneyNumber || '', mtnMoneyNumber: shop.mtnMoneyNumber || '',
-    logoFile: null,
+    // ── Vitrine publique ──
+    slug: shop.slug || '', tagline: shop.tagline || '', accent: shop.accent || '#16a34a',
+    logoFile: null, bannerFile: null,
   })
   const [busy, setBusy] = useState(false)
   const [policyOpen, setPolicyOpen] = useState(false)
+  const [slugState, setSlugState] = useState(null) // null | 'checking' | 'ok' | 'taken' | 'format'
   const s = (k,v) => setForm(f => ({ ...f, [k]:v }))
 
+  // Vérification de disponibilité du lien, en léger différé : sans ce délai,
+  // chaque frappe déclencherait une requête, ce qui est inutile et lourd sur
+  // une connexion mobile.
+  useEffect(() => {
+    const wanted = form.slug.trim().toLowerCase()
+    if (!wanted || wanted === shop.slug) { setSlugState(null); return }
+    setSlugState('checking')
+    const timer = setTimeout(async () => {
+      try {
+        const r = await suppliersApi.checkSlug(wanted)
+        setSlugState(r.available ? 'ok' : (r.reason === 'format' ? 'format' : 'taken'))
+      } catch { setSlugState(null) }
+    }, 450)
+    return () => clearTimeout(timer)
+  }, [form.slug, shop.slug])
+
   const save = async () => {
+    if (slugState === 'taken' || slugState === 'format')
+      return toast.error('Corrige le lien de ta boutique avant d\'enregistrer.')
+
     setBusy(true)
     try {
       const payload = { ...form }
       delete payload.logoFile
+      delete payload.bannerFile
+      // Le slug n'est envoyé que s'il a réellement changé : cela évite de
+      // déclencher inutilement la vérification d'unicité côté serveur.
+      const wanted = form.slug.trim().toLowerCase()
+      if (wanted === shop.slug) delete payload.slug
+      else payload.slug = wanted
+
       if (form.logoFile) {
         const r = await readFileToBase64Safe(form.logoFile)
         payload.logoData = r.data; payload.logoMime = r.mime
+      }
+      if (form.bannerFile) {
+        const r = await readFileToBase64Safe(form.bannerFile)
+        payload.bannerData = r.data; payload.bannerMime = r.mime
       }
       await suppliersApi.updateMe(payload)
       toast.success('✅ Boutique mise à jour')
@@ -477,6 +592,13 @@ function ShopSettingsTab({ shop, toast, onSaved }) {
     } catch (err) { toast.error(err.message) }
     finally { setBusy(false) }
   }
+
+  const slugHint = {
+    checking: { txt: 'Vérification…',                       color: 'inherit' },
+    ok:       { txt: '✓ Ce lien est disponible',            color: '#16a34a' },
+    taken:    { txt: '✕ Ce lien est déjà pris',             color: '#dc2626' },
+    format:   { txt: '✕ 3 à 50 caractères : lettres minuscules, chiffres et tirets', color: '#dc2626' },
+  }[slugState]
 
   return (
     <div className={styles.tabContent}>
@@ -489,6 +611,59 @@ function ShopSettingsTab({ shop, toast, onSaved }) {
           <label>Nom de la marque</label>
           <input value={form.name} onChange={e => s('name', e.target.value)} className={styles.appInput} />
         </div>
+        {/* ── Vitrine publique ── */}
+        <div className={styles.appField}>
+          <label>Lien de ta boutique</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '.78rem', opacity: .65, whiteSpace: 'nowrap' }}>/boutique/</span>
+            <input
+              value={form.slug}
+              onChange={e => s('slug', e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+              className={styles.appInput}
+              style={{ flex: 1, minWidth: 140 }}
+              placeholder="ma-boutique"
+              maxLength={50}
+            />
+          </div>
+          {slugHint && (
+            <small style={{ display: 'block', marginTop: 5, color: slugHint.color, fontSize: '.76rem' }}>
+              {slugHint.txt}
+            </small>
+          )}
+          {/* Avertissement volontairement explicite : le partenaire a pu
+              partager son ancien lien sur WhatsApp ou en bio Instagram, et
+              rien ne redirigera automatiquement vers le nouveau. */}
+          {form.slug.trim().toLowerCase() !== shop.slug && shop.slug && (
+            <small style={{ display: 'block', marginTop: 5, color: '#d97706', fontSize: '.76rem' }}>
+              ⚠️ Changer ce lien rendra inaccessibles tous les liens que tu as déjà partagés.
+            </small>
+          )}
+        </div>
+
+        <div className={styles.appField}>
+          <label>Accroche (affichée sous le nom sur ta vitrine)</label>
+          <input value={form.tagline} onChange={e => s('tagline', e.target.value)}
+            className={styles.appInput} maxLength={120}
+            placeholder="Goodies anime authentiques, livrés à Yaoundé" />
+        </div>
+
+        <div className={styles.appField}>
+          <label><Palette size={13} style={{ verticalAlign: -2 }} /> Couleur de ta vitrine</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input type="color" value={form.accent} onChange={e => s('accent', e.target.value)}
+              style={{ width: 48, height: 38, padding: 2, borderRadius: 10, cursor: 'pointer' }} />
+            <code style={{ fontSize: '.8rem', opacity: .75 }}>{form.accent}</code>
+          </div>
+        </div>
+
+        <div className={styles.appField}>
+          <label>Image de couverture</label>
+          <input type="file" accept="image/*" onChange={e => s('bannerFile', e.target.files?.[0] || null)} />
+          <small style={{ display: 'block', marginTop: 4, opacity: .65, fontSize: '.75rem' }}>
+            Format paysage recommandé (1200×400). Sans image, un dégradé basé sur ta couleur est utilisé.
+          </small>
+        </div>
+
         <div className={styles.appField}>
           <label>Description</label>
           <textarea rows={3} value={form.description} onChange={e => s('description', e.target.value)} className={styles.appTextarea} />

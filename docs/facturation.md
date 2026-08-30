@@ -13,15 +13,39 @@ Une commande ne donne **qu'une seule** facture : redemander une génération
 renvoie celle qui existe déjà, au lieu d'en créer une seconde qui ferait double
 emploi en comptabilité.
 
-## Ce que porte le document
+## Structure du document
 
-- En-tête avec les coordonnées de la structure (configurables, voir plus bas)
-- Numéro séquentiel `FA-2026-00042` et **code-barres Code 128** scannable
-- Tampon d'état : Brouillon / À régler / Acquittée / Annulée
-- Bloc client et bloc livraison avec **plan de situation**
-- Lignes, sous-total, remise, livraison, taxe, total
-- Bloc règlement avec les numéros Mobile Money
-- Pied de page avec la mention de TVA applicable ou non
+De haut en bas :
+
+| Zone | Contenu |
+|---|---|
+| **En-tête** | Coordonnées Otaku Pulse + **numéros de dépôt Mobile Money** · numéro de facture, code-barres, tampon d'état |
+| **Lignes** | Désignation, quantité, prix unitaire, montant |
+| **Règlement + totaux** | Moyen retenu, référence à mentionner · sous-total, remise, livraison, taxe, total |
+| **Note** | Message libre visible par le client |
+| **Informations client** | Bloc détaché : « Facturé à » + « Livraison » avec le plan de situation |
+| **Pied de page** | Coordonnées Otaku Pulse, mention de TVA applicable ou non |
+
+Deux choix de mise en page à connaître :
+
+**Les numéros de dépôt sont en en-tête**, pas en bas. C'est l'information que le
+client cherche en premier pour payer : il ne doit pas avoir à parcourir toute la
+facture pour la trouver. Le bloc « Règlement » plus bas ne fait que rappeler le
+moyen retenu et la référence à indiquer.
+
+**Les informations client sont isolées en bas de page**, derrière un séparateur.
+C'est le bloc que consulte le livreur, et il ne doit pas se mélanger visuellement
+aux coordonnées d'Otaku Pulse imprimées juste en dessous.
+
+Les numéros affichés par défaut :
+
+| Opérateur | Numéro |
+|---|---|
+| MTN MoMo | `+237 670 63 36 70` |
+| Orange Money | `+237 657 32 57 97` |
+
+Ils sont également la source de vérité pour l'achat de coins
+(`server/routes/coins.js`), pour que les deux flux ne divergent jamais.
 
 ## Impression et PDF
 

@@ -198,7 +198,19 @@ export const suppliersApi = {
   getMy:       ()       => request('GET',   '/api/suppliers/my'),
   updateMe:    (data)   => request('PATCH', '/api/suppliers/me', data),
   review:      (id, status, reason) => request('PATCH', `/api/suppliers/${id}/review`, { status, reason }),
+  // ── Vitrine publique ──
+  // `getShop` est volontairement non authentifié : c'est le lien que le
+  // partenaire partage, il doit s'ouvrir pour n'importe qui.
+  getShop:     (slug)   => request('GET', `/api/suppliers/shop/${encodeURIComponent(slug)}`, null, false),
+  checkSlug:   (slug)   => request('GET', `/api/suppliers/slug-check/${encodeURIComponent(slug)}`),
+  getBannerUrl:(id)     => `${API_BASE}/api/suppliers/${id}/banner`,
 }
+
+// URL publique et partageable d'une boutique partenaire.
+// Construite depuis l'origine du navigateur pour rester juste en local
+// comme en production, sans variable d'environnement à synchroniser.
+export const shopUrl = (slug) =>
+  `${typeof window !== 'undefined' ? window.location.origin : 'https://otaku-pulse.com'}/boutique/${slug}`
 
 // ── UPLOAD helper ─────────────────────────────────────
 // Convertit un File en base64 → retourne { data, mime }

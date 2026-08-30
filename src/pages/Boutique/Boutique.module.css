@@ -658,3 +658,19 @@
   .menuCardFooter { flex-direction: column; align-items: stretch; }
   .menuOrderBtn { justify-content: center; }
 }
+/* ── Attribution boutique partenaire, version cliquable ──
+   Le produit vient d'une boutique validée : le nom mène à sa vitrine
+   (/boutique/<slug>). C'est la passerelle entre la boutique générale et les
+   vitrines partenaires — leur principale source de visibilité. */
+.supplierLink {
+  text-decoration: none;
+  border-radius: 999px;
+  transition: color .15s, transform .15s;
+}
+.supplierLink:hover {
+  color: var(--green-800);
+  transform: translateX(2px);
+}
+.supplierLink svg:last-child {
+  opacity: .55;
+}

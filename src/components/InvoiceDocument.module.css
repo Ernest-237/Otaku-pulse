@@ -54,6 +54,32 @@
 .brandMeta { font-size: 8.5pt; color: var(--ink-soft); line-height: 1.6; }
 .brandMeta strong { color: var(--ink); font-weight: 600; }
 
+/* ── Numéros de dépôt Mobile Money, en en-tête ──
+   Placés tout en haut : c'est ce que le client cherche en premier pour payer,
+   il ne doit pas avoir à parcourir la facture pour le trouver. */
+.depotBox {
+  margin-top: 3.5mm;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--accent-soft);
+  padding: 2.2mm 3mm;
+  display: inline-block;
+  min-width: 62mm;
+}
+.depotTitle {
+  font-size: 7pt; font-weight: 800; letter-spacing: 1.3px;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 1.4mm;
+}
+.depotLine {
+  display: flex; justify-content: space-between; gap: 6mm;
+  font-size: 8.5pt; line-height: 1.55;
+}
+.depotOp  { color: var(--ink-soft); }
+.depotNum {
+  font-weight: 800; color: var(--ink);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
 .docMeta { text-align: right; flex-shrink: 0; }
 .docType {
   font-size: 15pt; font-weight: 900; letter-spacing: 3px;
@@ -79,10 +105,23 @@
 .stampDraft     { color: #667085; }
 .stampCancelled { color: #dc2626; }
 
+/* ── Zone client, en bas de page ─────────────────────
+   `margin-top: auto` pousse ce bloc et le pied de page vers le bas de la
+   feuille A4, quel que soit le nombre de lignes de la facture. */
+.clientZone {
+  margin-top: auto;
+  padding-top: 4mm;
+  border-top: 2px dashed var(--line);
+}
+.clientZoneTitle {
+  font-size: 7.5pt; font-weight: 800; letter-spacing: 1.6px;
+  text-transform: uppercase; color: var(--ink-soft); margin-bottom: 3mm;
+}
+
 /* ── Blocs client / livraison ───────────────────────── */
 .parties {
   display: grid; grid-template-columns: 1fr 1fr;
-  gap: 8mm; margin: 6mm 0 5mm;
+  gap: 8mm; margin: 0 0 4mm;
 }
 .party {
   border: 1px solid var(--line); border-radius: 6px;
@@ -166,8 +205,11 @@
 }
 
 /* ── Pied de page ───────────────────────────────────── */
+/* Plus de `margin-top: auto` ici : c'est désormais .clientZone qui pousse le
+   bas de page vers le bas de la feuille. Deux `auto` dans le même conteneur
+   flex se partageraient l'espace et décolleraient le pied de page. */
 .footer {
-  margin-top: auto; padding-top: 4mm; border-top: 1px solid var(--line);
+  padding-top: 4mm; border-top: 1px solid var(--line);
   font-size: 7.5pt; color: var(--ink-soft); text-align: center; line-height: 1.7;
 }
 .footerBrand { font-weight: 800; color: var(--ink); letter-spacing: 1.4px; }
@@ -187,6 +229,7 @@
   .docMeta { text-align: left; }
   .barcode { justify-content: flex-start; }
   .parties, .bottom { grid-template-columns: 1fr; gap: 4mm; }
+  .depotBox { display: block; min-width: 0; width: 100%; }
   .table thead th, .table tbody td { padding: 2mm; font-size: 8.5pt; }
   .thQty, .tdQty { width: auto; }
   .thUnit, .tdUnit, .thTotal { width: auto; }
@@ -221,7 +264,7 @@
   /* Les aplats de couleur doivent survivre à l'impression : sans cette règle,
      la plupart des navigateurs suppriment les fonds et l'en-tête du tableau
      ressort en texte blanc sur blanc. */
-  .table thead th, .totalGrand, .payBox, .stamp {
+  .table thead th, .totalGrand, .payBox, .stamp, .depotBox {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -231,5 +274,5 @@
   .table { page-break-inside: auto; }
   .table thead { display: table-header-group; }
   .table tr { page-break-inside: avoid; page-break-after: auto; }
-  .bottom, .parties, .footer { page-break-inside: avoid; }
+  .bottom, .parties, .footer, .clientZone, .depotBox { page-break-inside: avoid; }
 }

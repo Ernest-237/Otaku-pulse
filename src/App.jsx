@@ -23,6 +23,8 @@ import Home from './pages/Home'
 // ── Pages secondaires, chargées à la demande ──
 const BoutiquePage    = lazy(() => import('./pages/Boutique'))
 const PartnerShopPage = lazy(() => import('./pages/Boutique/partner'))
+// Vitrine publique d'un partenaire : /boutique/<slug>
+const ShopPage        = lazy(() => import('./pages/Boutique/shop'))
 const ReservationPage = lazy(() => import('./pages/Reservation'))
 const LegalPage       = lazy(() => import('./pages/Legal'))
 const Blog            = lazy(() => import('./pages/Blog'))
@@ -73,6 +75,12 @@ export default function App() {
       <Route path="/"            element={<Home />} />
       <Route path="/boutique"    element={<BoutiquePage />} />
       <Route path="/boutique/partenaire" element={<PrivateRoute><PartnerShopPage /></PrivateRoute>} />
+      {/* Vitrine publique d'un partenaire, sans authentification : c'est le
+          lien qu'il partage. React Router classe les segments statiques avant
+          les dynamiques, donc /boutique/partenaire ci-dessus garde la priorité
+          sur ce motif — et `partenaire` est de toute façon un slug réservé
+          côté serveur (voir server/utils/slugify.js). */}
+      <Route path="/boutique/:slug" element={<ShopPage />} />
       <Route path="/reservation" element={<ReservationPage />} />
       <Route path="/blog"        element={<Blog />} />
       <Route path="/legal"       element={<LegalPage />} />

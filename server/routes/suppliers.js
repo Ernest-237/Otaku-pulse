@@ -3,6 +3,7 @@ const router  = require('express').Router()
 const { Supplier, Product, User } = require('../models/index')
 const { protect, restrictTo } = require('../middleware/auth')
 const { Op } = require('sequelize')
+const { isValidSlug } = require('../utils/slugify')
 
 /* ══════════════════════════════════════════════════════
    BOUTIQUE PARTENAIRE — libre-service
@@ -38,10 +39,14 @@ router.get('/my', protect, async (req, res) => {
   try {
     const supplier = await Supplier.findOne({
       where: { userId: req.user.id },
-      attributes: { exclude: ['logoData'] },
+      // Les images base64 sont servies par leurs routes dédiées : les inclure
+      // ici alourdirait la réponse de plusieurs mégaoctets à chaque chargement
+      // du tableau de bord partenaire.
+      attributes: { exclude: ['logoData','bannerData'] },
     })
     const j = supplier?.toJSON() || null
-    if (j?.logoMime) j.logoUrl = `/api/suppliers/${j.id}/logo`
+    if (j?.logoMime)   j.logoUrl   = `/api/suppliers/${j.id}/logo`
+    if (j?.bannerMime) j.bannerUrl = `/api/suppliers/${j.id}/banner`
     res.json({ supplier: j, isPartner: !!req.user.isPartner })
   } catch (err) { res.status(500).json({ error: err.message }) }
 })
@@ -53,13 +58,132 @@ router.patch('/me', protect, async (req, res) => {
     if (!supplier) return res.status(404).json({ error: 'Aucune boutique.' })
     if (supplier.status !== 'approved') return res.status(403).json({ error: 'Boutique pas encore validée.' })
 
-    // Champs réservés à l'admin, jamais modifiables par le partenaire lui-même
-    const { commission, bankName, bankAccount, status, isActive, userId, ...allowed } = req.body
+    // Champs réservés à l'admin ou calculés, jamais modifiables par le
+    // partenaire lui-même. `slug` est retiré du lot pour être validé à part :
+    // il devient une URL publique et ne peut pas être accepté à l'aveugle.
+    const {
+      commission, bankName, bankAccount, status, isActive, userId,
+      id, viewCount, createdAt, updatedAt, slug,
+      ...allowed
+    } = req.body
+
+    if (slug !== undefined) {
+      const wanted = String(slug).trim().toLowerCase()
+      if (!isValidSlug(wanted)) {
+        return res.status(400).json({
+          error: 'Lien invalide. Utilise 3 à 50 caractères : lettres minuscules, chiffres et tirets (ex. otaku-store-yaounde).',
+        })
+      }
+      if (wanted !== supplier.slug) {
+        const taken = await Supplier.findOne({ where: { slug: wanted }, attributes: ['id'] })
+        if (taken) return res.status(409).json({ error: 'Ce lien est déjà pris par une autre boutique.' })
+        allowed.slug = wanted
+      }
+    }
+
     await supplier.update(allowed)
     const j = supplier.toJSON()
-    if (j.logoMime) j.logoUrl = `/api/suppliers/${j.id}/logo`
+    if (j.logoMime)   j.logoUrl   = `/api/suppliers/${j.id}/logo`
+    if (j.bannerMime) j.bannerUrl = `/api/suppliers/${j.id}/banner`
     res.json({ supplier: j })
-  } catch (err) { res.status(400).json({ error: err.message }) }
+  } catch (err) {
+    // La contrainte d'unicité en base est le dernier rempart si deux
+    // partenaires réclament le même lien au même instant.
+    if (err.name === 'SequelizeUniqueConstraintError')
+      return res.status(409).json({ error: 'Ce lien est déjà pris par une autre boutique.' })
+    res.status(400).json({ error: err.message })
+  }
+})
+
+// GET /api/suppliers/slug-check/:slug — le lien est-il disponible ?
+// Sert à donner un retour immédiat pendant la saisie, avant l'enregistrement.
+router.get('/slug-check/:slug', protect, async (req, res) => {
+  try {
+    const wanted = String(req.params.slug || '').trim().toLowerCase()
+    if (!isValidSlug(wanted))
+      return res.json({ available: false, reason: 'format' })
+
+    const mine  = await Supplier.findOne({ where: { userId: req.user.id }, attributes: ['id','slug'] })
+    if (mine?.slug === wanted) return res.json({ available: true, reason: 'current' })
+
+    const taken = await Supplier.findOne({ where: { slug: wanted }, attributes: ['id'] })
+    res.json({ available: !taken, reason: taken ? 'taken' : 'ok' })
+  } catch (err) { res.status(500).json({ error: err.message }) }
+})
+
+/* ══════════════════════════════════════════════════════
+   VITRINE PUBLIQUE — /boutique/<slug>
+   Aucune authentification : c'est le lien que le partenaire partage.
+   ══════════════════════════════════════════════════════ */
+
+// GET /api/suppliers/shop/:slug — la vitrine et ses produits
+router.get('/shop/:slug', async (req, res) => {
+  try {
+    const supplier = await Supplier.findOne({
+      where: {
+        slug: String(req.params.slug || '').toLowerCase(),
+        // Une boutique en attente, rejetée ou suspendue n'a pas de vitrine
+        // publique — son lien renvoie un 404 comme n'importe quelle URL inconnue.
+        status: 'approved',
+        isActive: true,
+      },
+      // Les images sont servies par leurs propres routes : les inclure ici
+      // ferait passer plusieurs mégaoctets de base64 dans chaque réponse.
+      attributes: { exclude: ['logoData','bannerData','bankName','bankAccount','commission','notes','rejectedReason'] },
+    })
+    if (!supplier) return res.status(404).json({ error: 'Boutique introuvable.' })
+
+    const products = await Product.findAll({
+      where: { supplierId: supplier.id, isActive: true },
+      attributes: { exclude: ['imageData'] },
+      order: [['isFeatured','DESC'], ['createdAt','DESC']],
+      limit: 200,
+    })
+
+    // Une seule requête pour savoir quels produits ont une image en base.
+    const ids = products.map(p => p.id)
+    const withImage = new Set(
+      ids.length === 0 ? [] : (await Product.findAll({
+        where: { id: { [Op.in]: ids }, imageData: { [Op.ne]: null } },
+        attributes: ['id'],
+        raw: true,
+      })).map(r => r.id)
+    )
+
+    const items = products.map(p => {
+      const j = p.toJSON()
+      if (withImage.has(p.id)) j.imageUrl = `/api/upload/product/${p.id}/image`
+      return j
+    })
+
+    const s = supplier.toJSON()
+    if (s.logoMime)   s.logoUrl   = `/api/suppliers/${s.id}/logo`
+    if (s.bannerMime) s.bannerUrl = `/api/suppliers/${s.id}/banner`
+    // Coordonnées bancaires déjà exclues ci-dessus ; on retire aussi l'email
+    // privé du partenaire, qui n'a pas à être exposé publiquement.
+    delete s.email
+
+    // Compteur de visites incrémenté sans bloquer la réponse : une erreur
+    // d'écriture ne doit jamais empêcher l'affichage de la vitrine.
+    Supplier.increment('viewCount', { where: { id: supplier.id } })
+      .catch(e => console.warn('⚠️ viewCount:', e.message))
+
+    // Catégories réellement présentes, pour les filtres de la vitrine.
+    const categories = [...new Set(items.map(p => p.category))]
+
+    res.json({ shop: s, products: items, categories, total: items.length })
+  } catch (err) { res.status(500).json({ error: err.message }) }
+})
+
+// GET /api/suppliers/:id/banner — image de couverture de la vitrine
+router.get('/:id/banner', async (req, res) => {
+  try {
+    const s = await Supplier.findByPk(req.params.id, { attributes: ['bannerData','bannerMime'] })
+    if (!s?.bannerData) return res.status(404).end()
+    res.set('Content-Type', s.bannerMime || 'image/jpeg')
+    res.set('Cache-Control', 'public, max-age=86400')
+    res.send(Buffer.from(s.bannerData, 'base64'))
+  } catch (err) { res.status(500).json({ error: err.message }) }
 })
 
 // PATCH /api/suppliers/:id/review — admin approuve/rejette une candidature
