@@ -9,6 +9,8 @@ import { LangProvider }  from './contexts/LangContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { checkHealth } from './api'
 import './styles/main.css'
+// Tailwind (thème + utilitaires, sans preflight) — voir src/styles/admin.css
+import './styles/admin.css'
 
 // Réveille le backend (Render, plan gratuit) dès l'ouverture du site, avant
 // même que l'utilisateur interagisse — réduit le risque d'échec sur une

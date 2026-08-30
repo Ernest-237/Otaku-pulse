@@ -63,6 +63,38 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
+  // Revalidation du profil auprès du serveur, juste après la restauration.
+  //
+  // `op_user` est une photo prise au moment de la connexion. Si le rôle change
+  // en base entre-temps (validation d'une boutique, promotion, suspension), le
+  // navigateur continue de croire l'ancienne valeur : l'utilisateur voit le
+  // panneau d'administration s'afficher, puis chaque appel API répond 403 —
+  // un mur d'erreurs incompréhensible.
+  //
+  // On rafraîchit donc en arrière-plan. L'affichage reste instantané grâce au
+  // cache, et se corrige dès que le serveur a répondu.
+  useEffect(() => {
+    if (loading) return
+    const token = localStorage.getItem('op_token')
+    if (!token) return
+
+    let cancelled = false
+    ;(async () => {
+      const data = await getAuth('/api/auth/me')
+      if (cancelled || !data?.user) return
+      setUser(prev => {
+        // Rien de neuf : on évite un rendu inutile.
+        if (prev && prev.role === data.user.role && prev.isBanned === data.user.isBanned) {
+          localStorage.setItem('op_user', JSON.stringify(data.user))
+          return { ...prev, ...data.user }
+        }
+        localStorage.setItem('op_user', JSON.stringify(data.user))
+        return data.user
+      })
+    })()
+    return () => { cancelled = true }
+  }, [loading])
+
   const refreshSubscription = useCallback(async () => {
     const data = await getAuth('/api/subscriptions/active')
     if (data?.subscription) {

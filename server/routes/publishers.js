@@ -3,6 +3,7 @@ const router = require('express').Router()
 const { body, validationResult } = require('express-validator')
 const { PublisherApplication, User } = require('../models/index')
 const { protect, restrictTo } = require('../middleware/auth')
+const { grantRole } = require('../utils/roles')
 const { sendPublisherApproved, sendPublisherRejected, sendPublisherAdminNotif } = require('../utils/mailer')
 
 const validate = (req, res, next) => {
@@ -165,7 +166,8 @@ router.patch('/:id/review', protect, restrictTo('admin','superadmin'), [
     if (req.body.status === 'approved') {
       // Promouvoir le user
       await app.user.update({
-        role: 'publisher',
+        // Un admin qui devient éditeur reste admin (voir utils/roles.js).
+        role: grantRole(app.user.role, 'publisher'),
         isPublisher: true,
         publisherInfo: {
           bio: app.bio,

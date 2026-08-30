@@ -4,6 +4,7 @@ const { Supplier, Product, User } = require('../models/index')
 const { protect, restrictTo } = require('../middleware/auth')
 const { Op } = require('sequelize')
 const { isValidSlug } = require('../utils/slugify')
+const { grantRole } = require('../utils/roles')
 
 /* ══════════════════════════════════════════════════════
    BOUTIQUE PARTENAIRE — libre-service
@@ -201,7 +202,11 @@ router.patch('/:id/review', protect, restrictTo('admin','superadmin'), async (re
     })
 
     if (status === 'approved' && supplier.userId) {
-      await User.update({ role: 'partner', isPartner: true }, { where: { id: supplier.userId } })
+      // `grantRole` préserve le rôle d'un admin : accorder une boutique ne
+      // doit jamais retirer l'accès à l'administration. La capacité est
+      // portée par `isPartner`, pas par le rôle.
+      const owner = await User.findByPk(supplier.userId)
+      if (owner) await owner.update({ role: grantRole(owner.role, 'partner'), isPartner: true })
     }
 
     res.json({ supplier })

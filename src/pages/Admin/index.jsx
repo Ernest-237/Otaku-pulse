@@ -24,96 +24,209 @@ import CoinsSection from './sections/CoinsSection'
 import InvoicesSection from './sections/InvoicesSection'
 import FandomSection from './sections/FandomSection'
 import AnimeSection from './sections/AnimeSection'
+// Icônes de navigation — vectorielles plutôt qu'émojis : chaque émoji
+// apportait sa propre palette, ce qui saturait visuellement le menu.
+import {
+  LayoutDashboard, ShoppingCart, FileText, Package, Store, CalendarDays,
+  Newspaper, Image as ImageIcon, Gamepad2, Tv, Inbox, Users, CreditCard,
+  BookOpen, PenLine, Gem, MessageSquare, Coins, Menu, X, Globe, LogOut,
+  Crown, Settings, Zap,
+} from 'lucide-react'
 
 const ALL_CATS = ['posters','stickers','accessoires','kits','manga','livre','dessin','nutrition','echange','jeux']
 
-const SECTIONS = [
-  { id:'dashboard',   icon:'📊', label:'Dashboard'      },
-  { id:'orders',      icon:'🛒', label:'Commandes'      },
-  { id:'invoices',    icon:'🧾', label:'Factures'       },
-  { id:'products',    icon:'📦', label:'Produits'       },
-  { id:'suppliers',   icon:'🤝', label:'Fournisseurs'   },
-  { id:'events',      icon:'🎌', label:'Événements'     },
-  { id:'blog',        icon:'📝', label:'Blog & Promos'  },
-  { id:'hero',        icon:'🖼️', label:'Hero dynamique' },
-  { id:'fandom',      icon:'🎮', label:'Fandom'         },
-  { id:'anime',       icon:'📺', label:'Planning Anime' },
-  { id:'contacts',    icon:'📬', label:'Réservations'   },
-  { id:'users',       icon:'👥', label:'Membres'        },
-  { id:'membership',  icon:'🎴', label:'Carte Membre'   },
-  // ── Manga Platform ──
-  { id:'__manga_sep', icon:'',   label:'MANGA PLATFORM', divider:true },
-  { id:'manga',       icon:'📚', label:'Mangas'         },
-  { id:'publishers',  icon:'✍️', label:'Éditeurs'       },
-  { id:'subs',        icon:'💎', label:'Abonnements'    },
-  { id:'mangaComm',   icon:'💬', label:'Commentaires'   },
-  { id:'coins',       icon:'🪙', label:'Coins & Paiements' },
+/* ══════════════════════════════════════════════════════
+   NAVIGATION
+   Groupée par domaine métier plutôt qu'en liste plate de 19 entrées : on
+   retrouve un écran par son domaine, pas en balayant tout le menu.
+   Icônes vectorielles au lieu d'émojis — les émojis apportaient chacun leur
+   propre palette, ce qui participait au bruit visuel de l'ancien panneau.
+   ══════════════════════════════════════════════════════ */
+const NAV = [
+  {
+    group: 'Commerce',
+    items: [
+      { id: 'dashboard',  icon: LayoutDashboard, label: 'Dashboard'     },
+      { id: 'orders',     icon: ShoppingCart,    label: 'Commandes'     },
+      { id: 'invoices',   icon: FileText,        label: 'Factures'      },
+      { id: 'products',   icon: Package,         label: 'Produits'      },
+      { id: 'suppliers',  icon: Store,           label: 'Fournisseurs'  },
+    ],
+  },
+  {
+    group: 'Communauté',
+    items: [
+      { id: 'events',     icon: CalendarDays,    label: 'Événements'    },
+      { id: 'contacts',   icon: Inbox,           label: 'Réservations'  },
+      { id: 'fandom',     icon: Gamepad2,        label: 'Fandom'        },
+      { id: 'anime',      icon: Tv,              label: 'Planning Anime'},
+      { id: 'users',      icon: Users,           label: 'Membres'       },
+      { id: 'membership', icon: CreditCard,      label: 'Carte Membre'  },
+    ],
+  },
+  {
+    group: 'Contenu',
+    items: [
+      { id: 'blog',       icon: Newspaper,       label: 'Blog & Promos' },
+      { id: 'hero',       icon: ImageIcon,       label: 'Hero dynamique'},
+    ],
+  },
+  {
+    group: 'Manga',
+    items: [
+      { id: 'manga',      icon: BookOpen,        label: 'Mangas'        },
+      { id: 'publishers', icon: PenLine,         label: 'Éditeurs'      },
+      { id: 'subs',       icon: Gem,             label: 'Abonnements'   },
+      { id: 'mangaComm',  icon: MessageSquare,   label: 'Commentaires'  },
+      { id: 'coins',      icon: Coins,           label: 'Coins'         },
+    ],
+  },
 ]
+
+const FLAT = NAV.flatMap(g => g.items)
 
 export default function Admin() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const toast    = useToast()
   const [section, setSection] = useState('dashboard')
+  const [navOpen, setNavOpen] = useState(false)
 
   useEffect(() => { document.title = 'Admin — Otaku Pulse' }, [])
+
+  // Sur mobile la navigation est un tiroir : il doit se refermer dès qu'on a
+  // choisi un écran, sinon il masque le contenu qu'on vient de demander.
+  const go = (id) => { setSection(id); setNavOpen(false) }
+
   const handleLogout = async () => { await logout(); navigate('/') }
+  const current = FLAT.find(s => s.id === section)
 
   return (
-    <div className={styles.layout}>
-      <aside className={styles.sidebar}>
-        <div className={styles.sbLogo}>
-          <span className={styles.sbBolt}>⚡</span>
-          <span className={styles.sbName}>OTAKU PULSE</span>
-          <span className={styles.sbBadge}>ADMIN</span>
-        </div>
-        <nav className={styles.sbNav}>
-  {SECTIONS.map(s => s.divider ? (
-    <div key={s.id} style={{
-      padding:'12px 1rem 6px',
-      fontSize:'.6rem',
-      color:'rgba(51,255,51,.5)',
-      letterSpacing:'2px',
-      fontWeight:800,
-      textTransform:'uppercase',
-      borderTop:'1px solid rgba(51,255,51,.1)',
-      marginTop:'8px',
-      marginBottom:'4px',
-    }}>{s.label}</div>
-  ) : (
-    <button key={s.id}
-      className={`${styles.navItem} ${section===s.id?styles.navActive:''}`}
-      onClick={() => setSection(s.id)}>
-      <span className={styles.navIcon}>{s.icon}</span>{s.label}
-    </button>
-  ))}
-</nav>
-        <div className={styles.sbFooter}>
-          <div className={styles.sbUser}>
-            <span style={{ fontSize:'1.4rem' }}>{user?.role==='superadmin'?'👑':'⚙️'}</span>
-            <div>
-              <div className={styles.sbUserName}>{user?.pseudo}</div>
-              <div className={styles.sbUserRole}>{user?.role?.toUpperCase()}</div>
+    <div className="min-h-screen bg-ink-950 text-fg">
+
+      {/* Voile du tiroir mobile */}
+      {navOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={() => setNavOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* ── Barre latérale ── */}
+      <aside
+        className={[
+          'fixed inset-y-0 left-0 z-50 flex w-60 flex-col',
+          'border-r border-line bg-ink-900',
+          'transition-transform duration-200 ease-out',
+          // Hors écran sur mobile tant que le tiroir est fermé ; toujours
+          // visible à partir de `lg`.
+          navOpen ? 'translate-x-0' : '-translate-x-full',
+          'lg:translate-x-0',
+        ].join(' ')}
+      >
+        <div className="flex items-center gap-2.5 border-b border-line px-4 py-4">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/15 text-brand">
+            <Zap size={17} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-extrabold tracking-wider">OTAKU PULSE</div>
+            <div className="text-[0.62rem] font-semibold tracking-[0.18em] text-fg-faint">
+              ADMINISTRATION
             </div>
           </div>
-          <button className={styles.logoutBtn} onClick={handleLogout}>🚪 Déconnexion</button>
+          <button
+            className="rounded-lg p-1 text-fg-muted hover:bg-ink-800 hover:text-fg lg:hidden"
+            onClick={() => setNavOpen(false)}
+            aria-label="Fermer le menu"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-2.5 py-3">
+          {NAV.map(g => (
+            <div key={g.group} className="mb-4 last:mb-0">
+              <div className="px-2.5 pb-1.5 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-fg-faint">
+                {g.group}
+              </div>
+              {g.items.map(item => {
+                const Icon = item.icon
+                const active = section === item.id
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => go(item.id)}
+                    className={[
+                      'mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2',
+                      'text-left text-[0.83rem] transition-colors',
+                      active
+                        // L'écran actif est le SEUL élément coloré du menu :
+                        // c'est ce qui le rend immédiatement repérable.
+                        ? 'bg-brand/12 font-semibold text-brand-hi'
+                        : 'text-fg-muted hover:bg-ink-800 hover:text-fg',
+                    ].join(' ')}
+                  >
+                    <Icon size={16} className="shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </nav>
+
+        <div className="border-t border-line p-3">
+          <div className="mb-2 flex items-center gap-2.5 rounded-lg bg-ink-850 px-2.5 py-2">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink-800 text-fg-muted">
+              {user?.role === 'superadmin' ? <Crown size={15} /> : <Settings size={15} />}
+            </span>
+            <div className="min-w-0">
+              <div className="truncate text-[0.8rem] font-semibold">{user?.pseudo}</div>
+              <div className="text-[0.65rem] uppercase tracking-wider text-fg-faint">
+                {user?.role}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-[0.8rem] font-semibold text-fg-muted transition-colors hover:border-danger/40 hover:text-danger"
+          >
+            <LogOut size={14} /> Déconnexion
+          </button>
         </div>
       </aside>
 
-      <main className={styles.main}>
-        <div className={styles.topbar}>
-          <h1 className={styles.topbarTitle}>
-  {SECTIONS.find(s => s.id === section && !s.divider)?.icon}{' '}
-  {SECTIONS.find(s => s.id === section && !s.divider)?.label || section}
-</h1>
-          <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-            <span style={{ fontSize:'.75rem', color:'var(--ad-text-2, rgba(143,168,150,.6))' }}>
-              {new Date().toLocaleDateString('fr-FR',{ dateStyle:'medium' })}
+      {/* ── Zone principale ── */}
+      <div className="lg:pl-60">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-ink-900/95 px-4 py-3 backdrop-blur sm:px-6">
+          <button
+            className="rounded-lg p-1.5 text-fg-muted hover:bg-ink-800 hover:text-fg lg:hidden"
+            onClick={() => setNavOpen(true)}
+            aria-label="Ouvrir le menu"
+          >
+            <Menu size={19} />
+          </button>
+
+          <h1 className="flex min-w-0 items-center gap-2 text-[0.95rem] font-bold">
+            {current?.icon && <current.icon size={17} className="shrink-0 text-brand" />}
+            <span className="truncate">{current?.label || section}</span>
+          </h1>
+
+          <div className="ml-auto flex items-center gap-3">
+            <span className="hidden text-xs text-fg-faint sm:inline">
+              {new Date().toLocaleDateString('fr-FR', { dateStyle: 'medium' })}
             </span>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>🌐 Site</Button>
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-fg-muted transition-colors hover:bg-ink-800 hover:text-fg"
+            >
+              <Globe size={13} /> <span className="hidden sm:inline">Site</span>
+            </button>
           </div>
-        </div>
-        <div className={styles.content}>
+        </header>
+
+        <main className="px-4 py-5 sm:px-6 sm:py-6">
           {section==='dashboard'  && <DashboardSection  toast={toast} setSection={setSection} />}
           {section==='orders'     && <OrdersSection     toast={toast} />}
           {section==='invoices'   && <InvoicesSection   toast={toast} />}
@@ -127,14 +240,13 @@ export default function Admin() {
           {section==='contacts'   && <ContactsSection   toast={toast} />}
           {section==='users'      && <UsersSection      toast={toast} />}
           {section==='membership' && <MembershipSection toast={toast} />}
-          {/* Manga Platform */}
-{section==='manga'       && <MangaSection          toast={toast} />}
-{section==='publishers'  && <PublishersSection     toast={toast} />}
-{section==='subs'        && <SubscriptionsSection  toast={toast} />}
-{section==='mangaComm'   && <MangaCommentsSection  toast={toast} />}
-{section==='coins'       && <CoinsSection          toast={toast} />}
-        </div>
-      </main>
+          {section==='manga'      && <MangaSection          toast={toast} />}
+          {section==='publishers' && <PublishersSection     toast={toast} />}
+          {section==='subs'       && <SubscriptionsSection  toast={toast} />}
+          {section==='mangaComm'  && <MangaCommentsSection  toast={toast} />}
+          {section==='coins'      && <CoinsSection          toast={toast} />}
+        </main>
+      </div>
     </div>
   )
 }

@@ -1,0 +1,214 @@
+/* src/styles/admin.css — Tailwind v4 + thème du panneau d'administration
+   ═══════════════════════════════════════════════════════════════════════
+
+   PREFLIGHT VOLONTAIREMENT DÉSACTIVÉ
+   Le reset de base de Tailwind neutralise les styles par défaut des titres,
+   listes, boutons et champs sur TOUTE la page. Le site public repose sur 36
+   fichiers CSS écrits sans lui : l'activer casserait la boutique, le lecteur
+   manga et la page d'accueil. On n'importe donc que le thème et les
+   utilitaires, ce qui rend Tailwind purement additif.
+
+   Ordre des couches déclaré explicitement pour que les utilitaires gagnent
+   toujours sur les modules CSS existants. */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* ═══════════════════════════════════════════════════════
+   PALETTE
+   ═══════════════════════════════════════════════════════
+
+   L'ancienne identité admin — noir verdâtre #0a0e0a plus néon #33ff33 sur
+   presque chaque élément — saturait l'œil : deux couleurs très éloignées, à
+   contraste maximal, appliquées partout en même temps. Rien ne ressortait
+   parce que tout criait.
+
+   Nouvelle règle : une échelle de gris bleutés porte 95 % de l'interface, et
+   l'accent émeraude n'apparaît que sur l'action en cours ou la donnée
+   importante. Les couleurs sémantiques (ambre, rouge, bleu, violet) restent
+   réservées aux statuts. */
+@theme {
+  /* Fonds, du plus profond au plus clair */
+  --color-ink-950: #0b0f14;   /* fond de page */
+  --color-ink-900: #111720;   /* barre latérale, en-tête */
+  --color-ink-850: #161d27;   /* cartes */
+  --color-ink-800: #1c2531;   /* survol, champs de saisie */
+  --color-ink-700: #26313f;   /* bordure appuyée */
+
+  --color-line:      #222c39; /* filets et séparateurs */
+  --color-line-soft: #1a222d;
+
+  /* Textes */
+  --color-fg:        #e6ebf2; /* texte principal */
+  --color-fg-muted:  #8996a8; /* texte secondaire */
+  --color-fg-faint:  #5d6a7d; /* légendes, méta */
+
+  /* Accent — utilisé avec parcimonie */
+  --color-brand:      #10b981;
+  --color-brand-hi:   #34d399;
+  --color-brand-deep: #059669;
+  --color-brand-soft: #10b9811a;
+
+  /* Statuts */
+  --color-warn:   #f59e0b;
+  --color-danger: #ef4444;
+  --color-info:   #3b82f6;
+  --color-violet: #8b5cf6;
+
+  /* Rayons — plus doux que l'ancien design, moins « gaming » */
+  --radius-card: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRIMITIVES DU PANNEAU
+   Composants réutilisés dans toutes les sections. Déclarés ici plutôt que
+   répétés dans chaque fichier : une seule modification les met tous à jour.
+   ═══════════════════════════════════════════════════════ */
+@layer components {
+
+  .adm-card {
+    background: var(--color-ink-850);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    padding: 1.15rem 1.25rem;
+  }
+
+  .adm-input {
+    width: 100%;
+    background: var(--color-ink-800);
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    padding: 0.6rem 0.8rem;
+    color: var(--color-fg);
+    font: inherit;
+    font-size: 0.875rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .adm-input::placeholder { color: var(--color-fg-faint); }
+  .adm-input:focus {
+    outline: none;
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px var(--color-brand-soft);
+  }
+  /* Les <option> héritent du fond système sous Windows : sans cette règle,
+     un menu déroulant s'ouvre en blanc sur blanc dans un thème sombre. */
+  .adm-input option { background: var(--color-ink-900); color: var(--color-fg); }
+
+  .adm-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+    margin-bottom: 0.35rem;
+  }
+
+  /* Boutons — une seule action principale par écran, d'où un seul bouton plein */
+  .adm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font: inherit;
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+  }
+  .adm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .adm-btn-primary { background: var(--color-brand); color: #05140d; font-weight: 700; }
+  .adm-btn-primary:hover:not(:disabled) { background: var(--color-brand-hi); }
+
+  .adm-btn-ghost { background: transparent; color: var(--color-fg-muted); border-color: var(--color-line); }
+  .adm-btn-ghost:hover:not(:disabled) { background: var(--color-ink-800); color: var(--color-fg); }
+
+  .adm-btn-danger { background: transparent; color: var(--color-danger); border-color: #ef444455; }
+  .adm-btn-danger:hover:not(:disabled) { background: #ef44441a; }
+
+  .adm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+
+  /* Un tableau large défile dans sa propre boîte : sans ça, sur téléphone,
+     c'est toute la page qui part en défilement horizontal. */
+  .adm-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .adm-table { width: 100%; border-collapse: collapse; min-width: 620px; }
+  .adm-table th {
+    text-align: left;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+    border-bottom: 1px solid var(--color-line);
+  }
+  .adm-table td {
+    padding: 0.8rem 0.9rem;
+    font-size: 0.85rem;
+    color: var(--color-fg);
+    border-bottom: 1px solid var(--color-line-soft);
+  }
+  .adm-table tbody tr:hover td { background: var(--color-ink-800); }
+  .adm-table tbody tr:last-child td { border-bottom: none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PONT VERS LES MODULES CSS EXISTANTS
+   ═══════════════════════════════════════════════════════
+
+   Les 13 sections du panneau (Commandes, Produits, Coins, Manga…) consomment
+   les variables `--ad-*` définies jusqu'ici sur la classe `.layout` de
+   l'ancienne coquille. Celle-ci étant désormais écrite en Tailwind, ces
+   variables se retrouveraient sans définition et les cartes perdraient leur
+   fond. On les redéclare donc ici, avec la nouvelle palette.
+
+   Conséquence utile : les 13 écrans adoptent le nouveau design sans qu'une
+   seule de leurs lignes soit modifiée. */
+:root {
+  --ad-bg:        #0b0f14;
+  --ad-surface:   #111720;
+  --ad-card:      #161d27;
+  --ad-card-2:    #1c2531;
+
+  --ad-border:    #222c39;
+  --ad-border-2:  #26313f;
+  --ad-border-hi: #10b981;
+
+  --ad-accent:    #10b981;   /* était #33ff33 — le néon saturait tout l'écran */
+  --ad-accent-d:  #34d399;
+  --ad-accent-dd: #059669;
+
+  /* Halos fortement atténués : ils étaient appliqués à presque chaque élément,
+     ce qui empêchait l'œil de distinguer l'important du décoratif. */
+  --ad-glow:      rgba(16, 185, 129, .18);
+  --ad-glow-soft: rgba(16, 185, 129, .07);
+
+  --ad-text:      #e6ebf2;
+  --ad-text-2:    #8996a8;
+  --ad-text-3:    #5d6a7d;
+
+  --ad-amber:     #f59e0b;
+  --ad-red:       #ef4444;
+  --ad-blue:      #3b82f6;
+  --ad-pink:      #ec4899;
+  --ad-violet:    #8b5cf6;
+}

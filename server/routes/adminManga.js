@@ -6,6 +6,7 @@ const {
   Subscription, PublisherApplication, ReadingProgress, LibraryItem,
 } = require('../models/index')
 const { protect, restrictTo } = require('../middleware/auth')
+const { grantRole, revokeRole } = require('../utils/roles')
 const router = express.Router()
 
 router.use(protect, restrictTo('admin','superadmin'))
@@ -302,9 +303,11 @@ router.patch('/publishers/:userId', async (req, res, next) => {
     }
     const { revoke } = req.body
     if (revoke) {
-      await user.update({ role: 'user', isPublisher: false })
+      // Révoquer le statut d'éditeur d'un admin ne doit pas le transformer
+      // en simple utilisateur.
+      await user.update({ role: revokeRole(user.role), isPublisher: false })
     } else {
-      await user.update({ role: 'publisher', isPublisher: true })
+      await user.update({ role: grantRole(user.role, 'publisher'), isPublisher: true })
     }
     res.json({ user: user.toJSON() })
   } catch (err) { next(err) }
