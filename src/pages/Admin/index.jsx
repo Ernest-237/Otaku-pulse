@@ -858,52 +858,165 @@ function PopupForm({ toast }) {
   )
 }
 
-// ══ USERS ═════════════════════════════════════════════
+/* ══ MEMBRES ══════════════════════════════════════════
+   Seul un superadmin peut accorder ou retirer des rôles. Le serveur applique
+   la même règle (PATCH /api/admin/users/:id/role) : l'interface ne fait que
+   refléter une décision prise côté API, jamais l'inverse. */
+
+const ROLE_META = {
+  superadmin: { label: 'Super Admin', cls: 'text-danger  border-danger/40  bg-danger/10'  },
+  admin:      { label: 'Admin',       cls: 'text-warn    border-warn/40    bg-warn/10'    },
+  publisher:  { label: 'Éditeur',     cls: 'text-info    border-info/40    bg-info/10'    },
+  partner:    { label: 'Partenaire',  cls: 'text-violet  border-violet/40  bg-violet/10'  },
+  user:       { label: 'Membre',      cls: 'text-fg-muted border-line      bg-ink-800'    },
+}
+
+const ROLE_OPTIONS = [
+  { v: 'user',       l: 'Membre',      d: 'Aucun privilège particulier.' },
+  { v: 'publisher',  l: 'Éditeur',     d: 'Peut publier des mangas et des chapitres.' },
+  { v: 'partner',    l: 'Partenaire',  d: 'Peut tenir une boutique et vendre des produits.' },
+  { v: 'admin',      l: 'Admin',       d: "Accès complet au panneau d'administration." },
+  { v: 'superadmin', l: 'Super Admin', d: 'Accès complet + peut accorder des rôles.' },
+]
+
+function RoleBadge({ role }) {
+  const m = ROLE_META[role] || ROLE_META.user
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[0.68rem] font-bold ${m.cls}`}>
+      {m.label}
+    </span>
+  )
+}
+
 function UsersSection({ toast }) {
+  const { user: me } = useAuth()
+  const isSuperadmin = me?.role === 'superadmin'
+
   const [filter,   setFilter]   = useState('all')
   const [search,   setSearch]   = useState('')
   const [selected, setSelected] = useState(null)
-  const { data, loading, execute } = useApi(() => adminApi.getUsers({ limit:200 }), [], true)
+
+  const { data, loading, execute } = useApi(() => adminApi.getUsers({ limit: 200 }), [], true)
   const users = data?.users || []
+
   const filtered = users.filter(u => {
-    const mF = filter==='all'||(filter==='admin'?['admin','superadmin'].includes(u.role):filter==='banned'?u.isBanned:u.role===filter)
-    const mS = !search||`${u.pseudo} ${u.email}`.toLowerCase().includes(search.toLowerCase())
+    const mF = filter === 'all'
+      || (filter === 'admin'  ? ['admin','superadmin'].includes(u.role)
+      :  filter === 'banned' ? u.isBanned
+      :  u.role === filter)
+    const mS = !search || `${u.pseudo} ${u.email}`.toLowerCase().includes(search.toLowerCase())
     return mF && mS
   })
+
+  const staffCount = users.filter(u => ['admin','superadmin'].includes(u.role) && !u.isBanned).length
+
   const save = async (id, payload) => {
-    try { await adminApi.updateUser(id, payload); toast.success('✅ Mis à jour'); execute(); setSelected(null) }
-    catch(err) { toast.error(err.message) }
+    try { await adminApi.updateUser(id, payload); toast.success('Membre mis à jour'); execute(); setSelected(null) }
+    catch (err) { toast.error(err.message) }
+  }
+
+  // Le rôle passe par sa propre route : le serveur refuse un changement de rôle
+  // envoyé sur la route de profil, et refuse tout court si l'appelant n'est pas
+  // superadmin.
+  const saveRole = async (id, role) => {
+    try {
+      const r = await adminApi.setUserRole(id, role)
+      toast.success(r.message || 'Rôle mis à jour')
+      execute()
+      setSelected(null)
+    } catch (err) { toast.error(err.message) }
   }
 
   if (loading) return <PageLoader />
+
   return (
     <div>
-      <div className={styles.filters}>
-        {[['all','Tous'],['user','Membres'],['admin','Admins'],['banned','Bannis']].map(([f,l]) => (
-          <button key={f} className={`${styles.filterBtn} ${filter===f?styles.filterActive:''}`} onClick={()=>setFilter(f)}>{l}</button>
-        ))}
-        <input className={styles.searchBox} placeholder="🔍 Pseudo ou email..."
-          value={search} onChange={e=>setSearch(e.target.value)} />
-      </div>
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <span className={styles.cardTitle}>👥 Membres ({filtered.length})</span>
+      {/* Un seul administrateur actif = point de défaillance unique. C'est
+          exactement ce qui a rendu le site inadministrable : on le signale. */}
+      {isSuperadmin && staffCount <= 1 && (
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-warn/35 bg-warn/10 px-4 py-3 text-[0.83rem] text-warn">
+          <span className="mt-px shrink-0">⚠️</span>
+          <span>
+            <strong>Un seul compte administrateur actif.</strong> Si tu perds l'accès à ce
+            compte, plus personne ne peut administrer le site. Promeus un second compte
+            de confiance en « Admin ».
+          </span>
         </div>
-        <div style={{ overflowX:'auto' }}>
-          <table className={styles.table}>
-            <thead><tr><th>Membre</th><th>Email</th><th>Ville</th><th>Rôle</th><th>Inscrit</th><th>Statut</th><th></th></tr></thead>
+      )}
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {[['all','Tous'],['user','Membres'],['admin','Admins'],['partner','Partenaires'],['banned','Suspendus']].map(([f,l]) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={[
+              'rounded-full border px-3.5 py-1.5 text-[0.8rem] font-semibold transition-colors',
+              filter === f
+                ? 'border-brand bg-brand/12 text-brand-hi'
+                : 'border-line text-fg-muted hover:bg-ink-800 hover:text-fg',
+            ].join(' ')}
+          >
+            {l}
+          </button>
+        ))}
+        <input
+          className="adm-input ml-auto w-full sm:w-64"
+          placeholder="Pseudo ou email…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="adm-card p-0">
+        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+          <span className="text-[0.85rem] font-bold">Membres ({filtered.length})</span>
+          {!isSuperadmin && (
+            <span className="text-[0.72rem] text-fg-faint">
+              Seul un superadmin peut modifier les rôles
+            </span>
+          )}
+        </div>
+
+        <div className="adm-table-wrap">
+          <table className="adm-table">
+            <thead>
+              <tr><th>Membre</th><th>Email</th><th>Ville</th><th>Rôle</th><th>Inscrit</th><th>Statut</th><th></th></tr>
+            </thead>
             <tbody>
               {filtered.map(u => (
-                <tr key={u.id} className={styles.tr}>
-                  <td><strong style={{ color:'var(--ad-text,#e8ffe8)' }}>{u.pseudo}</strong>
-                    {u.firstName && <div style={{ fontSize:'.75rem', color:'var(--ad-text-2,#8fa896)' }}>{u.firstName} {u.lastName||''}</div>}
+                <tr key={u.id}>
+                  <td>
+                    <div className="font-semibold text-fg">
+                      {u.pseudo}
+                      {u.id === me?.id && (
+                        <span className="ml-1.5 text-[0.68rem] font-normal text-fg-faint">(toi)</span>
+                      )}
+                    </div>
+                    {u.firstName && (
+                      <div className="text-[0.74rem] text-fg-muted">{u.firstName} {u.lastName || ''}</div>
+                    )}
                   </td>
-                  <td style={{ fontSize:'.82rem', color:'#c5d6c8' }}>{u.email}</td>
-                  <td style={{ fontSize:'.82rem', color:'var(--ad-text-2,#8fa896)' }}>{u.city||'—'}</td>
-                  <td><Badge variant={u.role==='superadmin'?'red':u.role==='admin'?'amber':'gray'} style={{ fontSize:'.65rem' }}>{u.role}</Badge></td>
-                  <td style={{ fontSize:'.78rem', color:'var(--ad-text-2,#8fa896)' }}>{new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
-                  <td><Badge variant={u.isBanned?'red':u.isVerified?'green':'amber'} style={{ fontSize:'.65rem' }}>{u.isBanned?'🔒 Banni':u.isVerified?'✅ Actif':'⏳'}</Badge></td>
-                  <td><Button variant="ghost" size="sm" onClick={()=>setSelected(u)}>👁️</Button></td>
+                  <td className="text-[0.8rem] text-fg-muted">{u.email}</td>
+                  <td className="text-[0.8rem] text-fg-muted">{u.city || '—'}</td>
+                  <td><RoleBadge role={u.role} /></td>
+                  <td className="text-[0.76rem] text-fg-faint">
+                    {new Date(u.createdAt).toLocaleDateString('fr-FR')}
+                  </td>
+                  <td>
+                    <span className={[
+                      'inline-flex items-center rounded-full border px-2 py-0.5 text-[0.68rem] font-bold',
+                      u.isBanned  ? 'border-danger/40 bg-danger/10 text-danger'
+                      : u.isVerified ? 'border-brand/35 bg-brand/10 text-brand'
+                      : 'border-warn/35 bg-warn/10 text-warn',
+                    ].join(' ')}>
+                      {u.isBanned ? 'Suspendu' : u.isVerified ? 'Actif' : 'En attente'}
+                    </span>
+                  </td>
+                  <td>
+                    <button className="adm-btn adm-btn-ghost !px-3 !py-1" onClick={() => setSelected(u)}>
+                      Gérer
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -911,49 +1024,163 @@ function UsersSection({ toast }) {
           {!filtered.length && <EmptyState icon="👥" title="Aucun membre" />}
         </div>
       </div>
-      {selected && <UserModal user={selected} onClose={()=>setSelected(null)} onSave={save} />}
+
+      {selected && (
+        <UserModal
+          user={selected}
+          me={me}
+          isSuperadmin={isSuperadmin}
+          staffCount={staffCount}
+          onClose={() => setSelected(null)}
+          onSave={save}
+          onSaveRole={saveRole}
+        />
+      )}
     </div>
   )
 }
 
-function UserModal({ user:u, onClose, onSave }) {
+function UserModal({ user: u, me, isSuperadmin, staffCount, onClose, onSave, onSaveRole }) {
   const [role, setRole] = useState(u.role)
   const [ver,  setVer]  = useState(u.isVerified)
   const [nl,   setNl]   = useState(u.newsletterSubscribed)
+
+  const isSelf     = u.id === me?.id
+  const isStaff    = ['admin','superadmin'].includes(u.role)
+  const wantsStaff = ['admin','superadmin'].includes(role)
+
+  // Les mêmes règles que le serveur, reproduites ici pour expliquer le refus
+  // AVANT le clic plutôt que d'afficher une erreur après coup.
+  const roleBlocked =
+    isSelf && !wantsStaff
+      ? 'Tu ne peux pas retirer tes propres privilèges. Demande à un autre superadmin.'
+      : isStaff && !wantsStaff && staffCount <= 1
+        ? "C'est le dernier compte administrateur actif. Promeus quelqu'un d'autre d'abord."
+        : null
+
+  const roleChanged = role !== u.role
+
   return (
-    <Modal isOpen dark title={`👤 ${u.pseudo}`} onClose={onClose} wide
+    <Modal isOpen dark wide title={`Membre — ${u.pseudo}`} onClose={onClose}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Fermer</Button>
-          <Button variant={u.isBanned?'primary':'danger'} onClick={()=>onSave(u.id,{isBanned:!u.isBanned})}>
-            {u.isBanned?'🔓 Débannir':'🔒 Bannir'}
+          <Button
+            variant={u.isBanned ? 'primary' : 'danger'}
+            disabled={isSelf}
+            onClick={() => onSave(u.id, { isBanned: !u.isBanned })}
+          >
+            {u.isBanned ? 'Réactiver' : 'Suspendre'}
           </Button>
-          <Button variant="primary" onClick={()=>onSave(u.id,{role,isVerified:ver,newsletterSubscribed:nl})}>
-            💾 Sauvegarder
+          <Button variant="primary" onClick={() => onSave(u.id, { isVerified: ver, newsletterSubscribed: nl })}>
+            Enregistrer
           </Button>
         </>
       }>
-      <div className={styles.detailGrid} style={{ marginBottom:'1.2rem' }}>
-        {[['Pseudo',u.pseudo],['Email',u.email],['Prénom/Nom',`${u.firstName||'—'} ${u.lastName||''}`],
-          ['Téléphone',u.phone||'—'],['WhatsApp',u.whatsapp||'—'],
-          ['Ville',u.city||'—'],['Quartier',u.quartier||'—'],['Connexions',`${u.loginCount||0}x`]]
-          .map(([l,v]) => (
-            <div key={l} className={styles.detailItem}>
-              <div className={styles.detailLbl}>{l}</div>
-              <strong style={{ fontSize:'.88rem', color:'var(--ad-text,#e8ffe8)' }}>{v}</strong>
-            </div>
-          ))}
+
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[['Pseudo', u.pseudo], ['Email', u.email],
+          ['Prénom / Nom', `${u.firstName || '—'} ${u.lastName || ''}`],
+          ['Téléphone', u.phone || '—'], ['WhatsApp', u.whatsapp || '—'],
+          ['Ville', u.city || '—'], ['Quartier', u.quartier || '—'],
+          ['Connexions', `${u.loginCount || 0}`]].map(([l, v]) => (
+          <div key={l} className="rounded-lg border border-line bg-ink-800/50 px-3 py-2">
+            <div className="mb-0.5 text-[0.64rem] uppercase tracking-wider text-fg-faint">{l}</div>
+            <div className="truncate text-[0.85rem] font-semibold text-fg" title={String(v)}>{v}</div>
+          </div>
+        ))}
       </div>
-      <div style={{ background:'rgba(255,255,255,.02)', border:'1px solid var(--ad-border,rgba(51,255,51,.12))', borderRadius:12, padding:'1.2rem' }}>
-        <div className={styles.formGrid2}>
-          <ASelect label="Rôle" value={role} onChange={setRole}
-            options={[{v:'user',l:'👤 Membre'},{v:'admin',l:'⚙️ Admin'},{v:'superadmin',l:'👑 Super Admin'}]} />
-          <ASelect label="Vérification" value={String(ver)} onChange={v=>setVer(v==='true')}
-            options={[{v:'true',l:'✅ Vérifié'},{v:'false',l:'⏳ Non vérifié'}]} />
+
+      {/* ── Rôle et privilèges ── */}
+      <div className="rounded-xl border border-line bg-ink-800/40 p-4">
+        <div className="mb-1 flex items-center gap-2">
+          <span className="text-[0.72rem] font-bold uppercase tracking-wider text-fg-muted">
+            Rôle et privilèges
+          </span>
+          <RoleBadge role={u.role} />
         </div>
-        <ASelect label="Newsletter" value={String(nl)} onChange={v=>setNl(v==='true')}
-          options={[{v:'true',l:'✅ Abonné'},{v:'false',l:'❌ Désabonné'}]} />
+
+        {!isSuperadmin ? (
+          <p className="m-0 text-[0.8rem] text-fg-muted">
+            Seul un <strong className="text-fg">superadmin</strong> peut accorder ou retirer un rôle.
+          </p>
+        ) : (
+          <>
+            <p className="mb-3 mt-1 text-[0.78rem] leading-relaxed text-fg-muted">
+              Accorder « Admin » donne l'accès complet au panneau. « Super Admin » y ajoute
+              le droit d'accorder des rôles à son tour.
+            </p>
+
+            <div className="mb-3 grid gap-2 sm:grid-cols-2">
+              {ROLE_OPTIONS.map(o => (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => setRole(o.v)}
+                  className={[
+                    'rounded-lg border px-3 py-2.5 text-left transition-colors',
+                    role === o.v
+                      ? 'border-brand bg-brand/10'
+                      : 'border-line hover:bg-ink-800',
+                  ].join(' ')}
+                >
+                  <div className="text-[0.83rem] font-semibold text-fg">{o.l}</div>
+                  <div className="mt-0.5 text-[0.72rem] leading-snug text-fg-muted">{o.d}</div>
+                </button>
+              ))}
+            </div>
+
+            {roleBlocked && (
+              <div className="mb-3 rounded-lg border border-warn/35 bg-warn/10 px-3 py-2 text-[0.78rem] text-warn">
+                {roleBlocked}
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="adm-btn adm-btn-primary"
+              disabled={!roleChanged || !!roleBlocked}
+              onClick={() => onSaveRole(u.id, role)}
+            >
+              {roleChanged
+                ? `Appliquer : ${ROLE_META[role]?.label || role}`
+                : 'Aucun changement de rôle'}
+            </button>
+
+            {roleChanged && wantsStaff && !roleBlocked && (
+              <p className="mb-0 mt-2.5 text-[0.74rem] text-fg-faint">
+                {u.pseudo} devra se déconnecter puis se reconnecter pour que ses nouveaux
+                privilèges prennent effet.
+              </p>
+            )}
+          </>
+        )}
       </div>
+
+      {/* ── Compte ── */}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="adm-label">Vérification</label>
+          <select className="adm-input" value={String(ver)} onChange={e => setVer(e.target.value === 'true')}>
+            <option value="true">Vérifié</option>
+            <option value="false">Non vérifié</option>
+          </select>
+        </div>
+        <div>
+          <label className="adm-label">Newsletter</label>
+          <select className="adm-input" value={String(nl)} onChange={e => setNl(e.target.value === 'true')}>
+            <option value="true">Abonné</option>
+            <option value="false">Désabonné</option>
+          </select>
+        </div>
+      </div>
+
+      {isSelf && (
+        <p className="mt-3 mb-0 text-[0.76rem] text-fg-faint">
+          C'est ton propre compte : la suspension et le retrait de privilèges sont
+          désactivés pour t'éviter de te verrouiller dehors.
+        </p>
+      )}
     </Modal>
   )
 }

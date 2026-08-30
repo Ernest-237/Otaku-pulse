@@ -31,8 +31,70 @@ Quatre routes écrasaient `User.role` sans condition :
 | `routes/adminManga.js` | `role: 'publisher'` | Octroi du statut éditeur |
 | `routes/adminManga.js` | `role: 'user'` | Révocation du statut éditeur |
 
-Valider sa propre boutique en tant qu'admin suffisait donc à se rétrograder en
-`partner` et à perdre l'accès à l'administration.
+N'importe laquelle de ces quatre actions, appliquée à son propre compte,
+suffisait à se rétrograder et à perdre l'accès à l'administration.
+
+**Cas réellement survenu sur ce projet** : le compte `sensei` s'est retrouvé en
+`role: 'user'` avec `isPublisher: false` — la signature exacte de la révocation
+du statut éditeur (`adminManga.js`). Comme c'était le **seul** compte à
+privilèges, le site s'est retrouvé sans aucun administrateur : plus personne ne
+pouvait rien réparer depuis l'interface.
+
+### Garde-fou ajouté
+
+`syncDatabase()` compte désormais les comptes `admin` / `superadmin` à chaque
+démarrage et affiche une alerte impossible à manquer s'il n'en reste aucun :
+
+```
+🔴 ═══════════════════════════════════════════════════
+🔴  AUCUN COMPTE ADMINISTRATEUR EN BASE
+🔴  Toutes les routes /api/admin/* répondront 403.
+🔴  Réparer :  node utils/userRole.js <email> superadmin
+🔴 ═══════════════════════════════════════════════════
+```
+
+Sinon il journalise `✅ N compte(s) administrateur actif(s)`.
+
+> **Conseil** : garde toujours **deux** comptes administrateurs. Un seul, c'est
+> un point de défaillance unique — exactement ce qui s'est produit ici.
+
+## Accorder un rôle depuis l'interface
+
+**Admin → Membres → Gérer** sur un compte.
+
+Réservé au **superadmin**. Un compte `admin` voit la liste mais ne peut pas
+modifier les rôles — côté serveur comme côté interface.
+
+| Rôle | Ce qu'il donne |
+|---|---|
+| Membre | Aucun privilège |
+| Éditeur | Publier des mangas et des chapitres |
+| Partenaire | Tenir une boutique et vendre |
+| **Admin** | Accès complet au panneau |
+| **Super Admin** | Accès complet + accorder des rôles |
+
+Le compte promu doit **se déconnecter et se reconnecter** pour que ses
+privilèges prennent effet.
+
+### Trois garde-fous, appliqués côté serveur
+
+1. **Seul un superadmin change les rôles.** Auparavant, `PATCH /api/admin/users/:id`
+   acceptait `role` et n'était protégé que par `restrictTo('admin','superadmin')` :
+   n'importe quel `admin` pouvait se promouvoir `superadmin` ou rétrograder le
+   propriétaire du site. Le changement de rôle a désormais sa propre route,
+   `PATCH /api/admin/users/:id/role`, réservée au superadmin.
+2. **On ne peut pas se retirer ses propres privilèges** ni se suspendre soi-même.
+3. **On ne peut pas retirer le dernier administrateur actif** — la tentative est
+   refusée avec un message explicite.
+
+L'interface reproduit ces règles pour expliquer le refus *avant* le clic, mais
+c'est le serveur qui décide.
+
+Chaque changement de rôle est journalisé dans les logs Render :
+
+```
+🔐 RÔLE MODIFIÉ — pseudo <email> : user → admin (par sensei <…>)
+```
 
 ## Réparer un compte
 

@@ -959,6 +959,30 @@ const syncDatabase = async (force = false) => {
   await sequelize.sync({ force, alter: !force })
   console.log(`✅ Tables PostgreSQL ${force ? 'réinitialisées' : 'synchronisées'}`)
 
+  // Garde-fou : le site doit toujours avoir au moins un administrateur.
+  //
+  // Quatre routes écrasaient autrefois `User.role` sans condition ; révoquer
+  // son propre statut d'éditeur suffisait à se rétrograder en `user`. Sans
+  // second compte à privilèges, le site devenait totalement inadministrable,
+  // et le symptôme (403 partout) ne désignait pas sa cause.
+  //
+  // `utils/roles.js` empêche désormais la rétrogradation, mais on vérifie
+  // quand même à chaque démarrage : une alerte visible vaut mieux qu'une
+  // découverte le jour où on en a besoin.
+  try {
+    const staff = await User.count({ where: { role: ['admin', 'superadmin'] } })
+    if (staff === 0) {
+      console.error('')
+      console.error('🔴 ═══════════════════════════════════════════════════')
+      console.error('🔴  AUCUN COMPTE ADMINISTRATEUR EN BASE')
+      console.error('🔴  Toutes les routes /api/admin/* répondront 403.')
+      console.error('🔴  Réparer :  node utils/userRole.js <email> superadmin')
+      console.error('🔴 ═══════════════════════════════════════════════════')
+      console.error('')
+    } else {
+      console.log(`✅ ${staff} compte(s) administrateur actif(s)`)
+    }
+  } catch (err) { console.warn('⚠️ Vérification des comptes admin ignorée:', err.message) }
   // Rattrapage des slugs de boutiques : les partenaires créés avant
   // l'ajout du champ n'en ont pas, et leur vitrine serait inaccessible.
   // Le hook beforeValidate ne couvre que les créations, pas les lignes

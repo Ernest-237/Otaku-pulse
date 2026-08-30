@@ -86,6 +86,11 @@ async function main() {
   }
 
   // ── Correction ──
+  // Le rôle est relu sur l'instance après `update()`, qui la mute : sans cette
+  // copie, le message final afficherait « superadmin → superadmin » au lieu de
+  // montrer le changement réel.
+  const previousRole = user.role
+
   await user.update({
     role: wantedRole,
     // Un compte suspendu est refusé par `protect` avant même `restrictTo` :
@@ -96,7 +101,7 @@ async function main() {
     isPublisher: user.isPublisher || ['publisher', 'admin', 'superadmin'].includes(wantedRole),
   })
 
-  console.log(`\n✅ Rôle mis à jour : ${user.role} → ${wantedRole}`)
+  console.log(`\n✅ Rôle mis à jour : ${previousRole} → ${wantedRole}`)
   console.log('\n⚠️  Déconnecte-toi puis reconnecte-toi sur le site :')
   console.log('   le rôle est mis en cache dans localStorage (op_user) et')
   console.log('   ne se rafraîchit qu\'à la connexion.\n')

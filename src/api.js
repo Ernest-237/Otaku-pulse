@@ -147,6 +147,10 @@ export const adminApi = {
   getDashboard: ()         => request('GET', '/api/admin/dashboard'),
   getUsers:     (p = {})   => request('GET', `/api/admin/users?${new URLSearchParams(p)}`),
   updateUser:   (id, d)    => request('PATCH', `/api/admin/users/${id}`, d),
+  // Changement de rôle : route dédiée, réservée au superadmin côté serveur.
+  // Séparée de `updateUser` parce qu'accorder des privilèges n'est pas une
+  // modification de profil comme une autre.
+  setUserRole:  (id, role) => request('PATCH', `/api/admin/users/${id}/role`, { role }),
   getOrders:    (p = {})   => request('GET', `/api/admin/orders?${new URLSearchParams(p)}`),
   getContacts:  (p = {})   => request('GET', `/api/admin/contacts?${new URLSearchParams(p)}`),
 }
