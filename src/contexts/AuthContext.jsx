@@ -85,6 +85,20 @@ export function AuthProvider({ children }) {
     return data.user
   }, [refreshSubscription])
 
+  // Connexion via Google. Le backend vérifie l'ID token, crée ou rattache le
+  // compte, puis renvoie exactement la même charge utile que /login — le reste
+  // de l'application n'a donc aucune raison de savoir comment l'utilisateur
+  // s'est authentifié.
+  const loginWithGoogle = useCallback(async (credential) => {
+    const data = await postJSON('/api/auth/google', { credential })
+    localStorage.setItem('op_token',   data.accessToken)
+    localStorage.setItem('op_refresh', data.refreshToken)
+    localStorage.setItem('op_user',    JSON.stringify(data.user))
+    setUser(data.user)
+    refreshSubscription()
+    return data.user
+  }, [refreshSubscription])
+
   const register = useCallback(async (pseudo, email, password) => {
     const data = await postJSON('/api/auth/register', { pseudo, email, password })
     localStorage.setItem('op_token',   data.accessToken)
@@ -127,6 +141,7 @@ export function AuthProvider({ children }) {
       isPublisher,
       hasActiveSubscription,
       login,
+      loginWithGoogle,
       register,
       logout,
       updateUser,

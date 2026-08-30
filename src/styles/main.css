@@ -189,3 +189,54 @@ select option { background: white; color: var(--text); }
 
 @media (max-width: 768px) { .container { padding: 0 1rem; } }
 @media (max-width: 480px) { html { font-size: 15px; } }
+/* ═══════════════════════════════════════════════════════
+   FONDATIONS MOBILE
+   Correctifs globaux valables sur toutes les pages, plutôt
+   que répétés dans chaque module CSS.
+   ═══════════════════════════════════════════════════════ */
+
+/* Un mot très long (URL, email, référence de commande, pseudo sans espace)
+   élargit son conteneur et fait déborder toute la page horizontalement. */
+body { overflow-wrap: break-word; }
+
+/* Le halo bleu par défaut au toucher sur Android/iOS : on le remplace par le
+   retour visuel propre du site (:active / :focus-visible). */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Les tableaux sont la principale source de débordement horizontal sur
+   téléphone. Ce conteneur les fait défiler dans leur propre boîte. */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  /* iOS Safari zoome automatiquement au focus sur tout champ dont la police
+     fait moins de 16px, ce qui décale la page et oblige l'utilisateur à
+     repincer à chaque champ. `max()` pose un plancher à 16px sans écraser les
+     champs volontairement plus grands. */
+  input, textarea, select { font-size: max(16px, 1em); }
+
+  /* Cible tactile minimale confortable. `min-height` seul suffit : la largeur
+     reste libre pour ne pas déformer les boutons en ligne. */
+  button, a[role="button"], input[type="submit"], input[type="button"] {
+    min-height: 40px;
+  }
+}
+
+/* Téléphones à encoche : un élément fixé en bas passe sous l'indicateur
+   d'accueil. Cette variable est utilisable partout où c'est nécessaire. */
+:root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Le site est très animé. Pour les personnes qui ont activé la réduction des
+   animations dans leur système, on neutralise tout mouvement — c'est aussi
+   un gain de fluidité réel sur les téléphones d'entrée de gamme. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

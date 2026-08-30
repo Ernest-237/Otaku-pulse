@@ -90,6 +90,9 @@ export const authApi = {
   logout:   ()                        => request('POST', '/api/auth/logout'),
   me:       ()                        => request('GET',  '/api/auth/me'),
   acceptPolicy: ()                    => request('POST', '/api/auth/accept-policy'),
+  // Connexion Google : `credential` est l'ID token renvoyé par le SDK GSI.
+  google:       (credential)          => request('POST', '/api/auth/google', { credential }, false),
+  googleConfig: ()                    => request('GET',  '/api/auth/google/config', null, false),
 }
 
 // ── PRODUCTS ──────────────────────────────────────────
@@ -401,6 +404,26 @@ export const animeApi = {
 }
 
 // ── HEALTH ────────────────────────────────────────────
+// ── ADMIN : FACTURATION ───────────────────────────────
+export const adminInvoicesApi = {
+  // Presets de taxe, coordonnées de la structure, moyens de paiement.
+  // Servis par le backend pour rester la source de vérité (cf. COIN_PACKS).
+  getConfig: ()      => request('GET',  '/api/admin/invoices/config'),
+  getStats:  ()      => request('GET',  '/api/admin/invoices/stats'),
+  list: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== '' && v != null)
+    ).toString()
+    return request('GET', `/api/admin/invoices${qs ? '?' + qs : ''}`)
+  },
+  get:        (id)        => request('GET',    `/api/admin/invoices/${id}`),
+  create:     (data)      => request('POST',   '/api/admin/invoices', data),
+  fromOrder:  (orderId, data = {}) => request('POST', `/api/admin/invoices/from-order/${orderId}`, data),
+  update:     (id, data)  => request('PATCH',  `/api/admin/invoices/${id}`, data),
+  setStatus:  (id, status, paymentMethod) => request('PATCH', `/api/admin/invoices/${id}/status`, { status, paymentMethod }),
+  archive:    (id)        => request('DELETE', `/api/admin/invoices/${id}`),
+}
+
 export const checkHealth = async () => {
   try { const res = await fetch(`${API_BASE}/api/health`); return res.ok } catch { return false }
 }

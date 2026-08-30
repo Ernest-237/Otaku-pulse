@@ -4,6 +4,7 @@ const { body, validationResult } = require('express-validator')
 const { User } = require('../models/index')
 const { protect, generateTokens } = require('../middleware/auth')
 const { sendPasswordReset, sendWelcome } = require('../utils/mailer')
+const { verifyGoogleIdToken, isGoogleAuthEnabled } = require('../services/googleAuth')
 const router = express.Router()
 
 const validate = (req, res, next) => {
@@ -136,6 +137,102 @@ router.post('/reset-password', [
     if (!user) return res.status(400).json({ error: 'Code invalide ou expiré. Veuillez réessayer.' })
     await user.update({ password, passwordResetToken: null, passwordResetExpiry: null })
     res.json({ message: 'Mot de passe modifié avec succès !' })
+  } catch (err) { next(err) }
+})
+
+
+// ══════════════════════════════════════════════════════
+// CONNEXION GOOGLE
+// ══════════════════════════════════════════════════════
+
+// Le pseudo doit respecter la contrainte du modèle : 3-20 caractères, uniquement
+// [a-zA-Z0-9_-]. Un nom Google comme "Ernest Tsimi Patrick" ou "José Ngué" ne
+// passe pas tel quel — on translittère, on nettoie, puis on suffixe si le pseudo
+// est déjà pris.
+async function generateUniquePseudo(profile) {
+  const base = (profile.givenName || profile.name || profile.email.split('@')[0] || 'otaku')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // retire les accents
+    .replace(/[^a-zA-Z0-9_-]/g, '')
+    .slice(0, 14) || 'otaku'
+  const root = base.length >= 3 ? base : (base + 'otaku').slice(0, 14)
+
+  if (!(await User.findOne({ where: { pseudo: root } }))) return root
+  // Jusqu'à 50 tentatives déterministes, puis repli sur un suffixe temporel.
+  for (let i = 2; i <= 50; i++) {
+    const candidate = `${root}${i}`.slice(0, 20)
+    if (!(await User.findOne({ where: { pseudo: candidate } }))) return candidate
+  }
+  return `${root.slice(0, 12)}${Date.now().toString(36).slice(-6)}`.slice(0, 20)
+}
+
+// GET /api/auth/google/config — le front sait s'il doit afficher le bouton
+router.get('/google/config', (req, res) => {
+  res.json({ enabled: isGoogleAuthEnabled(), clientId: process.env.GOOGLE_CLIENT_ID || null })
+})
+
+// POST /api/auth/google — connexion / inscription via un ID token Google
+router.post('/google', async (req, res, next) => {
+  try {
+    if (!isGoogleAuthEnabled())
+      return res.status(503).json({ error: "La connexion Google n'est pas activée sur ce serveur." })
+
+    const { credential } = req.body
+    let profile
+    try {
+      profile = await verifyGoogleIdToken(credential)
+    } catch (err) {
+      // Message déjà en français et compréhensible, remonté tel quel.
+      return res.status(401).json({ error: err.message })
+    }
+
+    // 1. Compte déjà lié à ce compte Google
+    let user = await User.findOne({ where: { googleId: profile.googleId } })
+    let created = false
+
+    // 2. Sinon, un compte existe-t-il avec cette adresse ? L'email Google est
+    //    vérifié (contrôlé dans le service), le rattachement est donc sûr :
+    //    l'utilisateur prouve qu'il possède bien cette adresse.
+    if (!user) {
+      user = await User.findOne({ where: { email: profile.email } })
+      if (user) {
+        await user.update({
+          googleId:   profile.googleId,
+          isVerified: true,
+          avatar:     user.avatar || profile.picture || '',
+        })
+      }
+    }
+
+    // 3. Sinon, création du compte
+    if (!user) {
+      user = await User.create({
+        pseudo:       await generateUniquePseudo(profile),
+        email:        profile.email,
+        password:     null,                 // aucun mot de passe : connexion Google uniquement
+        firstName:    profile.givenName  || null,
+        lastName:     profile.familyName || null,
+        avatar:       profile.picture    || '',
+        googleId:     profile.googleId,
+        authProvider: 'google',
+        isVerified:   true,
+      })
+      created = true
+      sendWelcome(user).catch(e => console.error('❌ Email bienvenue:', e.message))
+    }
+
+    if (user.isBanned) return res.status(403).json({ error: 'Compte suspendu.' })
+
+    const { accessToken, refreshToken } = generateTokens(user.id)
+    await user.update({
+      refreshToken,
+      lastLogin:  new Date(),
+      loginCount: (user.loginCount || 0) + 1,
+    })
+
+    res.status(created ? 201 : 200).json({
+      message: created ? 'Compte créé via Google.' : 'Connexion réussie.',
+      created, accessToken, refreshToken, user: user.toJSON(),
+    })
   } catch (err) { next(err) }
 })
 

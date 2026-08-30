@@ -661,3 +661,34 @@
   .completedTitle { font-size: 1.4rem; }
   .completedPrimary, .completedSecondary { width: 100%; min-width: 0; }
 }
+/* ═══════════════════════════════════════════════════════
+   AJOUTS RESPONSIVE — encoche et très petits écrans
+   ═══════════════════════════════════════════════════════ */
+
+/* Sur les téléphones à encoche, la barre fixée en bas passe sous l'indicateur
+   d'accueil : les boutons « chapitre suivant » deviennent difficiles à toucher.
+   `env(safe-area-inset-bottom)` vaut 0 partout ailleurs, la règle est donc sans
+   effet sur les autres appareils. */
+@media (max-width: 768px) {
+  .bottomNav { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .pagesContainer { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Téléphones Android d'entrée de gamme (320-380px de large) : à cette largeur,
+   la barre du lecteur déborde et le compteur de pages passe à la ligne. */
+@media (max-width: 380px) {
+  .headerInner { padding: 0 .5rem; gap: 5px; }
+  .backBtn { padding: 5px 7px; }
+  .chapInfo { font-size: .74rem; }
+  .pageCounter { font-size: .62rem; }
+  .iconBtn { width: 29px; height: 29px; }
+
+  .bottomNav { width: calc(100% - 14px); gap: 2px; padding-left: 4px; padding-right: 4px; }
+  .navChapBtn { padding: 8px 9px; }
+  .navListBtn { padding: 8px 10px; font-size: .7rem; }
+
+  .premiumCard { padding: 1.5rem 1rem; }
+  .premiumTitle { font-size: 1.1rem; }
+  .completedCard { padding: 1.2rem .9rem; }
+  .completedTitle { font-size: 1.15rem; }
+}

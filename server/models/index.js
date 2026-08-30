@@ -33,6 +33,11 @@ const User = sequelize.define('User', {
   lastLogin:           { type: DataTypes.DATE },
   loginCount:          { type: DataTypes.INTEGER, defaultValue: 0 },
   newsletterSubscribed:{ type: DataTypes.BOOLEAN, defaultValue: false },
+  // ── CONNEXION GOOGLE (OAuth) ───────────────────────
+  // Un compte créé via Google n'a pas de mot de passe : `password` est nullable
+  // et `comparePassword` renvoie false plutôt que de planter (voir plus bas).
+  googleId:            { type: DataTypes.STRING(40), allowNull: true, unique: true },
+  authProvider:        { type: DataTypes.ENUM('local','google'), defaultValue: 'local' },
   // ── MANGA PLATFORM ─────────────────────────────────
   isPublisher:         { type: DataTypes.BOOLEAN, defaultValue: false },
   publisherInfo:       { type: DataTypes.JSONB, defaultValue: null },
@@ -53,10 +58,15 @@ const User = sequelize.define('User', {
   tableName: 'users', timestamps: true,
   hooks: { beforeSave: async (u) => { if (u.changed('password') && u.password) u.password = await bcrypt.hash(u.password, 12) } },
 })
-User.prototype.comparePassword = async function(c) { return bcrypt.compare(c, this.password) }
+// Un compte Google n'a pas de mot de passe en base. Sans cette garde,
+// bcrypt.compare(c, null) lève et renvoie une 500 au lieu d'un 401 propre.
+User.prototype.comparePassword = async function(c) {
+  if (!this.password) return false
+  return bcrypt.compare(c, this.password)
+}
 User.prototype.toJSON = function() {
   const o = { ...this.get() }
-  ;['password','refreshToken','passwordResetToken','passwordResetExpiry'].forEach(k => delete o[k])
+  ;['password','refreshToken','passwordResetToken','passwordResetExpiry','googleId'].forEach(k => delete o[k])
   return o
 }
 
@@ -839,6 +849,84 @@ GameScore.belongsTo(User,     { foreignKey: 'userId', as: 'user' })
 // ⚠️ Ajoute ces modèles à ton module.exports :
 //   CosplayEntry, CosplayVote, QuizQuestion, QuizScore, GameScore,
 
+// ══ FACTURATION ═══════════════════════════════════════
+// Une facture peut être créée de deux façons :
+//   - 'auto'   : générée depuis une commande boutique existante (orderId rempli)
+//   - 'manual' : saisie de A à Z par l'admin (vente en main propre, prestation,
+//                sponsoring…), sans commande associée
+// Dans les deux cas la facture est un document FIGÉ : une fois émise, elle
+// recopie les montants au lieu de les recalculer depuis la commande, qui peut
+// changer après coup. Une facture qui change rétroactivement n'a aucune valeur.
+const Invoice = sequelize.define('Invoice', {
+  id:            { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  invoiceNumber: { type: DataTypes.STRING(24), unique: true },  // FA-2026-00042
+  source:        { type: DataTypes.ENUM('manual','auto'), defaultValue: 'manual' },
+  orderId:       { type: DataTypes.UUID, allowNull: true },     // rempli si source='auto'
+  userId:        { type: DataTypes.UUID, allowNull: true },     // client inscrit, si connu
+
+  // ── Identité du client (recopiée, jamais jointe) ───
+  clientName:     { type: DataTypes.STRING(120), allowNull: false },
+  clientPhone:    { type: DataTypes.STRING(30) },
+  clientEmail:    { type: DataTypes.STRING(160) },
+  clientCity:     { type: DataTypes.STRING(60),  defaultValue: 'Yaoundé' },
+  clientQuartier: { type: DataTypes.STRING(120) },
+  clientAddress:  { type: DataTypes.TEXT },
+
+  // ── Localisation de livraison ──────────────────────
+  // Déduites du quartier via la table de référence côté frontend, mais
+  // remplaçables : un admin qui connaît l'adresse exacte peut coller les
+  // coordonnées GPS relevées sur le terrain, qui priment toujours.
+  destLat:       { type: DataTypes.DECIMAL(9,6), allowNull: true },
+  destLng:       { type: DataTypes.DECIMAL(9,6), allowNull: true },
+  destLandmark:  { type: DataTypes.STRING(160) },  // « en face de la pharmacie du Soleil »
+
+  // ── Lignes de facture ──────────────────────────────
+  // [{ label, qty, unitPrice, total }] — montants entiers en FCFA
+  items:         { type: DataTypes.JSONB, defaultValue: [] },
+
+  // ── Montants (entiers, FCFA — le XAF n'a pas de sous-unité) ──
+  subtotal:      { type: DataTypes.INTEGER, defaultValue: 0 },
+  discount:      { type: DataTypes.INTEGER, defaultValue: 0 },
+  shipping:      { type: DataTypes.INTEGER, defaultValue: 0 },
+  // Taux en POINTS DE BASE entiers : 1925 = 19,25 % (TVA camerounaise).
+  // Stocker un flottant produirait des factures fausses au franc près.
+  taxRate:       { type: DataTypes.INTEGER, defaultValue: 0 },
+  taxLabel:      { type: DataTypes.STRING(40), defaultValue: 'TVA' },
+  taxAmount:     { type: DataTypes.INTEGER, defaultValue: 0 },
+  total:         { type: DataTypes.INTEGER, defaultValue: 0 },
+  currency:      { type: DataTypes.STRING(8), defaultValue: 'FCFA' },
+
+  // ── Cycle de vie ───────────────────────────────────
+  status:        { type: DataTypes.ENUM('draft','issued','paid','cancelled'), defaultValue: 'draft' },
+  paymentMethod: { type: DataTypes.STRING(30) },
+  paidAt:        { type: DataTypes.DATE },
+  dueAt:         { type: DataTypes.DATE },
+  issuedAt:      { type: DataTypes.DATE },
+  issuedBy:      { type: DataTypes.UUID },       // admin qui a émis
+  notes:         { type: DataTypes.TEXT },       // visible sur la facture
+  adminNotes:    { type: DataTypes.TEXT },       // interne, jamais imprimé
+  deletedAt:     { type: DataTypes.DATE },
+}, {
+  tableName: 'invoices',
+  timestamps: true,
+  paranoid: true,   // aucune suppression physique d'un document comptable
+  indexes: [
+    { unique: true, fields: ['invoiceNumber'] },
+    { fields: ['status','createdAt'] },
+    { fields: ['clientPhone'] },
+    { fields: ['orderId'] },
+  ],
+})
+
+
+// ── FACTURATION ASSOCIATIONS ────────────────────────
+// SET NULL et non CASCADE : supprimer une commande ou un compte ne doit jamais
+// faire disparaître la facture correspondante — c'est une pièce comptable.
+Invoice.belongsTo(Order, { foreignKey: 'orderId', as: 'order', onDelete: 'SET NULL' })
+Invoice.belongsTo(User,  { foreignKey: 'userId',  as: 'client', onDelete: 'SET NULL' })
+User.hasMany(Invoice,    { foreignKey: 'userId',  as: 'invoices' })
+
+
 // ══ SYNC ══════════════════════════════════════════════
 const syncDatabase = async (force = false) => {
   await sequelize.sync({ force, alter: !force })
@@ -909,4 +997,6 @@ module.exports = {
   FandomPageConfig, FandomActivity,
   // Anime schedule
   Anime,
+  // Facturation
+  Invoice,
 }

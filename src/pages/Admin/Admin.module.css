@@ -285,3 +285,126 @@
 @media(max-width:1024px) { .statsGrid{grid-template-columns:repeat(2,1fr)} .dash2col{grid-template-columns:1fr} .formGrid3{grid-template-columns:1fr} }
 @media(max-width:768px)  { .sidebar{width:200px} .main{margin-left:200px} .statsGrid{grid-template-columns:1fr 1fr} .detailGrid{grid-template-columns:1fr} .formGrid2{grid-template-columns:1fr} }
 @media(max-width:600px)  { .layout{flex-direction:column} .sidebar{width:100%;height:auto;position:relative} .main{margin-left:0} .content{padding:1rem} .statsGrid{grid-template-columns:1fr} }
+/* ═══════════════════════════════════════════════════════
+   AJOUTS — en-têtes de section, tableaux scrollables,
+   formulaires, et responsive mobile complet
+   ═══════════════════════════════════════════════════════ */
+
+/* Ces quatre classes étaient utilisées par CoinsSection.jsx sans jamais avoir
+   été définies : la section s'affichait donc sans aucun style. */
+.section { display: block; }
+
+.sectionHead {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 1rem; flex-wrap: wrap; margin-bottom: 1.4rem;
+}
+.sectionTitle {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-title); font-size: 1.15rem; letter-spacing: 1.5px;
+  color: var(--ad-accent); margin: 0 0 4px;
+  text-shadow: 0 0 14px rgba(51,255,51,.25);
+}
+.sectionDesc {
+  font-size: .8rem; color: var(--ad-text-2); margin: 0; max-width: 62ch; line-height: 1.6;
+}
+
+/* Un tableau large ne doit jamais élargir la page : il défile dans son propre
+   conteneur. Sans ça, sur un téléphone, c'est tout le layout qui part en
+   défilement horizontal et la navigation devient inutilisable. */
+.tableScroll {
+  width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+}
+.tableScroll .table { min-width: 620px; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: .68rem; font-weight: 800; letter-spacing: .6px;
+  border: 1px solid currentColor; white-space: nowrap;
+}
+
+/* ── Formulaires ── */
+.label {
+  display: block; font-size: .7rem; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ad-text-2); margin-bottom: 5px;
+}
+.input, .textarea, .select {
+  width: 100%; padding: .6rem .75rem;
+  background: var(--ad-card-2); color: var(--ad-text);
+  border: 1px solid var(--ad-border); border-radius: 8px;
+  font-size: .85rem; font-family: inherit;
+  /* 16px minimum sur mobile : en dessous, iOS zoome automatiquement sur le
+     champ au focus et casse la mise en page. */
+  transition: border-color .15s, box-shadow .15s;
+}
+.input:focus, .textarea:focus, .select:focus {
+  outline: none; border-color: var(--ad-border-hi);
+  box-shadow: 0 0 0 3px rgba(51,255,51,.12);
+}
+.textarea { resize: vertical; min-height: 72px; }
+.select option { background: var(--ad-surface); color: var(--ad-text); }
+
+.formRow { display: grid; gap: 12px; margin-bottom: 12px; }
+.formRow2 { grid-template-columns: 1fr 1fr; }
+.formRow3 { grid-template-columns: repeat(3, 1fr); }
+
+/* ═══ RESPONSIVE ═══════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  .sectionHead { flex-direction: column; align-items: stretch; }
+}
+
+/* En dessous de 600px la barre latérale passe au-dessus du contenu. Empilée,
+   ses 19 entrées obligeraient à faire défiler un demi-écran avant d'atteindre
+   quoi que ce soit : on la met donc à l'horizontale, en défilement latéral. */
+@media (max-width: 600px) {
+  .sidebar {
+    position: sticky; top: 0; z-index: 200;
+    max-height: none; overflow: visible;
+    border-right: none; border-bottom: 1px solid var(--ad-border);
+  }
+  .sbLogo { padding: .8rem 1rem; }
+  .sbName { font-size: .9rem; letter-spacing: 2px; }
+
+  .sbNav {
+    display: flex; gap: 6px; padding: .5rem .6rem;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sbNav::-webkit-scrollbar { display: none; }
+  .navItem {
+    flex: 0 0 auto; white-space: nowrap;
+    padding: .5rem .8rem; font-size: .78rem;
+  }
+  /* Les séparateurs de groupe n'ont plus de sens sur une barre horizontale. */
+  .sbNav > div { display: none; }
+
+  .sbFooter { display: flex; align-items: center; gap: 10px; padding: .6rem 1rem; }
+  .sbUser { flex: 1; min-width: 0; }
+  .logoutBtn { flex: 0 0 auto; width: auto; }
+
+  .topbar { flex-wrap: wrap; gap: 8px; padding: .8rem 1rem; }
+  .topbarTitle { font-size: .95rem; }
+  .content { padding: .9rem .8rem; }
+
+  .filters { gap: 6px; }
+  .filterBtn { font-size: .72rem; padding: .4rem .7rem; }
+  .searchBox { width: 100%; }
+
+  .formRow2, .formRow3 { grid-template-columns: 1fr; }
+
+  .modalBox { width: calc(100vw - 24px); max-width: none; max-height: 88vh; }
+  .modalActions { flex-direction: column-reverse; }
+  .modalActions > * { width: 100%; }
+
+  /* Les champs passent à 16px : en dessous, iOS zoome au focus et l'utilisateur
+     se retrouve avec une page décalée qu'il doit repincer à chaque champ. */
+  .input, .textarea, .select, .searchBox { font-size: 16px; }
+}
+
+@media (max-width: 380px) {
+  .sectionTitle { font-size: 1rem; letter-spacing: 1px; }
+  .content { padding: .7rem .6rem; }
+  .card { padding: .9rem .8rem; }
+}

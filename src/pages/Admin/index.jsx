@@ -21,6 +21,7 @@ import PublishersSection    from './sections/PublishersSection'
 import SubscriptionsSection from './sections/SubscriptionsSection'
 import MangaCommentsSection from './sections/MangaCommentsSection'
 import CoinsSection from './sections/CoinsSection'
+import InvoicesSection from './sections/InvoicesSection'
 import FandomSection from './sections/FandomSection'
 import AnimeSection from './sections/AnimeSection'
 
@@ -29,6 +30,7 @@ const ALL_CATS = ['posters','stickers','accessoires','kits','manga','livre','des
 const SECTIONS = [
   { id:'dashboard',   icon:'📊', label:'Dashboard'      },
   { id:'orders',      icon:'🛒', label:'Commandes'      },
+  { id:'invoices',    icon:'🧾', label:'Factures'       },
   { id:'products',    icon:'📦', label:'Produits'       },
   { id:'suppliers',   icon:'🤝', label:'Fournisseurs'   },
   { id:'events',      icon:'🎌', label:'Événements'     },
@@ -114,6 +116,7 @@ export default function Admin() {
         <div className={styles.content}>
           {section==='dashboard'  && <DashboardSection  toast={toast} setSection={setSection} />}
           {section==='orders'     && <OrdersSection     toast={toast} />}
+          {section==='invoices'   && <InvoicesSection   toast={toast} />}
           {section==='products'   && <ProductsSection   toast={toast} />}
           {section==='suppliers'  && <SuppliersSection  toast={toast} />}
           {section==='events'     && <EventsSection     toast={toast} />}

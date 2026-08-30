@@ -8,6 +8,7 @@ import { useLang }  from '../contexts/LangContext'
 import { useToast } from '../contexts/ToastContext'
 import { authApi }  from '../api'
 import Modal  from './ui/Modal'
+import GoogleSignInButton from './GoogleSignInButton'
 import { Spinner } from './ui/Spinner'
 import styles from './Navbar.module.css'
 
@@ -45,7 +46,7 @@ const i18n = {
 }
 
 export default function Navbar() {
-  const { user, login, register, logout, isAdmin } = useAuth()
+  const { user, login, loginWithGoogle, register, logout, isAdmin } = useAuth()
   const { count: cartCount } = useCart()
   const { lang, setLang } = useLang()
   const toast    = useToast()
@@ -58,6 +59,7 @@ export default function Navbar() {
   const [authTab,      setAuthTab]      = useState('login')
   const [userDropdown, setUserDropdown] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [signupLoading,setSignupLoading]= useState(false)
   const [authLoading,  setAuthLoading]  = useState(false)
   const [authError,    setAuthError]    = useState('')
@@ -102,6 +104,24 @@ export default function Navbar() {
     setResetEmail('')
     setResetCode('')
     setResetPwd('')
+  }
+
+  // Le SDK Google nous remet un ID token ; toute la vérification a lieu côté
+  // serveur. En cas de succès on ferme la modale exactement comme pour une
+  // connexion classique, sans distinguer inscription et connexion : le backend
+  // crée le compte à la volée si l'adresse est inconnue.
+  const handleGoogle = async (credential) => {
+    setGoogleLoading(true)
+    setAuthError('')
+    try {
+      const u = await loginWithGoogle(credential)
+      closeAuthModal()
+      if (['admin','superadmin'].includes(u?.role)) navigate('/admin')
+    } catch (err) {
+      setAuthError(err.message || 'Connexion Google impossible.')
+    } finally {
+      setGoogleLoading(false)
+    }
   }
 
   const handleLogin = async e => {
@@ -477,6 +497,7 @@ export default function Navbar() {
               <button type="submit" className={styles.authSubmit} disabled={loginLoading}>
                 {loginLoading ? <><Spinner size={16} color="#0c1a2e"/> {T.connecting}</> : `⚡ ${T.loginTitle}`}
               </button>
+              <GoogleSignInButton onCredential={handleGoogle} disabled={googleLoading || loginLoading} text="signin_with" />
               <p className={styles.authSwitch}>{T.noAccount}{' '}
                 <button type="button" onClick={() => { setAuthTab('signup'); setAuthError('') }}>
                   {T.signup} →
@@ -529,6 +550,7 @@ export default function Navbar() {
               <button type="submit" className={styles.authSubmit} disabled={signupLoading}>
                 {signupLoading ? <><Spinner size={16} color="#0c1a2e"/> {T.joining}...</> : `⚡ ${T.joining}`}
               </button>
+              <GoogleSignInButton onCredential={handleGoogle} disabled={googleLoading || signupLoading} text="signup_with" />
               <p className={styles.authSwitch}>{T.hasAccount}{' '}
                 <button type="button" onClick={() => { setAuthTab('login'); setAuthError('') }}>
                   {T.login} →

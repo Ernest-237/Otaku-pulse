@@ -1,0 +1,235 @@
+/* src/components/InvoiceDocument.module.css
+   Feuille de facture au format A4, pensée pour l'écran ET pour l'imprimante.
+
+   Choix : pas de librairie PDF. Le document est du HTML mis en page avec des
+   règles @media print, et l'impression navigateur produit le PDF. Ça évite
+   Chromium côté serveur (impossible sur Render en plan gratuit), ça reste
+   sélectionnable/copiable, et ça sort net sur une imprimante comme dans un
+   « Enregistrer au format PDF ». */
+
+.sheet {
+  --ink:      #101828;
+  --ink-soft: #667085;
+  --line:     #e4e7ec;
+  --accent:   #16a34a;
+  --accent-soft: #f0fdf4;
+
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 14mm 14mm 12mm;
+  background: #fff;
+  color: var(--ink);
+  font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+  box-shadow: 0 6px 30px rgba(16, 24, 40, .14);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── En-tête ────────────────────────────────────────── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14mm;
+  padding-bottom: 5mm;
+  border-bottom: 2px solid var(--accent);
+}
+
+.brand { flex: 1; min-width: 0; }
+
+.logo {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 17pt; font-weight: 900; letter-spacing: 2.5px;
+  color: var(--ink); margin: 0 0 2px;
+}
+.bolt { color: var(--accent); }
+.tagline {
+  font-size: 7.5pt; letter-spacing: 1.6px; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 700; margin-bottom: 6px;
+}
+.brandMeta { font-size: 8.5pt; color: var(--ink-soft); line-height: 1.6; }
+.brandMeta strong { color: var(--ink); font-weight: 600; }
+
+.docMeta { text-align: right; flex-shrink: 0; }
+.docType {
+  font-size: 15pt; font-weight: 900; letter-spacing: 3px;
+  text-transform: uppercase; margin: 0 0 3px;
+}
+.docNumber {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 12pt; font-weight: 700; color: var(--accent); letter-spacing: .5px;
+}
+.docDates { font-size: 8.5pt; color: var(--ink-soft); margin-top: 4px; line-height: 1.55; }
+.barcode { margin-top: 6px; display: flex; justify-content: flex-end; }
+.barcode svg { display: block; }
+
+/* Tampon d'état, incliné comme un cachet */
+.stamp {
+  display: inline-block; margin-top: 6px; padding: 3px 12px;
+  border: 2px solid currentColor; border-radius: 4px;
+  font-size: 9pt; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+.stampPaid      { color: #16a34a; }
+.stampIssued    { color: #b45309; }
+.stampDraft     { color: #667085; }
+.stampCancelled { color: #dc2626; }
+
+/* ── Blocs client / livraison ───────────────────────── */
+.parties {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8mm; margin: 6mm 0 5mm;
+}
+.party {
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 4mm 4.5mm; background: #fcfcfd;
+}
+.partyTitle {
+  font-size: 7.5pt; font-weight: 800; letter-spacing: 1.6px;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 3mm;
+}
+.partyName { font-size: 11.5pt; font-weight: 700; margin-bottom: 2px; }
+.partyLine { font-size: 9pt; color: var(--ink-soft); line-height: 1.6; }
+.partyLine strong { color: var(--ink); font-weight: 600; }
+
+/* ── Mini-carte ─────────────────────────────────────── */
+.mapWrap { margin-top: 3mm; }
+.mapFrame {
+  width: 100%; border: 1px solid var(--line); border-radius: 5px;
+  background: #f9fafb; display: block;
+}
+.mapCaption {
+  font-size: 7.5pt; color: var(--ink-soft);
+  margin-top: 2mm; line-height: 1.5; word-break: break-all;
+}
+.mapCaption strong { color: var(--ink); font-weight: 600; word-break: normal; }
+.mapApprox { font-style: italic; }
+
+/* ── Tableau des lignes ─────────────────────────────── */
+.table { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+.table thead th {
+  background: var(--accent); color: #fff;
+  font-size: 8pt; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase;
+  padding: 2.6mm 3mm; text-align: left;
+}
+.table thead th:last-child,
+.table tbody td:last-child { text-align: right; }
+.thQty, .tdQty   { text-align: center !important; width: 16mm; }
+.thUnit, .tdUnit { text-align: right !important; width: 30mm; }
+.thTotal         { width: 32mm; }
+
+.table tbody td {
+  padding: 2.4mm 3mm; border-bottom: 1px solid var(--line);
+  font-size: 9.5pt; vertical-align: top;
+}
+.table tbody tr:nth-child(even) td { background: #fafbfc; }
+.tdLabel { font-weight: 600; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ── Totaux ─────────────────────────────────────────── */
+.bottom {
+  display: grid; grid-template-columns: 1fr 78mm;
+  gap: 8mm; align-items: start; margin-bottom: 5mm;
+}
+.totals { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.totalRow {
+  display: flex; justify-content: space-between; gap: 6mm;
+  padding: 2.2mm 4mm; font-size: 9.5pt;
+}
+.totalRow + .totalRow { border-top: 1px solid var(--line); }
+.totalLabel { color: var(--ink-soft); }
+.totalGrand {
+  background: var(--accent); color: #fff;
+  font-size: 12pt; font-weight: 900; padding: 3.2mm 4mm;
+}
+.totalGrand .totalLabel { color: rgba(255, 255, 255, .85); font-weight: 700; }
+
+.payBox {
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 3.5mm 4mm; background: var(--accent-soft); font-size: 8.5pt;
+}
+.payTitle {
+  font-size: 7.5pt; font-weight: 800; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 2mm;
+}
+.payLine { color: var(--ink-soft); line-height: 1.7; }
+.payLine strong { color: var(--ink); font-weight: 700; }
+
+.notes {
+  border-left: 3px solid var(--accent); padding: 1mm 0 1mm 4mm;
+  font-size: 8.5pt; color: var(--ink-soft); margin-bottom: 4mm;
+  white-space: pre-wrap;
+}
+
+/* ── Pied de page ───────────────────────────────────── */
+.footer {
+  margin-top: auto; padding-top: 4mm; border-top: 1px solid var(--line);
+  font-size: 7.5pt; color: var(--ink-soft); text-align: center; line-height: 1.7;
+}
+.footerBrand { font-weight: 800; color: var(--ink); letter-spacing: 1.4px; }
+.footerLegal { margin-top: 1.5mm; }
+
+/* ── Écran : la feuille reste lisible sur mobile ─────
+   L'admin consulte parfois une facture depuis son téléphone. On met la
+   feuille à l'échelle plutôt que d'imposer un défilement horizontal, et on
+   repasse les blocs jumeaux en pile. */
+@media screen and (max-width: 820px) {
+  .sheet {
+    width: 100%; min-height: 0;
+    padding: 6mm 5mm; font-size: 10pt;
+    box-shadow: 0 3px 14px rgba(16, 24, 40, .12);
+  }
+  .header { flex-direction: column; gap: 4mm; }
+  .docMeta { text-align: left; }
+  .barcode { justify-content: flex-start; }
+  .parties, .bottom { grid-template-columns: 1fr; gap: 4mm; }
+  .table thead th, .table tbody td { padding: 2mm; font-size: 8.5pt; }
+  .thQty, .tdQty { width: auto; }
+  .thUnit, .tdUnit, .thTotal { width: auto; }
+}
+
+@media screen and (max-width: 420px) {
+  .sheet { padding: 4mm 3.5mm; font-size: 9.5pt; }
+  .logo { font-size: 14pt; letter-spacing: 1.6px; }
+  .docType { font-size: 12pt; letter-spacing: 2px; }
+  .docNumber { font-size: 10.5pt; }
+  .totalGrand { font-size: 10.5pt; }
+}
+
+/* ── Impression ─────────────────────────────────────── */
+@page { size: A4; margin: 8mm; }
+
+@media print {
+  /* On masque tout le reste de l'application sans le retirer du flux :
+     `visibility` préserve la structure, ce qui évite les reflows hasardeux que
+     provoquerait un `display: none` sur des conteneurs en grid/flex. */
+  :global(body) * { visibility: hidden !important; }
+  .sheet, .sheet * { visibility: visible !important; }
+
+  .sheet {
+    position: absolute; left: 0; top: 0;
+    width: 100%; min-height: 0;
+    margin: 0; padding: 0;
+    box-shadow: none;
+    font-size: 10pt;
+  }
+
+  /* Les aplats de couleur doivent survivre à l'impression : sans cette règle,
+     la plupart des navigateurs suppriment les fonds et l'en-tête du tableau
+     ressort en texte blanc sur blanc. */
+  .table thead th, .totalGrand, .payBox, .stamp {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Une ligne de facture ne doit jamais être coupée entre deux pages, et
+     l'en-tête du tableau se répète en haut de chaque page. */
+  .table { page-break-inside: auto; }
+  .table thead { display: table-header-group; }
+  .table tr { page-break-inside: avoid; page-break-after: auto; }
+  .bottom, .parties, .footer { page-break-inside: avoid; }
+}

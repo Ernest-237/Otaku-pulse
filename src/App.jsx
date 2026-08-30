@@ -1,4 +1,15 @@
-// src/App.jsx — Toutes les routes + Manga Platform complète (étape 3)
+// src/App.jsx — Toutes les routes + Manga Platform complète
+//
+// Découpage du bundle par route (React.lazy) : avant, chaque visiteur
+// téléchargeait l'application entière — panneau d'administration et Recharts
+// compris — pour afficher la page d'accueil. Sur une connexion 3G, cela
+// représentait plusieurs secondes d'attente pour du code que l'immense
+// majorité des visiteurs n'ouvrira jamais.
+//
+// Seule la page d'accueil reste en import direct : c'est la route la plus
+// visitée, la charger paresseusement ajouterait un aller-retour réseau là où
+// il fait le plus mal.
+import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { PageLoader } from './components/ui/Spinner'
@@ -6,27 +17,33 @@ import Music from './components/Music'
 import { MusicProvider } from './contexts/MusicContext'
 import PolicyGate from './components/PolicyGate'
 
-// Pages existantes
-import Home          from './pages/Home'
-import BoutiquePage  from './pages/Boutique'
-import ReservationPage from './pages/Reservation'
-import LegalPage     from './pages/Legal'
-import Blog          from './pages/Blog'
-import Profil        from './pages/Profil'
-import Admin         from './pages/Admin'
-import FandomPage    from './pages/Fandom'
-import MembershipPage from './pages/Membership'
-import PolesPage      from './pages/Poles'
-import PartnerShopPage from './pages/Boutique/partner'
+// Page d'accueil : chargée d'emblée.
+import Home from './pages/Home'
+
+// ── Pages secondaires, chargées à la demande ──
+const BoutiquePage    = lazy(() => import('./pages/Boutique'))
+const PartnerShopPage = lazy(() => import('./pages/Boutique/partner'))
+const ReservationPage = lazy(() => import('./pages/Reservation'))
+const LegalPage       = lazy(() => import('./pages/Legal'))
+const Blog            = lazy(() => import('./pages/Blog'))
+const Profil          = lazy(() => import('./pages/Profil'))
+const FandomPage      = lazy(() => import('./pages/Fandom'))
+const MembershipPage  = lazy(() => import('./pages/Membership'))
+const PolesPage       = lazy(() => import('./pages/Poles'))
+
+// Le panneau d'administration est le plus gros morceau du bundle (Recharts,
+// tableaux, formulaires) pour deux utilisateurs. Il ne doit jamais partir
+// chez un visiteur ordinaire.
+const Admin = lazy(() => import('./pages/Admin'))
 
 // ── Manga Platform ──
-import MangaCatalog   from './pages/Manga'
-import MangaDetail    from './pages/Manga/detail'
-import MangaReader    from './pages/Manga/reader'
-import MangaPlans     from './pages/Manga/plans'
-import MangaLibrary   from './pages/Manga/library'
-import MangaPublisher from './pages/Manga/publisher'
-import CoinsPage from './pages/Manga/coins'
+const MangaCatalog   = lazy(() => import('./pages/Manga'))
+const MangaDetail    = lazy(() => import('./pages/Manga/detail'))
+const MangaReader    = lazy(() => import('./pages/Manga/reader'))
+const MangaPlans     = lazy(() => import('./pages/Manga/plans'))
+const MangaLibrary   = lazy(() => import('./pages/Manga/library'))
+const MangaPublisher = lazy(() => import('./pages/Manga/publisher'))
+const CoinsPage      = lazy(() => import('./pages/Manga/coins'))
 
 // Guards
 function AdminRoute({ children }) {
@@ -47,6 +64,10 @@ export default function App() {
     <MusicProvider>
     <Music />
     <PolicyGate />
+    {/* Un seul Suspense englobe toutes les routes : pendant qu'un morceau se
+        télécharge, l'utilisateur voit le loader existant du site plutôt qu'un
+        écran blanc. */}
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* Pages publiques */}
       <Route path="/"            element={<Home />} />
@@ -75,6 +96,7 @@ export default function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
     </MusicProvider>
   )
 }
