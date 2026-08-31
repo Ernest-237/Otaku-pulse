@@ -615,6 +615,11 @@ function InvoiceDetail({ invoice, company, paymentMethods, onBack, onChanged }) 
     setNote('')
   }, [invoice.id, invoice.amountPaid])
 
+  // Libellés des moyens de paiement, dérivés de la configuration serveur
+  // (`GET /api/admin/invoices/config`) plutôt que recopiés en dur : c'est le
+  // backend qui fait autorité sur la liste des moyens acceptés.
+  const methodLabels = Object.fromEntries((paymentMethods || []).map(m => [m.id, m.label]))
+
   const meta     = STATUS_META[invoice.status] || STATUS_META.draft
   const closed   = invoice.status === 'cancelled'
   const settled  = invoice.status === 'paid'
@@ -767,7 +772,7 @@ function InvoiceDetail({ invoice, company, paymentMethods, onBack, onChanged }) 
                   {fmt(h.amount)} {invoice.currency}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[0.78rem] text-fg-muted">
-                  {METHOD_LABELS[h.method] || h.method || '—'}
+                  {methodLabels[h.method] || h.method || '—'}
                   {h.note ? ` · ${h.note}` : ''}
                 </span>
                 <span className="hidden shrink-0 text-[0.72rem] text-fg-faint sm:inline">

@@ -8,13 +8,14 @@ import { CartProvider }  from './contexts/CartContext'
 import { LangProvider }  from './contexts/LangContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { checkHealth } from './api'
-// Tailwind AVANT le CSS du site, et c'est délibéré.
-// Tailwind génère une utilitaire `.container` (max-width jusqu'à 1536px)
-// qui entrait en collision avec le `.container` de main.css (1200px). En
-// chargeant Tailwind en premier, la définition du site gagne à spécificité
-// égale. Les seules classes globales de main.css sont `.container` et
-// `.section-tag` ; tout le reste sont des sélecteurs d'éléments, de
-// spécificité inférieure à n'importe quelle classe Tailwind.
+// Tailwind est chargé avant le CSS du site : en cas de conflit à spécificité
+// égale, la règle du site l'emporte.
+//
+// Ce n'est qu'une sécurité secondaire. La vraie protection est le périmètre de
+// scan restreint dans admin.css : Tailwind ne voit jamais les fichiers du site
+// public, donc il ne génère aucune classe susceptible d'entrer en conflit.
+// L'ordre seul ne suffisait pas — le plugin Tailwind réinjecte sa feuille à
+// chaque recompilation en développement, et repassait alors en dernier.
 import './styles/admin.css'
 import './styles/main.css'
 

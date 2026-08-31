@@ -36,10 +36,26 @@
 @import 'tailwindcss/theme.css';
 @import 'tailwindcss/utilities.css' source(none);
 
-/* Tout `src/` est scanné : la collision `.container` est réglée par l'ordre
-   d'import (Tailwind avant main.css, voir main.jsx), donc Tailwind peut
-   désormais servir n'importe où dans le projet. */
-@source '../**/*.{js,jsx}';
+/* PÉRIMÈTRE DE SCAN : le panneau d'administration UNIQUEMENT.
+
+   Ne pas élargir sans lire ceci. Le site public utilise partout la classe
+   `container` (définie dans main.css à 1200px). Dès que Tailwind la voit dans
+   un fichier scanné, il génère SA propre `.container` (jusqu'à 1536px, sans
+   marges), et les deux entrent en conflit.
+
+   Jouer sur l'ordre d'import ne suffit PAS : en développement, Vite injecte le
+   CSS via des balises <style> créées à l'exécution, et le plugin Tailwind
+   réinjecte la sienne à chaque recompilation. Elle repasse alors en dernier
+   dans le <head> et gagne à spécificité égale — d'où un bandeau correct au
+   premier rendu, puis brutalement élargi une fraction de seconde plus tard.
+
+   La seule correction fiable est d'empêcher la génération : Tailwind ne
+   scanne que `pages/Admin`, où le mot `container` n'apparaît jamais.
+
+   Si tu veux utiliser Tailwind ailleurs, ajoute le dossier ici ET remplace
+   dans ces fichiers `className="container"` par son équivalent explicite
+   (`mx-auto w-full max-w-[1200px] px-6`). */
+@source '../pages/Admin';
 
 /* ═══════════════════════════════════════════════════════
    PALETTE

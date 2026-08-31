@@ -1,5 +1,11 @@
 /* src/components/AnimeCarousel.module.css */
 .wrap {
+  /* La piste interne fait plusieurs milliers de pixels (`width: max-content`).
+     Sans ces deux règles, elle gonfle la colonne de grille qui contient le
+     carrousel — `overflow: hidden` masque le débordement mais ne réduit pas
+     la contribution du contenu au calcul de la grille. */
+  min-width: 0;
+  max-width: 100%;
   border-radius: var(--radius-lg, 16px);
   overflow: hidden;
   border: 2px solid var(--border);
@@ -28,7 +34,7 @@
 }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-.viewport { overflow: hidden; padding: 10px 0; }
+.viewport { min-width: 0; max-width: 100%; overflow: hidden; padding: 10px 0; }
 .track {
   display: flex;
   gap: 12px;
