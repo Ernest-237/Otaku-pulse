@@ -855,9 +855,49 @@ const Anime = sequelize.define('Anime', {
   openingTitle:    { type: DataTypes.STRING(150) },
   openingUrl:      { type: DataTypes.STRING(500) },
   characters:      { type: DataTypes.JSONB, defaultValue: [] }, // [{ name, role, imageUrl }]
+  // ── SYNCHRONISATION AUTOMATIQUE ────────────────────
+  // 'manual' : saisi par l'admin — le bot n'y touche JAMAIS.
+  // 'auto'   : importé depuis AniList, rafraîchi à chaque passage du bot.
+  source:          { type: DataTypes.ENUM('manual','auto'), defaultValue: 'manual' },
+  externalSource:  { type: DataTypes.STRING(20) },   // 'anilist'
+  externalId:      { type: DataTypes.INTEGER },      // identifiant AniList
+
+  // Verrou anti-écrasement : dès que l'admin modifie une fiche importée,
+  // elle est verrouillée et le bot la contourne définitivement. Sans ça,
+  // chaque synchronisation nocturne effacerait le travail fait à la main.
+  isLocked:        { type: DataTypes.BOOLEAN, defaultValue: false },
+
+  // Affiches servies depuis le CDN AniList plutôt que stockées en base :
+  // 40 animés × ~250 Ko de base64 à chaque passage feraient gonfler la base
+  // de plusieurs mégaoctets par jour. Les champs base64 restent utilisés
+  // pour les fiches saisies à la main.
+  coverImageUrl:   { type: DataTypes.STRING(500) },
+  bannerImageUrl:  { type: DataTypes.STRING(500) },
+
+  // ── Métadonnées AniList ────────────────────────────
+  score:           { type: DataTypes.INTEGER },      // note moyenne /100
+  popularity:      { type: DataTypes.INTEGER },      // sert au tri du carrousel
+  episodes:        { type: DataTypes.INTEGER },
+  genres:          { type: DataTypes.JSONB, defaultValue: [] },
+  siteUrl:         { type: DataTypes.STRING(300) },
+  trailerUrl:      { type: DataTypes.STRING(300) },
+
+  // Prochain épisode : c'est ce qui alimente « ça sort cette semaine ».
+  nextEpisodeNumber: { type: DataTypes.INTEGER },
+  nextEpisodeAt:     { type: DataTypes.DATE },
+  syncedAt:          { type: DataTypes.DATE },
+
   order:           { type: DataTypes.INTEGER, defaultValue: 0 },
   isActive:        { type: DataTypes.BOOLEAN, defaultValue: true },
-}, { tableName: 'animes', timestamps: true, indexes: [{ fields: ['month','status'] }] })
+}, {
+  tableName: 'animes', timestamps: true,
+  indexes: [
+    { fields: ['month','status'] },
+    { fields: ['status','nextEpisodeAt'] },
+    // Empêche le bot de créer un doublon si une fiche existe déjà.
+    { unique: true, fields: ['externalSource','externalId'] },
+  ],
+})
 
 // ── FANDOM ASSOCIATIONS ─────────────────────────────
 User.hasMany(CosplayEntry,    { foreignKey: 'userId', as: 'cosplayEntries', onDelete: 'CASCADE' })
@@ -924,7 +964,22 @@ const Invoice = sequelize.define('Invoice', {
   currency:      { type: DataTypes.STRING(8), defaultValue: 'FCFA' },
 
   // ── Cycle de vie ───────────────────────────────────
-  status:        { type: DataTypes.ENUM('draft','issued','paid','cancelled'), defaultValue: 'draft' },
+  // draft    : brouillon, modifiable
+  // issued   : émise, remise au client, figée
+  // partial  : un acompte a été encaissé, le solde reste dû
+  // paid     : intégralement réglée
+  // cancelled: annulée (terminal)
+  status:        { type: DataTypes.ENUM('draft','issued','partial','paid','cancelled'), defaultValue: 'draft' },
+
+  // ── Encaissements ──────────────────────────────────
+  // `status` n'est JAMAIS posé à la main pour partial/paid : il se déduit de
+  // `amountPaid` face à `total`. Un statut saisi manuellement se
+  // désynchroniserait des montants dès le premier acompte et la facture
+  // mentirait sur sa propre réalité comptable.
+  amountPaid:    { type: DataTypes.INTEGER, defaultValue: 0 },
+  // Historique des versements : [{ amount, method, at, by, note }]
+  // Conservé même après annulation — c'est une trace comptable.
+  payments:      { type: DataTypes.JSONB, defaultValue: [] },
   paymentMethod: { type: DataTypes.STRING(30) },
   paidAt:        { type: DataTypes.DATE },
   dueAt:         { type: DataTypes.DATE },

@@ -264,7 +264,7 @@
   /* Les aplats de couleur doivent survivre à l'impression : sans cette règle,
      la plupart des navigateurs suppriment les fonds et l'en-tête du tableau
      ressort en texte blanc sur blanc. */
-  .table thead th, .totalGrand, .payBox, .stamp, .depotBox {
+  .table thead th, .totalGrand, .totalDue, .payBox, .stamp, .depotBox {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -276,3 +276,16 @@
   .table tr { page-break-inside: avoid; page-break-after: auto; }
   .bottom, .parties, .footer, .clientZone, .depotBox { page-break-inside: avoid; }
 }
+
+/* Ligne « Reste à payer » sur une facture partiellement réglée.
+   Elle doit ressortir plus que le total lui-même : c'est le montant que le
+   client doit encore verser, donc l'information qu'il cherche en priorité. */
+.totalDue {
+  background: #fffbeb;
+  border-top: 2px solid #b45309 !important;
+  color: #92400e;
+  font-size: 11pt;
+  font-weight: 900;
+  padding: 2.8mm 4mm;
+}
+.totalDue .totalLabel { color: #b45309; font-weight: 800; }

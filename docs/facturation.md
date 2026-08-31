@@ -61,13 +61,63 @@ sélectionnable, et se met à jour avec le reste du site.
 À l'impression, toute l'interface d'administration est masquée : seule la feuille
 de facture apparaît sur le papier.
 
-## Cycle de vie
+## Cycle de vie et encaissements
 
 ```
-  brouillon ──émettre──► à régler ──encaisser──► acquittée
-      │                      │                       │
-      └──────────────── annuler ─────────────────────┘
+                      ┌──── acompte ────┐
+                      ▼                 │
+  brouillon ──émettre──► à régler ──► partiel ──solde──► réglée
+      │                     │            │                 │
+      └──────────────── annuler ─────────┴─────────────────┘
 ```
+
+### Le statut n'est jamais posé à la main
+
+`partiel` et `réglée` sont **déduits** du montant encaissé face au total :
+
+| Encaissé | Statut |
+|---|---|
+| 0 | brouillon ou à régler |
+| entre 0 et le total | **partiel** |
+| ≥ total | **réglée** |
+
+C'est délibéré. Un statut basculé manuellement se désynchroniserait des
+montants dès le premier acompte, et la facture mentirait sur sa propre réalité
+comptable. `PATCH /:id/status` refuse d'ailleurs explicitement `partial` et
+`paid` : il ne gère que les transitions documentaires (émettre, annuler).
+
+### Enregistrer un paiement
+
+Ouvre la facture → bloc **Encaissement**. Saisis le montant reçu, le moyen et
+une note facultative (« acompte », référence de transaction). Le bouton
+**Solder** remplit d'un clic le montant restant.
+
+Chaque versement est horodaté et signé du pseudo de l'admin, dans un historique
+consultable. Un versement mal saisi s'annule d'un clic : le statut est alors
+recalculé automatiquement.
+
+Deux garde-fous côté serveur :
+
+- **Un versement supérieur au solde est refusé.** C'est presque toujours un
+  zéro en trop ; mieux vaut un message clair qu'un trop-perçu enregistré en
+  silence.
+- **Aucun encaissement sur une facture annulée.**
+
+Encaisser sur un brouillon vaut émission : la facture devient un document
+opposable au moment où l'argent change de mains.
+
+### Sur le document imprimé
+
+Une facture partiellement réglée affiche le tampon **« Acompte reçu »**, puis
+sous le total : *Déjà réglé* et **Reste à payer**, en ambre. Le client lit
+directement ce qu'il doit encore verser, sans avoir à le calculer.
+
+### Ce que comptent les indicateurs
+
+Le tableau de bord somme les **encaissements réels** (`amountPaid`), pas les
+totaux facturés : une facture à moitié payée ne compte que pour ce qui est
+réellement entré en caisse. « Reste à encaisser » = total des factures ouvertes
+moins les acomptes déjà reçus dessus.
 
 **Une facture émise est figée.** Ses lignes et ses montants ne sont plus
 modifiables (le serveur renvoie une 409). C'est volontaire : le client détient un

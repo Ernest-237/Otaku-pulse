@@ -22,6 +22,9 @@ const fmtDate = (d) => d
 const STATUS = {
   draft:     { label: 'Brouillon', cls: 'stampDraft'     },
   issued:    { label: 'À régler',  cls: 'stampIssued'    },
+  // Un acompte a été encaissé : le tampon doit le dire, sinon le client
+  // reçoit un document « à régler » alors qu'il a déjà payé une partie.
+  partial:   { label: 'Acompte reçu', cls: 'stampIssued' },
   paid:      { label: 'Acquittée', cls: 'stampPaid'      },
   cancelled: { label: 'Annulée',   cls: 'stampCancelled' },
 }
@@ -297,10 +300,27 @@ export default function InvoiceDocument({ invoice, company }) {
           )}
           <div className={`${styles.totalRow} ${styles.totalGrand}`}>
             <span className={styles.totalLabel}>
-              {invoice.taxRate > 0 ? 'Total TTC' : 'Total à payer'}
+              {invoice.taxRate > 0 ? 'Total TTC' : 'Total'}
             </span>
             <span className={styles.num}>{fmt(invoice.total)} {invoice.currency}</span>
           </div>
+
+          {/* Acomptes : le client doit lire sur le document ce qu'il a déjà
+              versé et ce qu'il lui reste à payer, sans avoir à le calculer. */}
+          {invoice.amountPaid > 0 && (
+            <>
+              <div className={styles.totalRow}>
+                <span className={styles.totalLabel}>Déjà réglé</span>
+                <span className={styles.num}>− {fmt(invoice.amountPaid)} {invoice.currency}</span>
+              </div>
+              <div className={`${styles.totalRow} ${styles.totalDue}`}>
+                <span className={styles.totalLabel}>Reste à payer</span>
+                <span className={styles.num}>
+                  {fmt(Math.max(0, invoice.total - invoice.amountPaid))} {invoice.currency}
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </section>
 

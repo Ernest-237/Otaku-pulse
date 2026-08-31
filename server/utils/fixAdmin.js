@@ -34,8 +34,8 @@ async function fixAdmin() {
         password:  ADMIN_PASSWORD,        // hash auto via beforeSave hook
         firstName: 'Admin',
         lastName:  'Otaku Pulse',
-        phone:     '+237 675 712 739',
-        whatsapp:  '+237 675 712 739',
+        phone:     '+237 670 63 36 70',
+        whatsapp:  '+237 670 63 36 70',
         city:      'Yaoundé',
         quartier:  'Bastos',
         role:      'superadmin',

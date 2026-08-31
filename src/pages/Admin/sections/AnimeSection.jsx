@@ -10,6 +10,13 @@ import Badge, { statusVariant } from '../../../components/ui/Badge'
 import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
 import styles from '../Admin.module.css'
 
+// `coverUrl` vaut soit un chemin relatif servi par notre API (image
+// téléversée à la main), soit une URL absolue vers le CDN AniList (image
+// importée). Préfixer aveuglément par API_BASE casserait la seconde.
+const resolveCover = (url) =>
+  !url ? null : url.startsWith('http') ? url : `${API_BASE}${url}`
+
+
 const STATUS_OPTS = [
   { v:'upcoming', l:'🔜 À venir' },
   { v:'airing',   l:'📡 En cours' },
@@ -17,11 +24,85 @@ const STATUS_OPTS = [
 ]
 const currentMonth = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01` }
 
+/* ══ BOT DE SYNCHRONISATION ══
+   Le planning se remplit tout seul depuis AniList (voir server/jobs/animeCron.js).
+   Ce panneau ne sert qu'au pilotage : voir l'état, forcer un rafraîchissement. */
+function SyncPanel({ toast, onSynced }) {
+  const { data, refresh } = useApi(() => animeApi.syncStatus(), [])
+  const [busy, setBusy] = useState(false)
+
+  const counts = data?.counts || {}
+  const last   = data?.lastSyncAt
+
+  const run = async () => {
+    setBusy(true)
+    try {
+      const r = await animeApi.syncNow({ perPage: 25, prune: true })
+      toast.success(r.message)
+      if (r.errors?.length) toast.error(`Avertissements : ${r.errors[0]}`)
+      refresh(); onSynced()
+    } catch (err) { toast.error(err.message) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <div className="adm-card mb-4">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-[0.9rem] font-bold">
+            <span className={`inline-block h-2 w-2 rounded-full ${data?.enabled ? 'bg-brand' : 'bg-fg-faint'}`} />
+            Bot AniList
+          </div>
+          <p className="mt-1 mb-0 max-w-xl text-[0.79rem] leading-relaxed text-fg-muted">
+            Importe automatiquement les animés en cours, à venir et tendances, avec
+            affiches, synopsis et jour de diffusion. Passage complet à 04h00, calendrier
+            rafraîchi toutes les 6 heures.
+          </p>
+        </div>
+        <button className="adm-btn adm-btn-primary" onClick={run} disabled={busy}>
+          {busy ? 'Synchronisation…' : 'Synchroniser maintenant'}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {[
+          ['Importés',   counts.auto     ?? '—', 'text-brand'],
+          ['Manuels',    counts.manual   ?? '—', 'text-info'],
+          ['Verrouillés',counts.locked   ?? '—', 'text-warn'],
+          ['En cours',   counts.airing   ?? '—', 'text-fg'],
+          ['À venir',    counts.upcoming ?? '—', 'text-violet'],
+        ].map(([label, value, tone]) => (
+          <div key={label} className="rounded-lg border border-line bg-ink-800/50 px-3 py-2">
+            <div className="text-[0.64rem] uppercase tracking-wider text-fg-faint">{label}</div>
+            <div className={`text-[1.05rem] font-extrabold ${tone}`}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <p className="mb-0 mt-3 text-[0.74rem] text-fg-faint">
+        {last
+          ? `Dernière synchronisation : ${new Date(last).toLocaleString('fr-FR')}`
+          : 'Aucune synchronisation enregistrée pour le moment.'}
+        {' · '}
+        Une fiche que tu modifies se <strong className="text-warn">verrouille</strong> automatiquement :
+        le bot ne l'écrasera plus jamais.
+      </p>
+    </div>
+  )
+}
+
 export default function AnimeSection({ toast }) {
   const { data, loading, execute } = useApi(() => animeApi.getAll({ limit:100 }), [], true)
   const [modal,   setModal]   = useState(false)
   const [editing, setEditing] = useState(null)
   const animes = data?.animes || []
+
+  const toggleLock = async (a) => {
+    try {
+      const r = await animeApi.setLock(a.id, !a.isLocked)
+      toast.success(r.message); execute()
+    } catch (err) { toast.error(err.message) }
+  }
 
   const save = async (form) => {
     try {
@@ -38,26 +119,58 @@ export default function AnimeSection({ toast }) {
   if (loading) return <PageLoader />
 
   return (
-    <div className={styles.card}>
+    <div>
+      <SyncPanel toast={toast} onSynced={execute} />
+
+      <div className={styles.card}>
       <div className={styles.cardHeader}>
         <span className={styles.cardTitle}>📺 Planning Anime ({animes.length})</span>
         <Button variant="primary" size="sm" onClick={() => { setEditing(null); setModal(true) }}>+ Anime</Button>
       </div>
-      <div style={{ padding:'1rem', display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:10 }}>
+      <div className="grid gap-2.5 p-4 sm:grid-cols-2 xl:grid-cols-3">
         {animes.map(a => (
-          <div key={a.id} style={{ display:'flex', gap:10, padding:10, background:'rgba(255,255,255,.03)', border:'1px solid var(--ad-border,rgba(51,255,51,.12))', borderRadius:10 }}>
+          <div key={a.id} className="flex gap-2.5 rounded-xl border border-line bg-ink-800/40 p-2.5">
             {a.coverUrl
-              ? <img src={`${API_BASE}${a.coverUrl}`} alt="" style={{ width:56, height:76, borderRadius:8, objectFit:'cover', flexShrink:0 }} />
-              : <div style={{ width:56, height:76, borderRadius:8, background:'rgba(255,255,255,.06)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.4rem', flexShrink:0 }}>📺</div>}
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:'.85rem', fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'var(--ad-text,#e8ffe8)' }}>{a.titleF}</div>
-              <div style={{ display:'flex', gap:6, flexWrap:'wrap', margin:'4px 0' }}>
-                <Badge variant={statusVariant(a.status)} style={{ fontSize:'.62rem' }}>{STATUS_OPTS.find(s=>s.v===a.status)?.l||a.status}</Badge>
-                <span style={{ fontSize:'.72rem', color:'var(--ad-text-2,#8fa896)' }}>{new Date(a.month).toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}</span>
+              ? <img src={resolveCover(a.coverUrl)} alt="" loading="lazy"
+                  className="h-[76px] w-[56px] shrink-0 rounded-lg object-cover" />
+              : <div className="flex h-[76px] w-[56px] shrink-0 items-center justify-center rounded-lg bg-ink-800 text-xl">📺</div>}
+
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[0.85rem] font-bold text-fg" title={a.titleF}>{a.titleF}</div>
+
+              <div className="my-1 flex flex-wrap items-center gap-1.5">
+                <Badge variant={statusVariant(a.status)} style={{ fontSize:'.62rem' }}>
+                  {STATUS_OPTS.find(s => s.v === a.status)?.l || a.status}
+                </Badge>
+                {/* Origine de la fiche : l'admin doit savoir d'un coup d'œil
+                    ce que le bot peut écraser et ce qui est protégé. */}
+                {a.source === 'auto' && (
+                  <span className="adm-chip text-info">AniList</span>
+                )}
+                {a.isLocked && <span className="adm-chip text-warn" title="Le bot n'écrasera pas cette fiche">Verrouillée</span>}
               </div>
-              {a.openingTitle && <div style={{ fontSize:'.72rem', color:'var(--ad-text-2,#8fa896)' }}>🎵 {a.openingTitle}</div>}
-              <div style={{ display:'flex', gap:6, marginTop:6 }}>
+
+              <div className="text-[0.72rem] text-fg-faint">
+                {new Date(a.month).toLocaleDateString('fr-FR', { month:'long', year:'numeric' })}
+                {a.studio && ` · ${a.studio}`}
+              </div>
+
+              {/* Prochain épisode : c'est l'information « ça sort cette semaine ». */}
+              {a.nextEpisodeAt && (
+                <div className="mt-0.5 text-[0.72rem] font-semibold text-brand">
+                  Ép. {a.nextEpisodeNumber} — {a.weekday} {new Date(a.nextEpisodeAt).toLocaleDateString('fr-FR')}
+                </div>
+              )}
+              {a.openingTitle && <div className="text-[0.72rem] text-fg-faint">🎵 {a.openingTitle}</div>}
+
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
                 <Button variant="ghost" size="sm" onClick={() => { setEditing(a); setModal(true) }}>✏️</Button>
+                {a.source === 'auto' && (
+                  <Button variant="ghost" size="sm" onClick={() => toggleLock(a)}
+                    title={a.isLocked ? 'Rendre la fiche au bot' : 'Protéger de la synchro'}>
+                    {a.isLocked ? '🔓' : '🔒'}
+                  </Button>
+                )}
                 <Button variant="danger" size="sm" onClick={() => remove(a.id)}>🗑️</Button>
               </div>
             </div>
@@ -66,6 +179,7 @@ export default function AnimeSection({ toast }) {
         {!animes.length && <EmptyState icon="📺" title="Aucun anime au planning" />}
       </div>
       {modal && <AnimeModal anime={editing} onClose={() => { setModal(false); setEditing(null) }} onSave={save} toast={toast} />}
+      </div>
     </div>
   )
 }

@@ -417,6 +417,12 @@ export const animeApi = {
   create:   (data)   => request('POST', '/api/anime', data),
   update:   (id, d)  => request('PATCH', `/api/anime/${id}`, d),
   delete:   (id)     => request('DELETE', `/api/anime/${id}`),
+  // ── Bot de synchronisation (AniList) ──
+  // Le bot tourne seul via node-cron ; ces routes servent au pilotage manuel.
+  syncNow:    (opts = {}) => request('POST', '/api/anime/sync', opts),
+  syncStatus: ()          => request('GET',  '/api/anime/sync/status'),
+  // Verrouiller une fiche empêche définitivement le bot de la réécrire.
+  setLock:    (id, isLocked) => request('PATCH', `/api/anime/${id}/lock`, { isLocked }),
 }
 
 // ── HEALTH ────────────────────────────────────────────
@@ -436,7 +442,12 @@ export const adminInvoicesApi = {
   create:     (data)      => request('POST',   '/api/admin/invoices', data),
   fromOrder:  (orderId, data = {}) => request('POST', `/api/admin/invoices/from-order/${orderId}`, data),
   update:     (id, data)  => request('PATCH',  `/api/admin/invoices/${id}`, data),
-  setStatus:  (id, status, paymentMethod) => request('PATCH', `/api/admin/invoices/${id}/status`, { status, paymentMethod }),
+  // Transitions documentaires uniquement (émettre, annuler).
+  setStatus:  (id, status) => request('PATCH', `/api/admin/invoices/${id}/status`, { status }),
+  // Encaissement : c'est la seule voie vers « partiel » et « réglée »,
+  // le statut étant déduit du montant reçu face au total.
+  addPayment: (id, data) => request('POST', `/api/admin/invoices/${id}/payment`, data),
+  removePayment: (id, index) => request('DELETE', `/api/admin/invoices/${id}/payment/${index}`),
   archive:    (id)        => request('DELETE', `/api/admin/invoices/${id}`),
 }
 

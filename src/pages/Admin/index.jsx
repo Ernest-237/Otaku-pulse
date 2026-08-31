@@ -102,7 +102,7 @@ export default function Admin() {
   const current = FLAT.find(s => s.id === section)
 
   return (
-    <div className="min-h-screen bg-ink-950 text-fg">
+    <div className="adm-root min-h-screen bg-ink-950 text-fg">
 
       {/* Voile du tiroir mobile */}
       {navOpen && (

@@ -8,12 +8,21 @@
    manga et la page d'accueil. On n'importe donc que le thème et les
    utilitaires, ce qui rend Tailwind purement additif.
 
-   Ordre des couches déclaré explicitement pour que les utilitaires gagnent
-   toujours sur les modules CSS existants. */
-@layer theme, base, components, utilities;
+   AUCUN @layer — ET C'EST DÉLIBÉRÉ
+   `src/styles/main.css` contient, en CSS non-layered :
 
-@import 'tailwindcss/theme.css' layer(theme);
-@import 'tailwindcss/utilities.css' layer(utilities);
+       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+   Or une règle non-layered l'emporte sur TOUTE règle placée dans un @layer,
+   quelle que soit sa spécificité. Tant que les utilitaires Tailwind étaient
+   dans `@layer utilities`, ce reset annulait silencieusement chacun d'eux :
+   `lg:pl-60` ne s'appliquait pas et le contenu passait sous la barre latérale,
+   `px-4`, `mb-4` et le padding des primitives `.adm-*` étaient morts eux aussi.
+
+   En important sans couche, tout se joue à la spécificité normale :
+   `.lg\:pl-60` (0,1,0) bat `*` (0,0,0). */
+@import 'tailwindcss/theme.css';
+@import 'tailwindcss/utilities.css';
 
 /* ═══════════════════════════════════════════════════════
    PALETTE
@@ -65,7 +74,6 @@
    Composants réutilisés dans toutes les sections. Déclarés ici plutôt que
    répétés dans chaque fichier : une seule modification les met tous à jour.
    ═══════════════════════════════════════════════════════ */
-@layer components {
 
   .adm-card {
     background: var(--color-ink-850);
@@ -169,7 +177,7 @@
   }
   .adm-table tbody tr:hover td { background: var(--color-ink-800); }
   .adm-table tbody tr:last-child td { border-bottom: none; }
-}
+
 
 /* ═══════════════════════════════════════════════════════
    PONT VERS LES MODULES CSS EXISTANTS
@@ -211,4 +219,74 @@
   --ad-blue:      #3b82f6;
   --ad-pink:      #ec4899;
   --ad-violet:    #8b5cf6;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESET LOCAL DU PANNEAU
+   ═══════════════════════════════════════════════════════
+
+   Le preflight de Tailwind est désactivé (il casserait le site public). Sans
+   lui, un <button> conserve le style natif du navigateur : fond gris clair et
+   bordure en relief. Les entrées de menu stylées uniquement en classes
+   Tailwind s'affichaient donc en pastilles blanches sur la barre sombre.
+
+   `:where()` a une spécificité de ZÉRO : ce reset neutralise les styles
+   natifs mais perd contre n'importe quelle classe — y compris `.adm-input`
+   et les modules CSS des sections. C'est le comportement attendu d'un reset,
+   et cela évite de casser les champs en réparant les boutons. */
+:where(.adm-root) :where(button) {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+:where(.adm-root) :where(input, select, textarea) {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+}
+
+/* Les listes déroulantes natives s'ouvrent avec le fond système : blanc sur
+   blanc dans un thème sombre sous Windows. */
+:where(.adm-root) :where(select) option {
+  background: var(--color-ink-900);
+  color: var(--color-fg);
+}
+
+/* Les images et SVG ne doivent jamais dépasser leur conteneur. */
+:where(.adm-root) :where(img, svg) { max-width: 100%; }
+
+/* ═══════════════════════════════════════════════════════
+   NEUTRALISATION DE LA PALETTE CLAIRE
+   ═══════════════════════════════════════════════════════
+
+   Les 13 sections utilisent encore les variables du site public, conçues pour
+   un fond CLAIR. Sur le fond sombre du panneau, le résultat était illisible :
+
+     --text   #171717  (quasi noir)   × 17 usages → texte invisible
+     --muted  #525252  (gris sombre)  × 53 usages → à peine lisible
+     --border #e7e5e4  (quasi blanc)  × 10 usages → filets blancs éblouissants
+     --green  #15803d  (vert profond) × 17 usages → contraste insuffisant
+
+   Plutôt que de reprendre ~100 occurrences dans 13 fichiers, on redéfinit ces
+   variables UNIQUEMENT à l'intérieur du panneau. Le site public conserve sa
+   palette claire intacte, et les sections deviennent lisibles sans qu'une
+   seule de leurs lignes soit modifiée. */
+.adm-root {
+  --text:       #e6ebf2;
+  --text-light: #5d6a7d;
+  --muted:      #8996a8;
+  --border:     #222c39;
+  --green:      #10b981;
+  --green-700:  #10b981;
+  --green-600:  #34d399;
+  --bg:         #0b0f14;
+  --bg-alt:     #161d27;
+  --bg-soft:    #1c2531;
 }

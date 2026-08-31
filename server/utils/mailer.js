@@ -66,7 +66,7 @@ function baseTemplate(content) {
   </div>
   <div class="body">${content}</div>
   <div class="footer">
-    📧 contact@otaku-pulse.com · 📱 +237 6 75 71 27 39<br>
+    📧 contact@otaku-pulse.com · 📱 +237 670 63 36 70<br>
     📍 Yaoundé · Douala · Bafoussam<br>
     © ${new Date().getFullYear()} Otaku Pulse
   </div>
@@ -107,7 +107,7 @@ async function sendReservationConfirmation(contact) {
         <div class="row"><span class="label">Ville</span><span class="value">${contact.ville}</span></div>
         <div class="row"><span class="label">Téléphone</span><span class="value">${contact.phone}</span></div>
       </div>
-      <a href="https://wa.me/237675712739" class="cta">💬 Nous contacter sur WhatsApp</a>
+      <a href="https://wa.me/237670633670" class="cta">💬 Nous contacter sur WhatsApp</a>
       <p class="text" style="font-size:.78rem;color:#94a3b8">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
     `)
   })
@@ -386,7 +386,7 @@ async function sendOrderConfirmation(order, user) {
           <a href="https://otaku-pulse.com/profil" style="display:inline-block;padding:13px 28px;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;text-decoration:none;border-radius:99px;font-weight:800;font-size:.9rem;margin:0 6px 8px">
             📦 Suivre ma commande
           </a>
-          <a href="https://wa.me/237675712739" style="display:inline-block;padding:13px 28px;background:#25d366;color:#fff;text-decoration:none;border-radius:99px;font-weight:800;font-size:.9rem;margin:0 6px 8px">
+          <a href="https://wa.me/237670633670" style="display:inline-block;padding:13px 28px;background:#25d366;color:#fff;text-decoration:none;border-radius:99px;font-weight:800;font-size:.9rem;margin:0 6px 8px">
             💬 Nous contacter
           </a>
         </div>
@@ -397,7 +397,7 @@ async function sendOrderConfirmation(order, user) {
     <!-- PIED -->
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a2e1a;border-radius:0 0 16px 16px">
       <tr><td style="padding:18px 32px;text-align:center;font-size:.72rem;color:rgba(255,255,255,.45)">
-        📧 contact@otaku-pulse.com · 📱 +237 6 75 71 27 39<br>
+        📧 contact@otaku-pulse.com · 📱 +237 670 63 36 70<br>
         📍 Yaoundé · Douala · Bafoussam — Cameroun<br>
         <span style="margin-top:6px;display:block">© ${new Date().getFullYear()} Otaku Pulse — Tous droits réservés</span>
       </td></tr>
@@ -519,7 +519,7 @@ async function sendWelcome(user) {
       </div>
       <a href="https://otaku-pulse.com/boutique" class="cta">🛒 Explorer la boutique</a>
       <p class="text" style="font-size:.8rem;text-align:center">
-        Des questions ? <a href="https://wa.me/237675712739" style="color:#16a34a;font-weight:700">WhatsApp : +237 6 75 71 27 39</a>
+        Des questions ? <a href="https://wa.me/237670633670" style="color:#16a34a;font-weight:700">WhatsApp : +237 670 63 36 70</a>
       </p>
     `)
   })
@@ -578,10 +578,10 @@ async function sendSubscriptionRequest(user, sub, plan) {
       </div>
       <div style="background:#fffbeb;border:1.5px solid rgba(217,119,6,.2);border-radius:10px;padding:14px 16px;margin-bottom:1rem">
         <div style="font-size:.83rem;color:#92400e;line-height:1.6">
-          ⚡ <strong>Étape suivante :</strong> envoyez <strong>${sub.amount.toLocaleString()} FCFA</strong> au <strong>+237 6 75 71 27 39</strong> via MTN Money ou Orange Money, puis envoyez-nous le code de transaction sur WhatsApp.
+          ⚡ <strong>Étape suivante :</strong> envoyez <strong>${sub.amount.toLocaleString()} FCFA</strong> au <strong>+237 670 63 36 70</strong> via MTN Money ou Orange Money, puis envoyez-nous le code de transaction sur WhatsApp.
         </div>
       </div>
-      <a href="https://wa.me/237675712739" class="cta">💬 Contacter sur WhatsApp</a>
+      <a href="https://wa.me/237670633670" class="cta">💬 Contacter sur WhatsApp</a>
     `)
   })
 }
@@ -688,7 +688,7 @@ async function sendPublisherRejected(user, reason) {
         </div>
       ` : ''}
       <p class="text">Tu peux soumettre une nouvelle candidature plus tard, en renforçant ton portfolio.</p>
-      <a href="https://wa.me/237675712739" class="cta">💬 Nous contacter</a>
+      <a href="https://wa.me/237670633670" class="cta">💬 Nous contacter</a>
     `)
   })
 }

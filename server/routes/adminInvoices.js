@@ -31,7 +31,7 @@ const COMPANY = {
   name:     process.env.COMPANY_NAME    || 'Otaku Pulse',
   tagline:  process.env.COMPANY_TAGLINE || "Vivez l'expérience Otaku · Cameroun",
   email:    process.env.COMPANY_EMAIL   || 'contact@otaku-pulse.com',
-  phone:    process.env.COMPANY_PHONE   || '+237 6 75 71 27 39',
+  phone:    process.env.COMPANY_PHONE   || '+237 670 63 36 70',
   website:  process.env.COMPANY_SITE    || 'otaku-pulse.com',
   address:  process.env.COMPANY_ADDRESS || 'Yaoundé · Douala · Bafoussam',
   // Champs légaux — à renseigner dès que la structure est enregistrée.
@@ -157,23 +157,31 @@ router.get('/stats', async (req, res, next) => {
     const now        = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    const [draft, issued, paid, cancelled, paidTotal, monthTotal, outstanding] = await Promise.all([
+    const OPEN = ['issued', 'partial']   // émises, pas encore soldées
+
+    const [draft, issued, partial, paid, cancelled,
+           cashedTotal, cashedMonth, billedOpen, cashedOpen] = await Promise.all([
       Invoice.count({ where: { status: 'draft' } }),
       Invoice.count({ where: { status: 'issued' } }),
+      Invoice.count({ where: { status: 'partial' } }),
       Invoice.count({ where: { status: 'paid' } }),
       Invoice.count({ where: { status: 'cancelled' } }),
-      Invoice.sum('total', { where: { status: 'paid' } }),
-      Invoice.sum('total', { where: { status: 'paid', paidAt: { [Op.gte]: monthStart } } }),
-      // Émises mais pas encore réglées : c'est l'argent à aller chercher.
-      Invoice.sum('total', { where: { status: 'issued' } }),
+      // On somme les ENCAISSEMENTS réels, pas les totaux facturés : une facture
+      // partiellement réglée ne doit compter que pour ce qui est entré en caisse.
+      Invoice.sum('amountPaid', { where: { status: { [Op.ne]: 'cancelled' } } }),
+      Invoice.sum('amountPaid', { where: { status: 'paid', paidAt: { [Op.gte]: monthStart } } }),
+      Invoice.sum('total',      { where: { status: OPEN } }),
+      Invoice.sum('amountPaid', { where: { status: OPEN } }),
     ])
 
     res.json({
       stats: {
-        counts: { draft, issued, paid, cancelled },
-        paidTotal:   paidTotal   || 0,
-        monthTotal:  monthTotal  || 0,
-        outstanding: outstanding || 0,
+        counts: { draft, issued, partial, paid, cancelled },
+        paidTotal:  cashedTotal || 0,
+        monthTotal: cashedMonth || 0,
+        // Le reste à encaisser = ce qui est facturé sur les factures ouvertes,
+        // moins les acomptes déjà reçus dessus.
+        outstanding: (billedOpen || 0) - (cashedOpen || 0),
       },
     })
   } catch (err) { next(err) }
@@ -371,21 +379,106 @@ router.patch('/:id', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// ── PATCH /:id/status — émettre, encaisser, annuler ──
-// Machine à états explicite : une facture ne revient jamais en brouillon une
-// fois émise, et « annulée » est terminal.
+// ══════════════════════════════════════════════════════
+// ENCAISSEMENTS ET CYCLE DE VIE
+// ══════════════════════════════════════════════════════
+
+/**
+ * Déduit le statut d'encaissement à partir du montant réellement encaissé.
+ *
+ * Le statut n'est jamais posé à la main pour `partial` / `paid` : une valeur
+ * saisie manuellement se désynchroniserait des montants dès le premier
+ * acompte, et la facture mentirait sur sa propre réalité comptable.
+ */
+function statusFromPayments(invoice, amountPaid) {
+  if (amountPaid <= 0) {
+    // Aucun encaissement : la facture retrouve son état documentaire.
+    return invoice.issuedAt ? 'issued' : 'draft'
+  }
+  return amountPaid >= invoice.total ? 'paid' : 'partial'
+}
+
+// ── POST /:id/payment — enregistrer un versement ──
+//
+// C'est la SEULE façon de faire passer une facture en « partiel » ou
+// « réglée » : on enregistre de l'argent reçu, et le statut suit.
+router.post('/:id/payment', async (req, res, next) => {
+  try {
+    const invoice = await Invoice.findByPk(req.params.id)
+    if (!invoice) return res.status(404).json({ error: 'Facture introuvable.' })
+    if (invoice.status === 'cancelled')
+      return res.status(409).json({ error: 'Cette facture est annulée : aucun encaissement possible.' })
+
+    const { amount, paymentMethod, note } = req.body || {}
+    const value = toInt(amount)
+    if (value === 0)
+      return res.status(400).json({ error: 'Indique le montant encaissé.' })
+
+    const already   = toInt(invoice.amountPaid)
+    const newPaid   = already + value
+    if (newPaid < 0)
+      return res.status(400).json({ error: 'Le total encaissé ne peut pas devenir négatif.' })
+    // Un versement supérieur au solde est presque toujours une faute de frappe
+    // (un zéro en trop). On refuse plutôt que d'enregistrer un trop-perçu muet.
+    if (newPaid > invoice.total)
+      return res.status(400).json({
+        error: `Montant trop élevé. Il reste ${(invoice.total - already).toLocaleString('fr-FR')} ${invoice.currency} à encaisser.`,
+      })
+
+    const entry = {
+      amount: value,
+      method: paymentMethod || invoice.paymentMethod || null,
+      note:   note ? String(note).slice(0, 200) : null,
+      at:     new Date().toISOString(),
+      by:     req.user.pseudo,
+    }
+
+    const status = statusFromPayments(invoice, newPaid)
+    await invoice.update({
+      amountPaid: newPaid,
+      payments:   [...(invoice.payments || []), entry],
+      status,
+      paymentMethod: paymentMethod || invoice.paymentMethod,
+      // Encaisser sur un brouillon vaut émission : la facture devient un
+      // document opposable au moment où de l'argent change de mains.
+      issuedAt: invoice.issuedAt || new Date(),
+      issuedBy: invoice.issuedBy || req.user.id,
+      paidAt:   status === 'paid' ? new Date() : null,
+    })
+
+    const remaining = invoice.total - newPaid
+    res.json({
+      invoice,
+      message: status === 'paid'
+        ? 'Facture intégralement réglée.'
+        : `Acompte enregistré. Reste ${remaining.toLocaleString('fr-FR')} ${invoice.currency}.`,
+      remaining,
+    })
+  } catch (err) { next(err) }
+})
+
+// ── PATCH /:id/status — émettre ou annuler ──
+//
+// Ne gère plus que les transitions DOCUMENTAIRES. Le passage en « partiel » ou
+// « réglée » dépend des montants encaissés et passe par /payment ci-dessus.
 const ALLOWED_STATUS = {
   draft:     ['issued', 'cancelled'],
-  issued:    ['paid', 'cancelled'],
+  issued:    ['cancelled'],
+  partial:   ['cancelled'],
   paid:      ['cancelled'],   // remboursement ou erreur de saisie
-  cancelled: [],
+  cancelled: [],              // terminal
 }
 
 router.patch('/:id/status', async (req, res, next) => {
   try {
-    const { status, paymentMethod } = req.body || {}
+    const { status } = req.body || {}
     const invoice = await Invoice.findByPk(req.params.id)
     if (!invoice) return res.status(404).json({ error: 'Facture introuvable.' })
+
+    if (['partial', 'paid'].includes(status))
+      return res.status(409).json({
+        error: 'Un encaissement se déclare via « Enregistrer un paiement », pas en changeant le statut.',
+      })
 
     const allowed = ALLOWED_STATUS[invoice.status] || []
     if (!allowed.includes(status))
@@ -399,18 +492,35 @@ router.patch('/:id/status', async (req, res, next) => {
       patch.issuedAt = new Date()
       patch.issuedBy = req.user.id
     }
-    if (status === 'paid') {
-      patch.paidAt = new Date()
-      if (paymentMethod) patch.paymentMethod = paymentMethod
-      // Une facture encaissée sans passer par « émise » reste datée correctement.
-      if (!invoice.issuedAt) {
-        patch.issuedAt = new Date()
-        patch.issuedBy = req.user.id
-      }
-    }
 
     await invoice.update(patch)
     res.json({ invoice, message: 'Statut mis à jour.' })
+  } catch (err) { next(err) }
+})
+
+// ── DELETE /:id/payment/:index — annuler un versement mal saisi ──
+router.delete('/:id/payment/:index', async (req, res, next) => {
+  try {
+    const invoice = await Invoice.findByPk(req.params.id)
+    if (!invoice) return res.status(404).json({ error: 'Facture introuvable.' })
+
+    const list = [...(invoice.payments || [])]
+    const i = parseInt(req.params.index, 10)
+    if (!Number.isInteger(i) || i < 0 || i >= list.length)
+      return res.status(404).json({ error: 'Versement introuvable.' })
+
+    const [removed] = list.splice(i, 1)
+    const newPaid = Math.max(0, toInt(invoice.amountPaid) - toInt(removed.amount))
+    const status  = statusFromPayments(invoice, newPaid)
+
+    await invoice.update({
+      payments: list,
+      amountPaid: newPaid,
+      status,
+      paidAt: status === 'paid' ? invoice.paidAt : null,
+    })
+
+    res.json({ invoice, message: 'Versement annulé.' })
   } catch (err) { next(err) }
 })
 

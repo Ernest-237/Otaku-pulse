@@ -103,5 +103,11 @@ const start = async () => {
   await testConnection()
   await syncDatabase(false)
   app.listen(PORT, () => console.log(`🚀 Otaku Pulse API v2 — port ${PORT}`))
+
+  // Bot de synchronisation du planning anime (AniList).
+  // Démarré APRÈS listen() : le serveur doit répondre aux requêtes même si
+  // AniList est injoignable. Le job attrape ses propres erreurs et ne peut
+  // pas faire tomber l'API.
+  require('./jobs/animeCron').startAnimeCron()
 }
 start()

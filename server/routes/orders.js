@@ -116,7 +116,7 @@ router.post('/', protect, async (req, res) => {
     ])
 
     // ── Lien WhatsApp admin (log pour copier/coller) ──
-    const waLink = `https://wa.me/237675712739?text=${buildWhatsAppMessage(order, user)}`
+    const waLink = `https://wa.me/237670633670?text=${buildWhatsAppMessage(order, user)}`
     console.log(`📱 WhatsApp admin: ${waLink}`)
 
     res.status(201).json({

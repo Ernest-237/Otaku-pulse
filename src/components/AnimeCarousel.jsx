@@ -7,6 +7,12 @@ import { useApi } from '../hooks/useApi'
 import { animeApi, API_BASE } from '../api'
 import styles from './AnimeCarousel.module.css'
 
+// Une affiche importée depuis AniList est une URL absolue vers leur CDN ;
+// une affiche téléversée est un chemin relatif servi par notre API.
+// Préfixer aveuglément par API_BASE casserait la première.
+const resolveCover = (url) =>
+  !url ? null : url.startsWith('http') ? url : `${API_BASE}${url}`
+
 export default function AnimeCarousel({ variant = 'light', label, fallback = null }) {
   const { lang } = useLang()
   const { data, loading } = useApi(() => animeApi.getAll({ limit: 20 }), [], true)
@@ -33,7 +39,7 @@ export default function AnimeCarousel({ variant = 'light', label, fallback = nul
             return (
               <Link key={`${a.id}-${i}`} to="/fandom" className={styles.card} title={title}>
                 {a.coverUrl
-                  ? <img src={`${API_BASE}${a.coverUrl}`} alt={title} loading="lazy" />
+                  ? <img src={resolveCover(a.coverUrl)} alt={title} loading="lazy" />
                   : <span className={styles.cardFallback}>📺</span>}
                 <span className={`${styles.statusDot} ${styles[a.status] || ''}`} />
                 <span className={styles.cardTitle}>{title}</span>

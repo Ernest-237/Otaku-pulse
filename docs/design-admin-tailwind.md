@@ -41,6 +41,61 @@ npm i -D tailwindcss @tailwindcss/vite
 Tailwind v4 s'active par son plugin Vite : **ni `tailwind.config.js`, ni
 `postcss.config.js`**. Le thème est déclaré en CSS dans `src/styles/admin.css`.
 
+## ⚠️ Trois pièges rencontrés — à ne pas réintroduire
+
+### 1. `@layer` annulait toutes les marges Tailwind
+
+`src/styles/main.css` contient, en CSS **non-layered** :
+
+```css
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+```
+
+Une règle non-layered l'emporte sur **toute** règle placée dans un `@layer`,
+quelle que soit sa spécificité. Tant que les utilitaires étaient dans
+`@layer utilities`, ce reset les annulait un par un : `lg:pl-60` ne s'appliquait
+pas — le contenu passait **sous** la barre latérale — et `px-4`, `mb-4`, ainsi
+que le `padding` des primitives `.adm-*`, étaient morts.
+
+**Correctif** : aucun `@layer` dans `admin.css`. Tout est importé sans couche,
+et la spécificité normale s'applique : `.lg\:pl-60` (0,1,0) bat `*` (0,0,0).
+
+> Ne jamais remettre `layer(utilities)` sur ces imports tant que `main.css`
+> garde son reset universel.
+
+### 2. Les boutons gardaient le style natif du navigateur
+
+Sans preflight, un `<button>` conserve son fond gris clair et sa bordure en
+relief. Les entrées de menu stylées uniquement en classes Tailwind
+s'affichaient donc en **pastilles blanches** sur la barre sombre.
+
+**Correctif** : un reset local, scopé au panneau et de spécificité nulle :
+
+```css
+:where(.adm-root) :where(button) { background: transparent; border: 0; … }
+```
+
+`:where()` vaut **zéro** en spécificité : le reset neutralise le style natif
+mais perd contre n'importe quelle classe — y compris `.adm-input` et les
+modules CSS des sections. Un `.adm-root input { … }` classique (0,1,1) aurait
+au contraire écrasé `.adm-input` (0,1,0) et cassé tous les champs.
+
+### 3. La palette du site clair rendait le texte invisible
+
+Les sections utilisent encore les variables du site public, conçues pour un
+fond **clair** :
+
+| Variable | Valeur | Usages | Effet sur fond sombre |
+|---|---|---|---|
+| `--text` | `#171717` | 17 | Texte **invisible** |
+| `--muted` | `#525252` | 53 | À peine lisible |
+| `--border` | `#e7e5e4` | 10 | Filets blancs éblouissants |
+| `--green` | `#15803d` | 17 | Contraste insuffisant |
+
+**Correctif** : ces variables sont redéfinies **uniquement dans `.adm-root`**.
+Le site public garde sa palette claire, et les 13 sections deviennent lisibles
+sans qu'une seule de leurs lignes soit modifiée.
+
 ### Preflight volontairement désactivé
 
 ```css

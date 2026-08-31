@@ -10,7 +10,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import {
   FileText, Plus, Printer, Check, X, Trash2, RefreshCw,
-  ShoppingBag, MapPin, Loader2, ArrowLeft, Send, Ban, Wallet,
+  ShoppingBag, MapPin, Loader2, Clock, ArrowLeft, Send, Ban, Wallet,
 } from 'lucide-react'
 import { useApi, useMutation } from '../../../hooks/useApi'
 import { adminInvoicesApi, adminApi } from '../../../api'
@@ -21,18 +21,22 @@ import styles from '../Admin.module.css'
 
 const CITIES = ['Yaoundé', 'Douala', 'Bafoussam', 'Autre']
 
+// Le statut « partial » n'est jamais posé à la main : il est déduit côté
+// serveur du montant encaissé face au total (voir routes/adminInvoices.js).
 const STATUS_META = {
-  draft:     { label: 'Brouillon', color: '#8fa896' },
-  issued:    { label: 'À régler',  color: '#f59e0b' },
-  paid:      { label: 'Acquittée', color: '#22c55e' },
-  cancelled: { label: 'Annulée',   color: '#ef4444' },
+  draft:     { label: 'Brouillon', cls: 'text-fg-muted' },
+  issued:    { label: 'À régler',  cls: 'text-warn'     },
+  partial:   { label: 'Partiel',   cls: 'text-info'     },
+  paid:      { label: 'Réglée',    cls: 'text-brand'    },
+  cancelled: { label: 'Annulée',   cls: 'text-danger'   },
 }
 
 const FILTERS = [
   { id: 'all',       label: 'Toutes'     },
   { id: 'draft',     label: 'Brouillons' },
   { id: 'issued',    label: 'À régler'   },
-  { id: 'paid',      label: 'Acquittées' },
+  { id: 'partial',   label: 'Partiels'   },
+  { id: 'paid',      label: 'Réglées'    },
   { id: 'cancelled', label: 'Annulées'   },
 ]
 
@@ -93,88 +97,120 @@ export default function InvoicesSection() {
 
   // ── Liste ──
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionHead}>
+    <div>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className={styles.sectionTitle}><FileText size={22} /> Facturation</h2>
-          <p className={styles.sectionDesc}>
-            Crée une facture à la main ou génère-la depuis une commande. Chaque facture porte
-            son numéro, son code-barres et un plan de situation de la livraison.
+          <h2 className="flex items-center gap-2 text-[1.05rem] font-bold">
+            <FileText size={19} className="text-brand" /> Facturation
+          </h2>
+          <p className="mt-1 mb-0 max-w-2xl text-[0.82rem] leading-relaxed text-fg-muted">
+            Crée une facture à la main ou génère-la depuis une commande. Les encaissements
+            se déclarent versement par versement — le statut suit automatiquement.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap gap-2">
           <FromOrderButton cfg={cfg} onCreated={(inv) => { refreshAll(); setCurrent(inv); setView('detail') }} />
-          <button className={styles.btnPrimary} onClick={() => setView('form')}>
+          <button className="adm-btn adm-btn-primary" onClick={() => setView('form')}>
             <Plus size={15} /> Nouvelle facture
           </button>
         </div>
       </div>
 
-      <div className={styles.statsGrid}>
-        <Stat icon="📄" label="Brouillons" value={stats.counts?.draft ?? 0} />
-        <Stat icon="⏳" label="À encaisser" value={`${fmt(stats.outstanding)} F`} highlight />
-        <Stat icon="✅" label="Encaissé ce mois" value={`${fmt(stats.monthTotal)} F`} />
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat icon={FileText}  label="Brouillons"       value={stats.counts?.draft ?? 0} tone="text-fg-muted" />
+        <Stat icon={Clock}     label="Partiels"         value={stats.counts?.partial ?? 0} tone="text-info" />
+        <Stat icon={Wallet}    label="Reste à encaisser" value={`${fmt(stats.outstanding)} F`} tone="text-warn" />
+        <Stat icon={Check}     label="Encaissé ce mois"  value={`${fmt(stats.monthTotal)} F`} tone="text-brand" />
       </div>
 
-      <div className={styles.filters}>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {FILTERS.map(f => (
-          <button key={f.id}
-            className={`${styles.filterBtn} ${filter === f.id ? styles.filterActive : ''}`}
-            onClick={() => setFilter(f.id)}>
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={[
+              'rounded-full border px-3.5 py-1.5 text-[0.8rem] font-semibold transition-colors',
+              filter === f.id
+                ? 'border-brand bg-brand/12 text-brand-hi'
+                : 'border-line text-fg-muted hover:bg-ink-800 hover:text-fg',
+            ].join(' ')}
+          >
             {f.label}
           </button>
         ))}
         <input
-          className={styles.searchBox}
+          className="adm-input ml-auto w-full sm:w-64"
           placeholder="N° facture, nom, téléphone…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ minWidth: 220, flex: 1 }}
         />
-        <button className={styles.btnGhost} onClick={refreshAll} title="Rafraîchir">
+        <button className="adm-btn adm-btn-ghost" onClick={refreshAll} title="Rafraîchir">
           <RefreshCw size={15} />
         </button>
       </div>
 
-      <div className={styles.card}>
+      <div className="adm-card !p-0">
         {loading ? (
-          <div className={styles.loadingBox}><Loader2 size={20} className={styles.spin} /> Chargement…</div>
+          <div className="flex items-center justify-center gap-2 py-10 text-fg-muted">
+            <Loader2 size={19} className="animate-spin" /> Chargement…
+          </div>
         ) : invoices.length === 0 ? (
-          <div className={styles.emptyBox}>Aucune facture pour ce filtre.</div>
+          <div className="py-10 text-center text-[0.86rem] text-fg-faint">
+            Aucune facture pour ce filtre.
+          </div>
         ) : (
           // Le tableau défile dans son propre conteneur : sur téléphone, sans ça,
           // c'est toute la page qui part en défilement horizontal.
-          <div className={styles.tableScroll}>
-            <table className={styles.table}>
+          <div className="adm-table-wrap">
+            <table className="adm-table">
               <thead>
                 <tr>
                   <th>N°</th><th>Client</th><th>Destination</th>
-                  <th>Date</th><th>Montant</th><th>Statut</th><th></th>
+                  <th>Date</th><th className="text-right">Montant</th>
+                  <th>Encaissé</th><th>Statut</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.map(inv => {
                   const meta = STATUS_META[inv.status] || STATUS_META.draft
+                  const paid = Number(inv.amountPaid || 0)
+                  const pct  = inv.total > 0 ? Math.round((paid / inv.total) * 100) : 0
                   return (
-                    <tr key={inv.id} className={styles.tr}>
-                      <td style={{ fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{inv.invoiceNumber}</td>
+                    <tr key={inv.id}>
+                      <td className="whitespace-nowrap font-mono text-[0.82rem]">{inv.invoiceNumber}</td>
                       <td>
-                        <div style={{ fontWeight: 700 }}>{inv.clientName}</div>
+                        <div className="font-semibold">{inv.clientName}</div>
                         {inv.clientPhone && (
-                          <div style={{ fontSize: '.72rem', opacity: .65 }}>{inv.clientPhone}</div>
+                          <div className="text-[0.72rem] text-fg-faint">{inv.clientPhone}</div>
                         )}
                       </td>
-                      <td style={{ fontSize: '.78rem' }}>
+                      <td className="text-[0.78rem]">
                         {inv.clientQuartier || '—'}
-                        <div style={{ opacity: .6 }}>{inv.clientCity}</div>
+                        <div className="text-fg-faint">{inv.clientCity}</div>
                       </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(inv.createdAt)}</td>
-                      <td style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{fmt(inv.total)} F</td>
-                      <td>
-                        <span className={styles.badge} style={{ color: meta.color }}>{meta.label}</span>
+                      <td className="whitespace-nowrap text-[0.78rem] text-fg-muted">
+                        {fmtDate(inv.createdAt)}
+                      </td>
+                      <td className="whitespace-nowrap text-right font-bold">{fmt(inv.total)} F</td>
+                      <td className="min-w-[92px]">
+                        {/* Colonne d'encaissement : d'un coup d'œil, on voit
+                            quelles factures ont un solde à aller chercher. */}
+                        <div className="text-[0.76rem] font-semibold">
+                          {paid > 0 ? `${fmt(paid)} F` : '—'}
+                        </div>
+                        {paid > 0 && paid < inv.total && (
+                          <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-ink-800">
+                            <div className="h-full rounded-full bg-warn" style={{ width: `${pct}%` }} />
+                          </div>
+                        )}
                       </td>
                       <td>
-                        <button className={styles.btnGhost} onClick={() => openDetail(inv.id)}>Ouvrir</button>
+                        <span className={`adm-chip ${meta.cls}`}>{meta.label}</span>
+                      </td>
+                      <td>
+                        <button className="adm-btn adm-btn-ghost !px-3 !py-1" onClick={() => openDetail(inv.id)}>
+                          Ouvrir
+                        </button>
                       </td>
                     </tr>
                   )
@@ -189,14 +225,14 @@ export default function InvoicesSection() {
 }
 
 // ══════════════════════════════════════════════════════
-function Stat({ icon, label, value, highlight }) {
+function Stat({ icon: Icon, label, value, tone = 'text-fg' }) {
   return (
-    <div className={`${styles.statCard} ${highlight ? styles.statHighlight : ''}`}>
-      <div className={styles.statTop}>
-        <span className={styles.statIcon}>{icon}</span>
-        <span className={styles.statLabel}>{label}</span>
+    <div className="adm-card">
+      <div className="mb-2 flex items-center gap-2">
+        <Icon size={16} className={`shrink-0 ${tone}`} />
+        <span className="text-[0.7rem] uppercase tracking-wider text-fg-faint">{label}</span>
       </div>
-      <div className={styles.statValue}>{value}</div>
+      <div className={`text-[1.4rem] font-extrabold leading-none ${tone}`}>{value}</div>
     </div>
   )
 }
@@ -360,7 +396,7 @@ function InvoiceForm({ cfg, onCancel, onCreated }) {
           <div>
             <label className={styles.label}>Téléphone</label>
             <input className={styles.input} value={f.clientPhone}
-              onChange={set('clientPhone')} placeholder="+237 6 75 71 27 39" />
+              onChange={set('clientPhone')} placeholder="+237 670 63 36 70" />
           </div>
         </div>
         <div className={`${styles.formRow} ${styles.formRow2}`}>
@@ -560,14 +596,51 @@ function Row({ label, value, strong }) {
 // ══════════════════════════════════════════════════════
 function InvoiceDetail({ invoice, company, paymentMethods, onBack, onChanged }) {
   const toast = useToast()
-  const { mutate: setStatus, loading } = useMutation(adminInvoicesApi.setStatus)
-  const { mutate: archive } = useMutation(adminInvoicesApi.archive)
+  const { mutate: setStatus,     loading: busyStatus } = useMutation(adminInvoicesApi.setStatus)
+  const { mutate: addPayment,    loading: busyPay }    = useMutation(adminInvoicesApi.addPayment)
+  const { mutate: removePayment }                      = useMutation(adminInvoicesApi.removePayment)
+  const { mutate: archive }                            = useMutation(adminInvoicesApi.archive)
+
+  const paid      = Number(invoice.amountPaid || 0)
+  const remaining = Math.max(0, Number(invoice.total || 0) - paid)
+  const history   = Array.isArray(invoice.payments) ? invoice.payments : []
+
+  const [amount, setAmount]       = useState('')
   const [payMethod, setPayMethod] = useState(invoice.paymentMethod || '')
+  const [note, setNote]           = useState('')
 
-  useEffect(() => { setPayMethod(invoice.paymentMethod || '') }, [invoice.id])
+  useEffect(() => {
+    setPayMethod(invoice.paymentMethod || '')
+    setAmount('')
+    setNote('')
+  }, [invoice.id, invoice.amountPaid])
 
-  const change = async (status) => {
-    const { data, error } = await setStatus(invoice.id, status, payMethod || undefined)
+  const meta     = STATUS_META[invoice.status] || STATUS_META.draft
+  const closed   = invoice.status === 'cancelled'
+  const settled  = invoice.status === 'paid'
+  const progress = invoice.total > 0 ? Math.min(100, Math.round((paid / invoice.total) * 100)) : 0
+
+  const changeStatus = async (status) => {
+    const { data, error } = await setStatus(invoice.id, status)
+    if (error) return toast.error(error)
+    toast.success(data.message)
+    onChanged(data.invoice)
+  }
+
+  const record = async (value) => {
+    const { data, error } = await addPayment(invoice.id, {
+      amount: value,
+      paymentMethod: payMethod || undefined,
+      note: note || undefined,
+    })
+    if (error) return toast.error(error)
+    toast.success(data.message)
+    onChanged(data.invoice)
+  }
+
+  const cancelPayment = async (i) => {
+    if (!window.confirm('Annuler ce versement ? Le statut de la facture sera recalculé.')) return
+    const { data, error } = await removePayment(invoice.id, i)
     if (error) return toast.error(error)
     toast.success(data.message)
     onChanged(data.invoice)
@@ -581,68 +654,165 @@ function InvoiceDetail({ invoice, company, paymentMethods, onBack, onChanged }) 
     onBack()
   }
 
-  const meta = STATUS_META[invoice.status] || STATUS_META.draft
-
   return (
-    <div className={styles.section}>
-      {/* Cette barre d'actions est masquée à l'impression par la règle
-          `visibility: hidden` d'InvoiceDocument.module.css : seule la feuille
-          de facture reste visible sur le papier. */}
-      <div className={styles.sectionHead}>
+    <div>
+      {/* Cette barre est masquée à l'impression : seule la feuille de facture
+          apparaît sur le papier (voir InvoiceDocument.module.css). */}
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className={styles.sectionTitle}>
-            <FileText size={20} /> {invoice.invoiceNumber}
+          <h2 className="flex items-center gap-2 text-[1.05rem] font-bold">
+            <FileText size={19} className="text-brand" />
+            <span className="font-mono">{invoice.invoiceNumber}</span>
           </h2>
-          <p className={styles.sectionDesc}>
-            <span className={styles.badge} style={{ color: meta.color }}>{meta.label}</span>
-            {' '}· {invoice.source === 'auto' ? 'Générée depuis une commande' : 'Saisie manuelle'}
-          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[0.8rem] text-fg-muted">
+            <span className={`adm-chip ${meta.cls}`}>{meta.label}</span>
+            <span>{invoice.source === 'auto' ? 'Générée depuis une commande' : 'Saisie manuelle'}</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className={styles.btnGhost} onClick={onBack}><ArrowLeft size={15} /> Retour</button>
-          <button className={styles.btnSecondary} onClick={() => window.print()}>
+        <div className="flex flex-wrap gap-2">
+          <button className="adm-btn adm-btn-ghost" onClick={onBack}>
+            <ArrowLeft size={15} /> Retour
+          </button>
+          <button className="adm-btn adm-btn-primary" onClick={() => window.print()}>
             <Printer size={15} /> Imprimer / PDF
           </button>
         </div>
       </div>
 
-      <div className={styles.card} style={{ marginBottom: '1.2rem' }}>
-        <div className={styles.cardHeader}><h3 className={styles.cardTitle}>Actions</h3></div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* ── Encaissements ── */}
+      <div className="adm-card mb-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[0.85rem] font-bold">Encaissement</span>
+          <span className="text-[0.8rem] text-fg-muted">
+            <strong className="text-fg">{fmt(paid)}</strong> / {fmt(invoice.total)} {invoice.currency}
+          </span>
+        </div>
+
+        {/* Barre de progression : lire un pourcentage est plus rapide que
+            comparer deux nombres à quatre chiffres. */}
+        <div className="mb-1 h-2 w-full overflow-hidden rounded-full bg-ink-800">
+          <div
+            className={`h-full rounded-full transition-all ${settled ? 'bg-brand' : 'bg-warn'}`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <div className="mb-4 flex justify-between text-[0.74rem] text-fg-faint">
+          <span>{progress}% encaissé</span>
+          <span>{remaining > 0 ? `Reste ${fmt(remaining)} ${invoice.currency}` : 'Soldée'}</span>
+        </div>
+
+        {closed ? (
+          <p className="m-0 text-[0.82rem] text-fg-muted">
+            Facture annulée : aucun encaissement possible.
+          </p>
+        ) : settled ? (
+          <p className="m-0 text-[0.82rem] text-brand">
+            Intégralement réglée. Pour corriger une erreur, annule le versement concerné ci-dessous.
+          </p>
+        ) : (
+          <>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label className="adm-label">Montant reçu ({invoice.currency})</label>
+                <input
+                  className="adm-input" type="number" min="1" max={remaining}
+                  value={amount} onChange={e => setAmount(e.target.value)}
+                  placeholder={String(remaining)}
+                />
+              </div>
+              <div>
+                <label className="adm-label">Moyen</label>
+                <select className="adm-input" value={payMethod} onChange={e => setPayMethod(e.target.value)}>
+                  <option value="">Non précisé</option>
+                  {paymentMethods.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="adm-label">Note (facultatif)</label>
+                <input
+                  className="adm-input" value={note} onChange={e => setNote(e.target.value)}
+                  placeholder="Acompte, réf. transaction…"
+                />
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                className="adm-btn adm-btn-primary"
+                disabled={busyPay || !amount || Number(amount) <= 0}
+                onClick={() => record(Number(amount))}
+              >
+                {busyPay ? <Loader2 size={15} className="animate-spin" /> : <Wallet size={15} />}
+                Enregistrer l'acompte
+              </button>
+              <button
+                className="adm-btn adm-btn-ghost"
+                disabled={busyPay || remaining <= 0}
+                onClick={() => record(remaining)}
+              >
+                <Check size={15} /> Solder ({fmt(remaining)} {invoice.currency})
+              </button>
+            </div>
+          </>
+        )}
+
+        {history.length > 0 && (
+          <div className="mt-4 border-t border-line pt-3">
+            <div className="mb-2 text-[0.72rem] font-bold uppercase tracking-wider text-fg-faint">
+              Versements ({history.length})
+            </div>
+            {history.map((h, i) => (
+              <div key={i} className="flex items-center gap-3 border-b border-line-soft py-2 last:border-b-0">
+                <span className="w-24 shrink-0 font-semibold text-brand">
+                  {fmt(h.amount)} {invoice.currency}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[0.78rem] text-fg-muted">
+                  {METHOD_LABELS[h.method] || h.method || '—'}
+                  {h.note ? ` · ${h.note}` : ''}
+                </span>
+                <span className="hidden shrink-0 text-[0.72rem] text-fg-faint sm:inline">
+                  {new Date(h.at).toLocaleDateString('fr-FR')} · {h.by}
+                </span>
+                <button
+                  className="adm-btn adm-btn-danger !px-2.5 !py-1"
+                  onClick={() => cancelPayment(i)}
+                  title="Annuler ce versement"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Cycle de vie du document ── */}
+      <div className="adm-card mb-5">
+        <div className="mb-3 text-[0.85rem] font-bold">Document</div>
+        <div className="flex flex-wrap items-center gap-2">
           {invoice.status === 'draft' && (
-            <button className={styles.btnPrimary} disabled={loading} onClick={() => change('issued')}>
+            <button className="adm-btn adm-btn-primary" disabled={busyStatus} onClick={() => changeStatus('issued')}>
               <Send size={15} /> Émettre
             </button>
           )}
-          {(invoice.status === 'draft' || invoice.status === 'issued') && (
-            <>
-              <select className={styles.select} style={{ width: 'auto', minWidth: 190 }}
-                value={payMethod} onChange={e => setPayMethod(e.target.value)}>
-                <option value="">Moyen de paiement…</option>
-                {paymentMethods.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
-              <button className={styles.btnPrimary} disabled={loading} onClick={() => change('paid')}>
-                <Wallet size={15} /> Marquer réglée
-              </button>
-            </>
-          )}
-          {invoice.status !== 'cancelled' && (
-            <button className={styles.btnDanger} disabled={loading} onClick={() => change('cancelled')}>
-              <Ban size={15} /> Annuler
+          {!closed && (
+            <button className="adm-btn adm-btn-danger" disabled={busyStatus} onClick={() => changeStatus('cancelled')}>
+              <Ban size={15} /> Annuler la facture
             </button>
           )}
-          <button className={styles.btnDanger} onClick={doArchive}>
+          <button className="adm-btn adm-btn-ghost" onClick={doArchive}>
             <Trash2 size={15} /> Archiver
           </button>
         </div>
         {invoice.status !== 'draft' && (
-          <p style={{ fontSize: '.75rem', color: 'var(--ad-text-2)', marginTop: 10, marginBottom: 0 }}>
-            Cette facture est émise : son contenu est figé. Pour la corriger, annule-la et crée-en une nouvelle.
+          <p className="mb-0 mt-3 text-[0.78rem] text-fg-faint">
+            Cette facture est émise : ses lignes et ses montants sont figés. Pour les corriger,
+            annule-la et crée-en une nouvelle.
           </p>
         )}
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div className="overflow-x-auto">
         <InvoiceDocument invoice={invoice} company={company} />
       </div>
     </div>

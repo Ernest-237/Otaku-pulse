@@ -1,300 +1,331 @@
-// src/pages/Admin/sections/DashboardSection.jsx
-import { useState } from 'react'
+// src/pages/Admin/sections/DashboardSection.jsx — vue d'ensemble
+//
+// Entièrement en Tailwind. Les anciens styles en ligne posaient deux problèmes :
+//   · `color: var(--muted)` valait #525252 — un gris SOMBRE conçu pour le site
+//     public clair, donc quasi illisible sur le fond sombre du panneau ;
+//   · les grilles étaient figées en `repeat(3,1fr)`, sans aucune adaptation,
+//     ce qui écrasait les cartes sur un écran étroit.
 import { adminApi } from '../../../api'
 import { useApi }   from '../../../hooks/useApi'
-import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
+import { PageLoader } from '../../../components/ui/Spinner'
 import Badge, { statusVariant, STATUS_LABELS } from '../../../components/ui/Badge'
-import Button from '../../../components/ui/Button'
+import {
+  Users, ShoppingCart, Wallet, Package, Inbox, CalendarDays,
+  TriangleAlert, ArrowRight, RefreshCw, BookOpen, Gem, PenLine,
+} from 'lucide-react'
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
-import styles from '../Admin.module.css'
 
-const MONTHS_FR = { '01':'Jan','02':'Fév','03':'Mar','04':'Avr','05':'Mai','06':'Jun','07':'Jul','08':'Aoû','09':'Sep','10':'Oct','11':'Nov','12':'Déc' }
-const STATUS_COLORS = { pending:'#f59e0b', confirmed:'#3b82f6', preparing:'#8b5cf6', shipped:'#06b6d4', delivered:'#22c55e', cancelled:'#ef4444', refunded:'#6b7280' }
-const CAT_COLORS = ['#22c55e','#3b82f6','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#f97316','#ec4899','#10b981','#6366f1']
-
-const chartTheme = {
-  background: 'transparent',
-  text: 'rgba(200,230,255,0.6)',
-  grid: 'rgba(255,255,255,0.06)',
-  tooltip: { bg:'#0d1f35', border:'rgba(34,197,94,0.3)', text:'#f0fdf4' },
+const MONTHS_FR = {
+  '01':'Jan','02':'Fév','03':'Mar','04':'Avr','05':'Mai','06':'Jun',
+  '07':'Jul','08':'Aoû','09':'Sep','10':'Oct','11':'Nov','12':'Déc',
 }
 
-function CustomTooltip({ active, payload, label, unit='' }) {
+const STATUS_COLORS = {
+  pending:'#f59e0b', confirmed:'#3b82f6', preparing:'#8b5cf6',
+  shipped:'#06b6d4', delivered:'#10b981', cancelled:'#ef4444', refunded:'#64748b',
+}
+
+// Palette catégorielle : teintes distinctes mais de saturation comparable, pour
+// qu'aucune ne domine visuellement les autres dans un camembert.
+const CAT_COLORS = ['#10b981','#3b82f6','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#f97316','#ec4899','#14b8a6','#6366f1']
+
+// Aligné sur la palette du panneau (voir src/styles/admin.css).
+const CHART = {
+  text: '#8996a8',
+  grid: 'rgba(255,255,255,.05)',
+  tooltipBg: '#161d27',
+  tooltipBorder: '#26313f',
+}
+
+const tooltipStyle = {
+  background: CHART.tooltipBg,
+  border: `1px solid ${CHART.tooltipBorder}`,
+  borderRadius: 10,
+  fontSize: '.78rem',
+  color: '#e6ebf2',
+}
+
+function ChartTooltip({ active, payload, label, unit = '' }) {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background:chartTheme.tooltip.bg, border:`1px solid ${chartTheme.tooltip.border}`, borderRadius:10, padding:'10px 14px', fontSize:'.82rem' }}>
-      <div style={{ color:'rgba(200,230,255,.6)', marginBottom:5, fontWeight:700 }}>{label}</div>
-      {payload.map((p,i) => (
-        <div key={i} style={{ color:p.color, display:'flex', gap:8, alignItems:'center' }}>
-          <span style={{ fontFamily:'var(--font-title)', fontSize:'1rem' }}>{p.value?.toLocaleString()}{unit}</span>
-          <span style={{ opacity:.7 }}>{p.name}</span>
+    <div className="rounded-xl border border-ink-700 bg-ink-850 px-3.5 py-2.5 text-[0.8rem] shadow-lg">
+      <div className="mb-1 font-bold text-fg-muted">{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center gap-2" style={{ color: p.color }}>
+          <span className="text-[0.95rem] font-bold">{p.value?.toLocaleString('fr-FR')}{unit}</span>
+          <span className="text-fg-muted">{p.name}</span>
         </div>
       ))}
     </div>
   )
 }
 
-export default function DashboardSection({ toast, setSection }) {
+/** Carte de graphique : titre + zone de tracé à hauteur fixe. */
+function ChartCard({ title, height = 220, empty, children }) {
+  return (
+    <div className="adm-card !p-0">
+      <div className="border-b border-line px-4 py-3 text-[0.85rem] font-bold">{title}</div>
+      <div className="min-w-0 p-3" style={{ height }}>
+        {empty
+          ? <div className="flex h-full items-center justify-center text-center text-[0.82rem] text-fg-faint">{empty}</div>
+          : <ResponsiveContainer width="100%" height="100%" minWidth={0}>{children}</ResponsiveContainer>}
+      </div>
+    </div>
+  )
+}
+
+/** Bandeau d'alerte cliquable, décliné en ambre (urgent) ou violet (manga). */
+function AlertBar({ icon: Icon, tone, title, detail, action, onAction }) {
+  const tones = {
+    warn:   'border-warn/25 bg-warn/8 text-warn',
+    violet: 'border-violet/25 bg-violet/8 text-violet',
+  }
+  return (
+    <div className={`flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 ${tones[tone]}`}>
+      <Icon size={19} className="shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="text-[0.88rem] font-bold">{title}</div>
+        <div className="text-[0.76rem] text-fg-muted">{detail}</div>
+      </div>
+      <button
+        onClick={onAction}
+        className="flex items-center gap-1.5 rounded-full border border-current px-3 py-1.5 text-[0.78rem] font-semibold transition-opacity hover:opacity-75"
+      >
+        {action} <ArrowRight size={13} />
+      </button>
+    </div>
+  )
+}
+
+export default function DashboardSection({ setSection }) {
   const { data, loading, execute } = useApi(() => adminApi.getDashboard(), [], true)
 
   if (loading) return <PageLoader />
+
   if (!data?.stats) return (
-    <div style={{ textAlign:'center', padding:'4rem' }}>
-      <div style={{ fontSize:'3rem', marginBottom:'1rem' }}>⚠️</div>
-      <div style={{ fontFamily:'var(--font-title)', fontSize:'1.2rem', letterSpacing:'2px', color:'var(--muted)', marginBottom:'1.5rem' }}>
-        IMPOSSIBLE DE CHARGER LE DASHBOARD
+    <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+      <TriangleAlert size={40} className="text-warn" />
+      <div>
+        <div className="text-[1.05rem] font-bold">Impossible de charger le tableau de bord</div>
+        <p className="mt-1 mb-0 max-w-md text-[0.84rem] text-fg-muted">
+          Le serveur n'a pas répondu, ou ton compte n'a plus les droits d'administration.
+        </p>
       </div>
-      <Button variant="primary" onClick={execute}>🔄 Réessayer</Button>
+      <button className="adm-btn adm-btn-primary" onClick={execute}>
+        <RefreshCw size={15} /> Réessayer
+      </button>
     </div>
   )
 
-  const { stats, recentOrders=[], recentContacts=[], revenueByMonth=[], usersByMonth=[], ordersByStatus=[], productsByCategory=[] } = data
+  const {
+    stats, recentOrders = [], recentContacts = [],
+    revenueByMonth = [], usersByMonth = [], ordersByStatus = [], productsByCategory = [],
+  } = data
 
-  // Alertes manga (intégrées au dashboard global)
+  // ── Alertes de la plateforme manga ──
   const mangaAlerts = []
-  if (stats.manga?.pending > 0) {
-    mangaAlerts.push({ icon:'📚', count: stats.manga.pending, label:'manga(s) en attente de modération', section:'manga' })
-  }
-  if (stats.subscriptions?.pending > 0) {
-    mangaAlerts.push({ icon:'💎', count: stats.subscriptions.pending, label:'abonnement(s) à valider', section:'subs' })
-  }
-  if (stats.publishers?.pendingApps > 0) {
-    mangaAlerts.push({ icon:'✍️', count: stats.publishers.pendingApps, label:'candidature(s) éditeur', section:'publishers' })
-  }
+  if (stats.manga?.pending > 0)
+    mangaAlerts.push({ icon: BookOpen, count: stats.manga.pending, label: 'manga(s) en attente de modération', section: 'manga' })
+  if (stats.subscriptions?.pending > 0)
+    mangaAlerts.push({ icon: Gem, count: stats.subscriptions.pending, label: 'abonnement(s) à valider', section: 'subs' })
+  if (stats.publishers?.pendingApps > 0)
+    mangaAlerts.push({ icon: PenLine, count: stats.publishers.pendingApps, label: 'candidature(s) éditeur', section: 'publishers' })
 
-  // Formater données graphiques
+  // ── Données des graphiques ──
   const revenueData = revenueByMonth.map(d => ({
     name: MONTHS_FR[d.month?.split('-')[1]] || d.month,
     CA: parseInt(d.revenue) || 0,
     Commandes: parseInt(d.count) || 0,
   }))
-
   const usersData = usersByMonth.map(d => ({
     name: MONTHS_FR[d.month?.split('-')[1]] || d.month,
     Membres: parseInt(d.count) || 0,
   }))
 
-  // Merge revenue + users par mois
-  const allMonths = [...new Set([...revenueData.map(d=>d.name), ...usersData.map(d=>d.name)])]
+  const allMonths = [...new Set([...revenueData.map(d => d.name), ...usersData.map(d => d.name)])]
   const mergedData = allMonths.map(m => ({
     name: m,
-    CA: revenueData.find(d=>d.name===m)?.CA || 0,
-    Commandes: revenueData.find(d=>d.name===m)?.Commandes || 0,
-    Membres: usersData.find(d=>d.name===m)?.Membres || 0,
+    CA:        revenueData.find(d => d.name === m)?.CA || 0,
+    Commandes: revenueData.find(d => d.name === m)?.Commandes || 0,
+    Membres:   usersData.find(d => d.name === m)?.Membres || 0,
   }))
 
   const statusData = ordersByStatus.map(d => ({
     name: STATUS_LABELS[d.status] || d.status,
     value: parseInt(d.count) || 0,
-    color: STATUS_COLORS[d.status] || '#6b7280',
+    color: STATUS_COLORS[d.status] || '#64748b',
   }))
 
-  const catData = productsByCategory.map((d,i) => ({
-    name: d.category?.charAt(0).toUpperCase()+d.category?.slice(1),
+  const catData = productsByCategory.map((d, i) => ({
+    name: d.category ? d.category.charAt(0).toUpperCase() + d.category.slice(1) : '—',
     value: parseInt(d.count) || 0,
     color: CAT_COLORS[i % CAT_COLORS.length],
   }))
 
-  // KPI Cards
   const kpis = [
-    { ico:'👥', val:stats.users.total,     lbl:'Membres',      sub:`+${stats.users.month} ce mois`,      color:'#22c55e', sec:'users'    },
-    { ico:'🛒', val:stats.orders.total,    lbl:'Commandes',     sub:`${stats.orders.pending} en attente`,  color:'#3b82f6', sec:'orders'   },
-    { ico:'💰', val:`${Math.round(stats.revenue.total/1000)}K`, lbl:'Revenus FCFA', sub:`${Math.round(stats.revenue.month/1000)}K ce mois`, color:'#f59e0b', sec:'orders' },
-    { ico:'📦', val:stats.products.total,  lbl:'Produits actifs', sub:`${stats.products.lowStock} stock bas`, color:'#8b5cf6', sec:'products' },
-    { ico:'📬', val:stats.contacts.total,  lbl:'Réservations', sub:`${stats.contacts.newMonth} nouvelles`, color:'#06b6d4', sec:'contacts' },
-    { ico:'🎌', val:stats.events.upcoming, lbl:'Événements',   sub:'à venir',                             color:'#f97316', sec:'events'   },
+    { icon: Users,        val: stats.users.total,     lbl: 'Membres',       sub: `+${stats.users.month} ce mois`,                     tone: 'text-brand',  sec: 'users'    },
+    { icon: ShoppingCart, val: stats.orders.total,    lbl: 'Commandes',     sub: `${stats.orders.pending} en attente`,                tone: 'text-info',   sec: 'orders'   },
+    { icon: Wallet,       val: `${Math.round(stats.revenue.total / 1000)}K`, lbl: 'Revenus FCFA', sub: `${Math.round(stats.revenue.month / 1000)}K ce mois`, tone: 'text-warn', sec: 'orders' },
+    { icon: Package,      val: stats.products.total,  lbl: 'Produits',      sub: `${stats.products.lowStock} stock bas`,              tone: 'text-violet', sec: 'products' },
+    { icon: Inbox,        val: stats.contacts.total,  lbl: 'Réservations',  sub: `${stats.contacts.newMonth} nouvelles`,              tone: 'text-info',   sec: 'contacts' },
+    { icon: CalendarDays, val: stats.events.upcoming, lbl: 'Événements',    sub: 'à venir',                                           tone: 'text-brand',  sec: 'events'   },
   ]
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:'1.5rem' }}>
+    <div className="flex flex-col gap-5">
 
-      {/* Alerte commandes en attente */}
       {stats.orders.pending > 0 && (
-        <div style={{ background:'rgba(245,158,11,.08)', border:'1px solid rgba(245,158,11,.2)', borderRadius:12, padding:'1rem 1.3rem', display:'flex', alignItems:'center', gap:12 }}>
-          <span style={{ fontSize:'1.4rem' }}>⚠️</span>
-          <div style={{ flex:1 }}>
-            <div style={{ fontWeight:700, color:'#fcd34d', fontSize:'.9rem' }}>{stats.orders.pending} commande{stats.orders.pending>1?'s':''} en attente</div>
-            <div style={{ fontSize:'.78rem', color:'var(--muted)' }}>Traitez-les rapidement pour satisfaire vos clients</div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => setSection('orders')}>Voir →</Button>
-        </div>
-      )}
-      
-      {/* Alertes Manga Platform */}
-      {mangaAlerts.length > 0 && (
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {mangaAlerts.map((a, i) => (
-            <div key={i} style={{
-              background:'rgba(124,58,237,.08)',
-              border:'1px solid rgba(124,58,237,.2)',
-              borderRadius:12, padding:'1rem 1.3rem',
-              display:'flex', alignItems:'center', gap:12,
-            }}>
-              <span style={{ fontSize:'1.4rem' }}>{a.icon}</span>
-              <div style={{ flex:1 }}>
-                <div style={{ fontWeight:700, color:'#a78bfa', fontSize:'.9rem' }}>
-                  {a.count} {a.label}
-                </div>
-                <div style={{ fontSize:'.78rem', color:'var(--muted)' }}>Action requise dans la plateforme manga</div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setSection(a.section)}>Gérer →</Button>
-            </div>
-          ))}
-        </div>
+        <AlertBar
+          icon={TriangleAlert} tone="warn"
+          title={`${stats.orders.pending} commande${stats.orders.pending > 1 ? 's' : ''} en attente`}
+          detail="À traiter rapidement pour ne pas faire attendre tes clients."
+          action="Voir" onAction={() => setSection('orders')}
+        />
       )}
 
-      
-      {/* KPI Grid */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
-        {kpis.map((k,i) => (
-          <div key={i} className={styles.statCard} onClick={() => setSection(k.sec)}
-            style={{ cursor:'pointer', borderLeft:`3px solid ${k.color}`, paddingLeft:'1rem' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'.6rem' }}>
-              <span style={{ fontSize:'1.6rem' }}>{k.ico}</span>
-              <span style={{ fontSize:'.68rem', color:k.color, background:`${k.color}15`, border:`1px solid ${k.color}30`, borderRadius:20, padding:'2px 8px', fontWeight:700 }}>{k.sub}</span>
-            </div>
-            <div style={{ fontFamily:'var(--font-title)', fontSize:'1.9rem', letterSpacing:'2px', color:k.color, lineHeight:1 }}>{k.val}</div>
-            <div style={{ fontSize:'.72rem', color:'var(--muted)', letterSpacing:'1px', textTransform:'uppercase', marginTop:4 }}>{k.lbl}</div>
-          </div>
-        ))}
-      </div>
+      {mangaAlerts.map((a, i) => (
+        <AlertBar
+          key={i} icon={a.icon} tone="violet"
+          title={`${a.count} ${a.label}`}
+          detail="Action requise dans la plateforme manga."
+          action="Gérer" onAction={() => setSection(a.section)}
+        />
+      ))}
 
-      {/* Graphique CA + Commandes sur 6 mois */}
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <span className={styles.cardTitle}>📈 Chiffre d'affaires & Commandes (6 mois)</span>
-        </div>
-        <div style={{ padding:'1rem', height:260, minHeight:260, minWidth:0 }}>
-          {mergedData.length === 0 ? (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--muted)', fontSize:'.85rem' }}>
-              Aucune donnée de vente pour l'instant
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <AreaChart data={mergedData} margin={{ top:5, right:10, left:0, bottom:5 }}>
-                <defs>
-                  <linearGradient id="gradCA" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.25}/>
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="gradCmd" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
-                <XAxis dataKey="name" tick={{ fill:chartTheme.text, fontSize:12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill:chartTheme.text, fontSize:11 }} axisLine={false} tickLine={false} width={50} tickFormatter={v => v >= 1000 ? `${v/1000}K` : v} />
-                <Tooltip content={<CustomTooltip unit=" FCFA" />} />
-                <Legend formatter={(v) => <span style={{ color:'rgba(200,230,255,.7)', fontSize:'.78rem' }}>{v}</span>} />
-                <Area type="monotone" dataKey="CA" name="CA (FCFA)" stroke="#22c55e" strokeWidth={2} fill="url(#gradCA)" dot={{ fill:'#22c55e', r:3 }} />
-                <Area type="monotone" dataKey="Commandes" stroke="#3b82f6" strokeWidth={2} fill="url(#gradCmd)" dot={{ fill:'#3b82f6', r:3 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* Graphiques secondaires : Statuts + Catégories + Membres */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
-
-        {/* Commandes par statut */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}><span className={styles.cardTitle}>🛒 Statuts</span></div>
-          <div style={{ padding:'1rem', height:220, minHeight:220, minWidth:0 }}>
-            {statusData.length === 0 ? (
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--muted)', fontSize:'.82rem' }}>Aucune commande</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <PieChart>
-                  <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
-                    {statusData.map((entry,i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v,n) => [v, n]} contentStyle={{ background:'#0d1f35', border:'1px solid rgba(34,197,94,.3)', borderRadius:8, fontSize:'.78rem' }} />
-                  <Legend formatter={v => <span style={{ color:'rgba(200,230,255,.65)', fontSize:'.72rem' }}>{v}</span>} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Produits par catégorie */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}><span className={styles.cardTitle}>📦 Catégories</span></div>
-          <div style={{ padding:'1rem', height:220, minHeight:220, minWidth:0 }}>
-            {catData.length === 0 ? (
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--muted)', fontSize:'.82rem' }}>Aucun produit</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <BarChart data={catData} layout="vertical" margin={{ left:0, right:10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} horizontal={false} />
-                  <XAxis type="number" tick={{ fill:chartTheme.text, fontSize:10 }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fill:chartTheme.text, fontSize:10 }} axisLine={false} tickLine={false} width={65} />
-                  <Tooltip contentStyle={{ background:'#0d1f35', border:'1px solid rgba(34,197,94,.3)', borderRadius:8, fontSize:'.78rem' }} />
-                  <Bar dataKey="value" name="Produits" radius={[0,6,6,0]}>
-                    {catData.map((entry,i) => <Cell key={i} fill={entry.color} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Nouveaux membres */}
-        <div className={styles.card}>
-          <div className={styles.cardHeader}><span className={styles.cardTitle}>👥 Membres</span></div>
-          <div style={{ padding:'1rem', height:220, minHeight:220, minWidth:0 }}>
-            {usersData.length === 0 ? (
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--muted)', fontSize:'.82rem' }}>Aucun nouveau membre</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <BarChart data={usersData} margin={{ top:5, right:10, left:0, bottom:5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
-                  <XAxis dataKey="name" tick={{ fill:chartTheme.text, fontSize:11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill:chartTheme.text, fontSize:11 }} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
-                  <Tooltip contentStyle={{ background:'#0d1f35', border:'1px solid rgba(34,197,94,.3)', borderRadius:8, fontSize:'.78rem' }} />
-                  <Bar dataKey="Membres" fill="#8b5cf6" radius={[6,6,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Activité récente */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-        <div className={styles.card}>
-          <div className={styles.cardHeader}><span className={styles.cardTitle}>🛒 Dernières commandes</span></div>
-          {recentOrders.length === 0 && <div style={{ padding:'1rem', color:'var(--muted)', fontSize:'.85rem', textAlign:'center' }}>Aucune commande</div>}
-          {recentOrders.map(o => (
-            <div key={o.id} className={styles.listRow}>
-              <div>
-                <span style={{ fontFamily:'var(--font-title)', color:'var(--green)', fontSize:'.95rem' }}>{o.orderNumber}</span>
-                {o.quartier && <div style={{ fontSize:'.7rem', color:'var(--muted)' }}>📍 {o.quartier}</div>}
+      {/* ── Indicateurs ──
+          Grille adaptative : 2 colonnes sur mobile, 3 dès 1024px. L'ancienne
+          version était figée à 3 colonnes et écrasait les cartes sur petit écran. */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {kpis.map((k, i) => {
+          const Icon = k.icon
+          return (
+            <button
+              key={i}
+              onClick={() => setSection(k.sec)}
+              className="adm-card group flex flex-col items-start text-left transition-colors hover:border-ink-700 hover:bg-ink-800"
+            >
+              <div className="mb-2.5 flex w-full items-start justify-between gap-2">
+                <Icon size={20} className={`shrink-0 ${k.tone}`} />
+                <span className="rounded-full border border-line px-2 py-0.5 text-[0.66rem] font-semibold text-fg-muted">
+                  {k.sub}
+                </span>
               </div>
-              <span style={{ fontSize:'.82rem' }}>{o.total?.toLocaleString()} F</span>
-              <Badge variant={statusVariant(o.status)} style={{ fontSize:'.62rem' }}>{STATUS_LABELS[o.status]||o.status}</Badge>
+              <div className={`text-[1.75rem] font-extrabold leading-none ${k.tone}`}>{k.val}</div>
+              <div className="mt-1.5 text-[0.72rem] uppercase tracking-wider text-fg-faint">{k.lbl}</div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* ── Chiffre d'affaires ── */}
+      <ChartCard
+        title="Chiffre d'affaires & commandes (6 mois)"
+        height={260}
+        empty={mergedData.length === 0 ? 'Aucune donnée de vente pour l’instant' : null}
+      >
+        <AreaChart data={mergedData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+          <defs>
+            <linearGradient id="gradCA" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="gradCmd" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+          <XAxis dataKey="name" tick={{ fill: CHART.text, fontSize: 12 }} axisLine={false} tickLine={false} />
+          <YAxis
+            tick={{ fill: CHART.text, fontSize: 11 }} axisLine={false} tickLine={false} width={50}
+            tickFormatter={v => (v >= 1000 ? `${v / 1000}K` : v)}
+          />
+          <Tooltip content={<ChartTooltip unit=" F" />} />
+          <Legend formatter={v => <span className="text-[0.78rem] text-fg-muted">{v}</span>} />
+          <Area type="monotone" dataKey="CA" name="CA (FCFA)" stroke="#10b981" strokeWidth={2} fill="url(#gradCA)" dot={{ fill: '#10b981', r: 3 }} />
+          <Area type="monotone" dataKey="Commandes" stroke="#3b82f6" strokeWidth={2} fill="url(#gradCmd)" dot={{ fill: '#3b82f6', r: 3 }} />
+        </AreaChart>
+      </ChartCard>
+
+      {/* ── Graphiques secondaires ── */}
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+
+        <ChartCard title="Statuts des commandes" empty={statusData.length === 0 ? 'Aucune commande' : null}>
+          <PieChart>
+            <Pie data={statusData} cx="50%" cy="50%" innerRadius={48} outerRadius={76} paddingAngle={3} dataKey="value">
+              {statusData.map((e, i) => <Cell key={i} fill={e.color} />)}
+            </Pie>
+            <Tooltip contentStyle={tooltipStyle} />
+            <Legend formatter={v => <span className="text-[0.72rem] text-fg-muted">{v}</span>} />
+          </PieChart>
+        </ChartCard>
+
+        <ChartCard title="Produits par catégorie" empty={catData.length === 0 ? 'Aucun produit' : null}>
+          <BarChart data={catData} layout="vertical" margin={{ left: 0, right: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
+            <XAxis type="number" tick={{ fill: CHART.text, fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="name" tick={{ fill: CHART.text, fontSize: 10 }} axisLine={false} tickLine={false} width={68} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Bar dataKey="value" name="Produits" radius={[0, 6, 6, 0]}>
+              {catData.map((e, i) => <Cell key={i} fill={e.color} />)}
+            </Bar>
+          </BarChart>
+        </ChartCard>
+
+        <ChartCard title="Nouveaux membres" empty={usersData.length === 0 ? 'Aucun nouveau membre' : null}>
+          <BarChart data={usersData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+            <XAxis dataKey="name" tick={{ fill: CHART.text, fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: CHART.text, fontSize: 11 }} axisLine={false} tickLine={false} width={30} allowDecimals={false} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Bar dataKey="Membres" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ChartCard>
+      </div>
+
+      {/* ── Activité récente ── */}
+      <div className="grid gap-3 lg:grid-cols-2">
+
+        <div className="adm-card !p-0">
+          <div className="border-b border-line px-4 py-3 text-[0.85rem] font-bold">Dernières commandes</div>
+          {recentOrders.length === 0 ? (
+            <div className="px-4 py-6 text-center text-[0.84rem] text-fg-faint">Aucune commande</div>
+          ) : recentOrders.map(o => (
+            <div key={o.id} className="flex items-center gap-3 border-b border-line-soft px-4 py-2.5 last:border-b-0">
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-mono text-[0.85rem] font-semibold text-brand">{o.orderNumber}</div>
+                {o.quartier && <div className="truncate text-[0.72rem] text-fg-faint">{o.quartier}</div>}
+              </div>
+              <span className="shrink-0 text-[0.82rem] font-semibold">
+                {o.total?.toLocaleString('fr-FR')} F
+              </span>
+              <Badge variant={statusVariant(o.status)} style={{ fontSize: '.62rem' }}>
+                {STATUS_LABELS[o.status] || o.status}
+              </Badge>
             </div>
           ))}
         </div>
-        <div className={styles.card}>
-          <div className={styles.cardHeader}><span className={styles.cardTitle}>📬 Dernières réservations</span></div>
-          {recentContacts.length === 0 && <div style={{ padding:'1rem', color:'var(--muted)', fontSize:'.85rem', textAlign:'center' }}>Aucune réservation</div>}
-          {recentContacts.map(c => (
-            <div key={c.id} className={styles.listRow}>
-              <div>
-                <span><strong>{c.prenom} {c.nom}</strong></span>
-                <div style={{ fontSize:'.72rem', color:'var(--muted)' }}>{c.theme}</div>
+
+        <div className="adm-card !p-0">
+          <div className="border-b border-line px-4 py-3 text-[0.85rem] font-bold">Dernières réservations</div>
+          {recentContacts.length === 0 ? (
+            <div className="px-4 py-6 text-center text-[0.84rem] text-fg-faint">Aucune réservation</div>
+          ) : recentContacts.map(c => (
+            <div key={c.id} className="flex items-center gap-3 border-b border-line-soft px-4 py-2.5 last:border-b-0">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[0.85rem] font-semibold">{c.prenom} {c.nom}</div>
+                <div className="truncate text-[0.72rem] text-fg-faint">{c.theme}</div>
               </div>
-              <Badge variant={statusVariant(c.status)} style={{ fontSize:'.62rem' }}>{STATUS_LABELS[c.status]||c.status}</Badge>
+              <Badge variant={statusVariant(c.status)} style={{ fontSize: '.62rem' }}>
+                {STATUS_LABELS[c.status] || c.status}
+              </Badge>
             </div>
           ))}
         </div>
       </div>
-
     </div>
   )
 }
