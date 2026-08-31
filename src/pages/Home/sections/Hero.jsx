@@ -24,7 +24,11 @@ const HERO_DEFAULT = {
   bgImageMime: null,
 }
 
-const HERO_IMAGE = '/assets/hero/flowers.jpg'
+// Image de repli quand aucune image n'est configurée dans l'admin.
+// Doit rester alignée sur le défaut de HeroSection.jsx (`/img/deku.jpg`) :
+// les deux divergeaient, et le site public affichait `flowers.jpg` alors que
+// l'aperçu de l'admin montrait Deku.
+const HERO_IMAGE = '/img/deku.jpg'
 const HERO_GIF = '/assets/hero/follow.gif'
 
 export default function Hero() {

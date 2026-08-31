@@ -20,9 +20,26 @@
    `px-4`, `mb-4` et le padding des primitives `.adm-*` étaient morts eux aussi.
 
    En important sans couche, tout se joue à la spécificité normale :
-   `.lg\:pl-60` (0,1,0) bat `*` (0,0,0). */
+   `.lg\:pl-60` (0,1,0) bat `*` (0,0,0).
+
+   PÉRIMÈTRE DE SCAN LIMITÉ AU PANNEAU
+   Par défaut Tailwind analyse TOUT le projet et génère une utilitaire pour
+   chaque nom de classe rencontré. Or le site public utilise partout la classe
+   `container`, définie dans main.css avec `max-width: 1200px`. Tailwind
+   générait donc SA propre `.container` (max-width jusqu'à 96rem = 1536px, sans
+   marges), chargée après main.css et donc gagnante : sur un grand écran, le
+   Hero passait de 1200 à 1536px et débordait.
+
+   La collision est désormais réglée par l'ORDRE D'IMPORT : admin.css est
+   chargé AVANT main.css (voir main.jsx), donc la définition du site gagne à
+   spécificité égale. Tailwind reste utilisable dans tout le projet. */
 @import 'tailwindcss/theme.css';
-@import 'tailwindcss/utilities.css';
+@import 'tailwindcss/utilities.css' source(none);
+
+/* Tout `src/` est scanné : la collision `.container` est réglée par l'ordre
+   d'import (Tailwind avant main.css, voir main.jsx), donc Tailwind peut
+   désormais servir n'importe où dans le projet. */
+@source '../**/*.{js,jsx}';
 
 /* ═══════════════════════════════════════════════════════
    PALETTE

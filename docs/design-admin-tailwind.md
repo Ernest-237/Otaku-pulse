@@ -41,7 +41,7 @@ npm i -D tailwindcss @tailwindcss/vite
 Tailwind v4 s'active par son plugin Vite : **ni `tailwind.config.js`, ni
 `postcss.config.js`**. Le thème est déclaré en CSS dans `src/styles/admin.css`.
 
-## ⚠️ Trois pièges rencontrés — à ne pas réintroduire
+## ⚠️ Quatre pièges rencontrés — à ne pas réintroduire
 
 ### 1. `@layer` annulait toutes les marges Tailwind
 
@@ -96,12 +96,44 @@ fond **clair** :
 Le site public garde sa palette claire, et les 13 sections deviennent lisibles
 sans qu'une seule de leurs lignes soit modifiée.
 
+
+### 4. Tailwind écrasait le `.container` du site public
+
+Par défaut, Tailwind analyse **tout** le projet et génère une utilitaire pour
+chaque nom de classe rencontré. Le site public utilise partout `container`,
+défini dans `main.css` :
+
+| Origine | Règle appliquée |
+|---|---|
+| `main.css` (le site) | `max-width: 1200px; padding: 0 1.5rem` |
+| **Tailwind** (écrasait) | `max-width: 96rem` = **1536 px**, sans marges |
+
+`admin.css` étant importé après `main.css`, la règle Tailwind gagnait à
+spécificité égale. Sur un écran de 1920 px, le Hero passait de 1200 à 1536 px
+et débordait de la page.
+
+**Correctif** : le périmètre de scan est limité au panneau d'administration —
+le seul endroit où des classes Tailwind sont réellement écrites.
+
+```css
+@import 'tailwindcss/utilities.css' source(none);
+@source '../pages/Admin';
+```
+
+`source(none)` coupe la détection automatique, `@source` la rouvre sur un
+seul dossier. Aucune collision possible avec le site public, et le CSS généré
+est plus léger.
+
+> Si tu écris des classes Tailwind ailleurs qu'en `src/pages/Admin`, ajoute
+> le dossier avec une ligne `@source` — sinon les classes ne seront pas
+> générées et resteront sans effet.
+
 ### Preflight volontairement désactivé
 
 ```css
-@layer theme, base, components, utilities;
-@import 'tailwindcss/theme.css'     layer(theme);
-@import 'tailwindcss/utilities.css' layer(utilities);
+@import 'tailwindcss/theme.css';
+@import 'tailwindcss/utilities.css' source(none);
+@source '../pages/Admin';
 ```
 
 Le reset de base de Tailwind neutralise les styles par défaut des titres,
@@ -109,11 +141,10 @@ listes, boutons et champs sur **toute** la page. Le site public repose sur 36
 fichiers CSS écrits sans lui : l'activer casserait la boutique, le lecteur manga
 et la page d'accueil.
 
-En n'important que le thème et les utilitaires, Tailwind devient purement
-additif. L'ordre des couches est déclaré explicitement pour que les utilitaires
-l'emportent sur les modules CSS existants.
+En n'important que le thème et les utilitaires — sans preflight et sans
+couche — Tailwind devient purement additif.
 
-**Coût réel : +3,6 Ko gzip** au chargement initial (97,4 → 101,0 Ko), le panneau
+**Coût réel : +4,9 Ko gzip** au chargement initial (97,4 → 102,3 Ko), le panneau
 d'administration étant dans un chunk chargé à la demande.
 
 ## Ce qui a été réécrit
@@ -156,7 +187,7 @@ Tailwind et les modules CSS existants.
 
 ## Primitives disponibles
 
-Déclarées dans `@layer components` de `src/styles/admin.css`, utilisables
+Déclarées dans `src/styles/admin.css`, utilisables
 directement dans n'importe quelle section :
 
 | Classe | Usage |
