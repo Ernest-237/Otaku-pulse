@@ -9,14 +9,13 @@ import {
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi, useMutation } from '../../../hooks/useApi'
-import { mangaApi, libraryApi, commentsApi } from '../../../api'
+import { mangaApi, libraryApi, commentsApi, API_BASE } from '../../../api'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../Home/sections/Footer'
 import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
 import { useToast } from '../../../contexts/ToastContext'
 import styles from './MangaDetail.module.css'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'
 
 const copy = {
   fr: {

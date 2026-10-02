@@ -7,13 +7,12 @@ import {
 } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
-import { mangaApi, chaptersApi, readingApi, coinsApi } from '../../../api'
+import { mangaApi, chaptersApi, readingApi, coinsApi, API_BASE } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
 import { useMusicControls } from '../../../contexts/MusicContext'
 import ChapterUnlockGate from './ChapterUnlockGate'
 import styles from './Reader.module.css'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'
 
 const copy = {
   fr: {

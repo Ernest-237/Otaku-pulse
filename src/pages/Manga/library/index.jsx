@@ -8,14 +8,13 @@ import {
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi, useMutation } from '../../../hooks/useApi'
-import { libraryApi } from '../../../api'
+import { libraryApi, API_BASE } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../Home/sections/Footer'
 import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
 import styles from './Library.module.css'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'
 
 const STATUS_TABS = [
   { id: 'reading',      labelF: 'En cours',     labelE: 'Reading',      icon: BookOpen,     color: '#22c55e' },

@@ -11,7 +11,7 @@ import {
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi, useMutation } from '../../../hooks/useApi'
-import { mangaApi, chaptersApi, publishersApi } from '../../../api'
+import { mangaApi, chaptersApi, publishersApi, API_BASE } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../Home/sections/Footer'
@@ -19,7 +19,6 @@ import Modal from '../../../components/ui/Modal'
 import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
 import styles from './Publisher.module.css'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'
 
 const GENRES_OPTIONS = ['action','aventure','romance','fantasy','sci-fi','shonen','seinen','slice of life','mystery','drame','horreur','sport','comédie']
 const MAX_IMAGE_MB = 10

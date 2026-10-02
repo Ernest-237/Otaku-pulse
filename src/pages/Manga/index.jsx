@@ -8,7 +8,7 @@ import {
 import { useLang } from '../../contexts/LangContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useApi } from '../../hooks/useApi'
-import { mangaApi } from '../../api'
+import { mangaApi, API_BASE } from '../../api'
 import Navbar from '../../components/Navbar'
 import Footer from '../Home/sections/Footer'
 import { PageLoader, EmptyState } from '../../components/ui/Spinner'
@@ -351,7 +351,7 @@ function MangaCard({ manga, t, lang }) {
       <div className={styles.coverWrap}>
         {manga.coverUrl ? (
           <img
-            src={`${import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'}${manga.coverUrl}`}
+            src={`${API_BASE}${manga.coverUrl}`}
             alt={title}
             className={styles.coverImg}
             loading="lazy"
@@ -436,7 +436,7 @@ function ContinueCard({ progress, t, lang }) {
       <div className={styles.continueCover}>
         {m.coverUrl ? (
           <img
-            src={`${import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'}${m.coverUrl}`}
+            src={`${API_BASE}${m.coverUrl}`}
             alt={title}
             loading="lazy"
           />

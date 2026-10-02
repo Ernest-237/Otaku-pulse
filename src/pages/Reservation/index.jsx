@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API_BASE } from '../../api'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -252,7 +253,7 @@ export default function ReservationPage() {
     setSending(true)
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'}/api/contact`, {
+      const res = await fetch(`${API_BASE}/api/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, source: 'reservation-form', lang }),

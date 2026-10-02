@@ -1,7 +1,7 @@
 // src/contexts/AuthContext.jsx
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
-const API = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'
+import { API_BASE as API } from '../api'
 const AuthContext = createContext(null)
 
 async function postJSON(path, body) {
