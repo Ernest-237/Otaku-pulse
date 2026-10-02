@@ -79,14 +79,7 @@ app.get('/api/health', async (req, res) => {
   res.json({ status:'OK', version:'2.0.0', db:dbStatus, env:process.env.NODE_ENV })
 })
 
-// SPA fallback
-if (process.env.NODE_ENV === 'production') {
-  const dist = path.join(__dirname, '../dist')
-  app.use(express.static(dist))
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) res.sendFile(path.join(dist, 'index.html'))
-  })
-}
+
 
 app.use((req, res) => res.status(404).json({ error:`Route introuvable : ${req.method} ${req.path}` }))
 app.use((err, req, res, next) => {
