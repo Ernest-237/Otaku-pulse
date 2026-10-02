@@ -1,5 +1,5 @@
 // src/api.js — OTAKU PULSE v2
-export const API_BASE = import.meta.env.VITE_API_URL || 'https://api-pulse-v9vy.onrender.com'
+export const API_BASE = import.meta.env.VITE_API_URL || 'https://magenta-mantis-809260.hostingersite.com'
 
 function getToken()  { return localStorage.getItem('op_token') }
 function headers(auth = true) {
