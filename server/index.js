@@ -22,7 +22,6 @@ app.use(cors({
     process.env.CLIENT_URL || 'http://localhost:5173',
     'https://otaku-pulse.com',
     'https://www.otaku-pulse.com',
-    'https://api-pulse-v9vy.onrender.com',
     'http://localhost:5173',
   ],
   credentials: true,
