@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { SkipForward, Volume2, VolumeX } from 'lucide-react'
 import { useMusicControls } from '../contexts/MusicContext'
 import styles from './MusicControls.module.css'
@@ -11,6 +12,12 @@ const PLAYLIST = [
 ]
 
 export default function Music() {
+  const { pathname } = useLocation()
+  const routePath = pathname.toLowerCase()
+  const immersive =
+    routePath === '/otaku-verse' || routePath.startsWith('/otaku-verse/')
+  const immersiveRef = useRef(immersive)
+  immersiveRef.current = immersive
   const audio = useRef(null)
   const index = useRef(0)
   const resumeAfterOverride = useRef(false)
@@ -18,31 +25,42 @@ export default function Music() {
   const [error, setError] = useState('')
   const { registerControls } = useMusicControls()
   const play = useCallback(async () => {
-    if (!audio.current) return
+    if (!audio.current || immersiveRef.current) return
     setError('')
     audio.current.volume = 0.25
     try {
       await audio.current.play()
-    } catch {
+    } catch (error) {
       setPlaying(false)
+      if (immersiveRef.current || error?.name === 'AbortError') return
       setError('Lecture indisponible. Essaie la piste suivante.')
     }
   }, [])
   const next = useCallback(() => {
+    if (immersiveRef.current) return
     index.current = (index.current + 1) % PLAYLIST.length
     if (!audio.current) return
     audio.current.src = PLAYLIST[index.current]
     play()
   }, [play])
+  // The immersive room owns its optional audio. Leaving it never restarts
+  // this playlist: the visitor can explicitly enable the site ambience again.
+  useLayoutEffect(() => {
+    if (!immersive) return
+    resumeAfterOverride.current = false
+    audio.current?.pause()
+    setPlaying(false)
+    setError('')
+  }, [immersive])
   useEffect(() => {
     const element = audio.current
     registerControls({
       pause: () => {
-        resumeAfterOverride.current = !element.paused
+        resumeAfterOverride.current = !immersiveRef.current && !element.paused
         element.pause()
       },
       resume: () => {
-        if (resumeAfterOverride.current) {
+        if (!immersiveRef.current && resumeAfterOverride.current) {
           resumeAfterOverride.current = false
           play()
         }
@@ -54,7 +72,7 @@ export default function Music() {
     }
   }, [registerControls, play])
   return (
-    <div className={styles.controls}>
+    <div className={styles.controls} style={immersive ? { display: 'none' } : undefined}>
       <audio
         ref={audio}
         src={PLAYLIST[0]}

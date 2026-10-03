@@ -96,6 +96,7 @@ export default function Footer() {
                 <li><Link to="/evenements">{lang === 'fr' ? 'Nos événements' : 'Our events'}</Link></li>
                 <li><Link to="/reservation">{lang === 'fr' ? 'Organiser un événement' : 'Organize an event'}</Link></li>
                 <li><Link to="/blog">{lang === 'fr' ? 'Blog & Actus' : 'Blog & News'}</Link></li>
+                <li><Link to="/otaku-verse">Otaku-verse</Link></li>
                 <li><Link to="/profil">{lang === 'fr' ? 'Mon compte' : 'My Account'}</Link></li>
               </ul>
             </div>

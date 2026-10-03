@@ -29,9 +29,9 @@
 .logoSub  { font-size:.5rem; letter-spacing:1.5px; color:var(--text-muted); font-weight:700; }
 
 /* ── Links desktop ── */
-.links { display:flex; align-items:center; list-style:none; gap:.15rem; flex:1; }
+.links { display:flex; align-items:center; list-style:none; gap:.1rem; flex:1; min-width:0; padding:0; margin:0; }
 .link {
-  padding:7px 12px; border-radius:var(--radius-md);
+  padding:7px 9px; border-radius:var(--radius-md);
   background:none; border:none; cursor:pointer;
   font-family:var(--font-body); font-size:.86rem; font-weight:700;
   color:var(--text-muted);
@@ -39,6 +39,7 @@
   position: relative;
 }
 .link:hover { color:var(--green-700); background:var(--green-pale); }
+.verseLink { background:var(--green-pale); color:var(--green-800); }
 .linkActive { color:var(--green-700) !important; background:var(--green-pale); }
 .linkActive::after {
   content: ''; position: absolute;
@@ -243,7 +244,7 @@
 .authSwitch button { background:none; border:none; color:var(--green-700); cursor:pointer; font-weight:800; font-family:var(--font-body); }
 
 /* Responsive */
-@media (max-width: 960px) {
+@media (max-width: 1240px) {
   .links { display: none !important; }
   .burger { display: flex !important; }
   .langToggle, .authBtns, .userMenu { display: none; }
@@ -404,4 +405,7 @@
     width: 38px;
     height: 38px;
   }
+}
+@media (min-width: 1241px) {
+  .mobileMenu { display: none; }
 }

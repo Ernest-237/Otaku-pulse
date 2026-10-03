@@ -88,6 +88,14 @@ export default function Navbar() {
   // Close mobile menu on route change
   useEffect(() => { setMenuOpen(false) }, [location.pathname])
   useEffect(() => {
+    if (!menuOpen) return
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [menuOpen])
+  useEffect(() => {
     const open = () => { setAuthTab('login'); setAuthError(''); setAuthModal(true) }
     window.addEventListener('op:login', open)
     return () => window.removeEventListener('op:login', open)
@@ -210,9 +218,10 @@ export default function Navbar() {
   }
 
   const navLinks = [
-    { label: T.shop,   action: () => navigate('/boutique') },
-    { label: T.events, action: () => navigate('/evenements') },
+    { label: T.shop,   href: '/boutique' },
+    { label: T.events, href: '/evenements' },
     { label: T.fandom, href: '/fandom' },
+    { label: 'Otaku-verse', href: '/otaku-verse', verse: true },
     { label: T.manga,  href: '/manga' },
     { label: T.about,  action: () => scrollTo('apropos')  },
     { label: T.blog,   href: '/blog' },
@@ -225,7 +234,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={styles.nav}>
+      <nav className={styles.nav} aria-label={lang === 'fr' ? 'Navigation principale' : 'Main navigation'}>
         <div className={styles.navInner}>
           {/* Logo */}
           <Link to="/" className={styles.logo}>
@@ -242,7 +251,9 @@ export default function Navbar() {
               <li key={i}>
                 {l.href
                   ? <Link to={l.href}
-                      className={`${styles.link} ${location.pathname===l.href?styles.linkActive:''}`}>
+                      aria-current={location.pathname === l.href ? 'page' : undefined}
+                      className={`${styles.link} ${l.verse ? styles.verseLink : ''} ${location.pathname===l.href?styles.linkActive:''}`}>
+                      {l.verse && <span aria-hidden="true">🏯 </span>}
                       {l.label}
                     </Link>
                   : <button className={styles.link} onClick={l.action}>{l.label}</button>
@@ -366,7 +377,8 @@ export default function Navbar() {
 
             {/* Burger mobile */}
             <button className={`${styles.burger} ${menuOpen?styles.burgerOpen:''}`}
-              onClick={() => setMenuOpen(p => !p)} aria-label="Menu">
+              onClick={() => setMenuOpen(p => !p)} aria-label="Menu"
+              aria-expanded={menuOpen} aria-controls="mobile-navigation">
               <span/><span/><span/>
             </button>
           </div>
@@ -374,7 +386,7 @@ export default function Navbar() {
 
         {/* Menu mobile */}
         {menuOpen && (
-          <div className={styles.mobileMenu}>
+          <div className={styles.mobileMenu} id="mobile-navigation">
             {/* User connecté */}
             {user && (
               <div className={styles.mobileUserInfo}>
@@ -393,8 +405,10 @@ export default function Navbar() {
             {navLinks.map((link, i) => (
               link.href ? (
                 <Link key={i} to={link.href}
+                  aria-current={location.pathname === link.href ? 'page' : undefined}
                   className={`${styles.mobileLink} ${location.pathname === link.href ? styles.mobileLinkActive : ''}`}
                   onClick={() => setMenuOpen(false)}>
+                  {link.verse && <span aria-hidden="true">🏯 </span>}
                   {link.label}
                 </Link>
               ) : (

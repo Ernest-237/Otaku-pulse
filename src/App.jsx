@@ -31,6 +31,7 @@ const Blog            = lazy(() => import('./pages/Blog'))
 const EventsPage      = lazy(() => import('./pages/Events'))
 const Profil          = lazy(() => import('./pages/Profil'))
 const FandomPage      = lazy(() => import('./pages/Fandom'))
+const OtakuVersePage  = lazy(() => import('./pages/OtakuVerse'))
 const MembershipPage  = lazy(() => import('./pages/Membership'))
 const PolesPage       = lazy(() => import('./pages/Poles'))
 
@@ -90,6 +91,7 @@ export default function App() {
       <Route path="/membership"  element={<MembershipPage />} />
       <Route path="/poles"       element={<PolesPage />} />
       <Route path="/fandom" element={<FandomPage />} />
+      <Route path="/otaku-verse" element={<OtakuVersePage />} />
 
       {/* Manga Platform */}
       <Route path="/manga"                                    element={<MangaCatalog />} />
