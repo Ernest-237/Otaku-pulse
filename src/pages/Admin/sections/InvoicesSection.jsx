@@ -55,7 +55,7 @@ export default function InvoicesSection() {
 
   const { data: cfg }        = useApi(() => adminInvoicesApi.getConfig(), [])
   const { data: statsData, refresh: refreshStats } = useApi(() => adminInvoicesApi.getStats(), [])
-  const { data: listData, loading, refresh } = useApi(
+  const { data: listData, loading, error, refresh } = useApi(
     () => adminInvoicesApi.list({ status: filter, search }),
     [filter, search]
   )
@@ -94,6 +94,8 @@ export default function InvoicesSection() {
       />
     )
   }
+
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={refresh}>Réessayer</button></p>
 
   // ── Liste ──
   return (

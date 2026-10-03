@@ -1,219 +1,186 @@
-// src/components/ui/ImageUploader.jsx
-// Composant upload image universel : FICHIER (→base64) OU LIEN URL
-// Preview, validation taille/format, drag&drop, gestion d'erreur robuste
-import { useState, useRef, useEffect } from 'react'
-import { fileToBase64 } from '../../api'
+import { useEffect, useRef, useState } from 'react'
+import { prepareImage } from '../../utils/media'
+import { resolveMediaUrl } from '../../api'
+import MediaImage from './MediaImage'
+import styles from './ImageUploader.module.css'
 
 export default function ImageUploader({
-  currentUrl,        // URL actuelle (preview initiale)
-  onUpload,          // async (imageData, imageMime) => void  — pour un fichier
-  onUrlChange,       // (url) => void                          — pour un lien (optionnel)
-  allowUrl = true,   // autoriser l'onglet "Lien URL"
-  placeholder = 'Cliquer ou glisser une image',
-  accept = 'image/*',
+  currentUrl,
+  onUpload,
+  onUrlChange,
+  onBusyChange,
+  allowUrl = true,
+  placeholder = 'Choisir ou déposer une image',
+  accept = 'image/jpeg,image/png,image/webp,image/gif',
   maxSizeMB = 5,
   style = {},
 }) {
-  const [mode, setMode]       = useState('file')  // 'file' | 'url'
-  const [preview, setPreview] = useState(currentUrl || null)
-  const [urlValue, setUrlValue] = useState(currentUrl && currentUrl.startsWith('http') ? currentUrl : '')
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState(null)
-  const [success, setSuccess] = useState(false)
-  const inputRef = useRef(null)
-  const objectUrlRef = useRef(null)
-
-  // Nettoyer les object URLs pour éviter les fuites mémoire
+  const [mode, setMode] = useState('file')
+  const [preview, setPreview] = useState(currentUrl || '')
+  const [url, setUrl] = useState(currentUrl || '')
+  const [busy, setBusy] = useState(false)
+  const [feedback, setFeedback] = useState(null)
+  const input = useRef(null)
+  const locked = useRef(false)
+  const mounted = useRef(true)
   useEffect(() => {
-    return () => { if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current) }
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
   }, [])
-
-  const resetFeedback = () => { setError(null); setSuccess(false) }
-
-  const processFile = async (file) => {
-    resetFeedback()
-    if (!file) return
-
-    // Validations
-    if (!file.type || !file.type.startsWith('image/')) {
-      setError('Format invalide (JPG, PNG, WebP, GIF)')
-      return
+  useEffect(() => {
+    if (!locked.current) {
+      setPreview(currentUrl || '')
+      setUrl(currentUrl || '')
     }
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      setError(`Image trop lourde (max ${maxSizeMB}MB). Compresse-la d'abord.`)
-      return
-    }
-
-    // Preview immédiate
-    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
-    const objectUrl = URL.createObjectURL(file)
-    objectUrlRef.current = objectUrl
-    setPreview(objectUrl)
-
-    // Conversion base64 + envoi
-    setLoading(true)
+  }, [currentUrl])
+  const run = async (action) => {
+    if (locked.current) return
+    locked.current = true
+    setBusy(true)
+    setFeedback(null)
+    onBusyChange?.(true)
     try {
-      const { data, mime } = await fileToBase64(file)
-      if (!data) throw new Error('Conversion échouée')
-      await onUpload?.(data, mime)
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
-    } catch (err) {
-      console.error('Upload error:', err)
-      setError(err.message || 'Erreur lors de l\'upload')
-      setPreview(currentUrl || null)
+      await action()
+      if (mounted.current)
+        setFeedback({
+          ok: true,
+          text: 'Image prête. Enregistre le formulaire pour valider tes changements.',
+        })
+    } catch (e) {
+      if (mounted.current) {
+        setFeedback({
+          ok: false,
+          text: e.message || 'Envoi impossible. Réessaie.',
+        })
+        setPreview(currentUrl || '')
+      }
     } finally {
-      setLoading(false)
+      locked.current = false
+      onBusyChange?.(false)
+      if (mounted.current) setBusy(false)
     }
   }
-
-  const handleFileInput = (e) => {
-    const file = e.target.files?.[0]
-    processFile(file)
-  }
-
-  const handleDrop = (e) => {
-    e.preventDefault()
-    e.currentTarget.style.borderColor = ''
-    const file = e.dataTransfer.files?.[0]
-    if (file) processFile(file)
-  }
-
-  const applyUrl = () => {
-    resetFeedback()
-    const u = urlValue.trim()
-    if (!u) { setError('Entre une URL d\'image'); return }
-    if (!u.startsWith('http')) { setError('L\'URL doit commencer par http(s)://'); return }
-    setPreview(u)
-    onUrlChange?.(u)
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 3000)
-  }
-
+  const processFile = (file) =>
+    file &&
+    run(async () => {
+      if (!onUpload)
+        throw new Error('Le chargement de fichier n’est pas disponible ici.')
+      const image = await prepareImage(file, { maxSizeMB })
+      await onUpload(image.data, image.mime)
+      if (mounted.current) setPreview(`data:${image.mime};base64,${image.data}`)
+    })
+  const applyUrl = () =>
+    run(async () => {
+      if (!/^https?:\/\//i.test(url.trim()))
+        throw new Error('Utilise une adresse complète https://…')
+      const image = new Image()
+      image.src = url.trim()
+      let timer
+      try {
+        await Promise.race([
+          image.decode(),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () =>
+                reject(
+                  new Error('Cette image ne répond pas. Vérifie le lien.')
+                ),
+              10000
+            )
+          }),
+        ])
+      } finally {
+        clearTimeout(timer)
+      }
+      await onUrlChange(url.trim())
+      if (mounted.current) setPreview(url.trim())
+    })
   return (
-    <div style={{ ...style }}>
-      {/* Onglets Fichier / Lien */}
+    <div className={styles.wrap} style={style} aria-busy={busy}>
       {allowUrl && onUrlChange && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-          <button type="button" onClick={() => setMode('file')}
-            style={tabStyle(mode === 'file')}>📁 Fichier</button>
-          <button type="button" onClick={() => setMode('url')}
-            style={tabStyle(mode === 'url')}>🔗 Lien URL</button>
+        <div className={styles.tabs}>
+          <button
+            type="button"
+            aria-pressed={mode === 'file'}
+            disabled={busy}
+            onClick={() => setMode('file')}
+          >
+            🖼️ Depuis mon appareil
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === 'url'}
+            disabled={busy}
+            onClick={() => setMode('url')}
+          >
+            Lien d’image
+          </button>
         </div>
       )}
-
-      {/* MODE FICHIER */}
-      {mode === 'file' && (
-        <div
-          onClick={() => !loading && inputRef.current?.click()}
-          onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#33ff33' }}
-          onDragLeave={e => { e.currentTarget.style.borderColor = '' }}
-          onDrop={handleDrop}
-          style={{
-            width: '100%', minHeight: 130, borderRadius: 12,
-            border: `2px dashed ${error ? '#ef4444' : success ? '#22c55e' : 'rgba(120,200,140,.25)'}`,
-            background: 'rgba(255,255,255,0.03)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            overflow: 'hidden', position: 'relative', transition: 'border-color .2s',
+      {mode === 'file' ? (
+        <button
+          type="button"
+          className={styles.drop}
+          disabled={busy}
+          onClick={() => input.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault()
+            processFile(e.dataTransfer.files?.[0])
           }}
         >
-          {preview ? (
-            <>
-              <img src={preview} alt="preview"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
-                onError={() => { setError('Image illisible'); setPreview(null) }} />
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: loading ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                opacity: loading ? 1 : 0, transition: 'opacity .2s',
-              }}>
-                {loading && <Spinner />}
-              </div>
-            </>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '1.5rem', color: '#9aa6c0' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '.5rem' }}>{loading ? '⏳' : '📸'}</div>
-              <div style={{ fontSize: '.85rem', fontWeight: 600 }}>{loading ? 'Upload en cours...' : placeholder}</div>
-              <div style={{ fontSize: '.72rem', marginTop: '.3rem', opacity: .6 }}>
-                JPG, PNG, WebP, GIF — max {maxSizeMB}MB — glisser-déposer OK
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* MODE URL */}
-      {mode === 'url' && (
-        <div>
           {preview && (
-            <div style={{ width: '100%', height: 130, borderRadius: 12, overflow: 'hidden', marginBottom: 10, border: '1px solid rgba(120,200,140,.18)' }}>
-              <img src={preview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={() => setError('URL d\'image invalide ou inaccessible')} />
-            </div>
+            <MediaImage
+              src={resolveMediaUrl(preview)}
+              alt="Aperçu de l’image"
+            />
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <span className={preview ? styles.caption : ''}>
+            {busy ? 'Optimisation et chargement…' : placeholder}
+          </span>
+        </button>
+      ) : (
+        <div className={styles.link}>
+          {preview && <MediaImage src={preview} alt="Aperçu de l’image" />}
+          <label>
+            Adresse de l’image
             <input
               type="url"
-              value={urlValue}
-              onChange={e => setUrlValue(e.target.value)}
-              placeholder="https://exemple.com/image.jpg"
-              style={{
-                flex: 1, padding: '9px 12px', borderRadius: 10,
-                background: 'var(--ad-bg, #0a0c16)', border: '1px solid rgba(120,200,140,.2)',
-                color: '#e8eef5', fontSize: '.88rem', outline: 'none',
-              }}
+              value={url}
+              disabled={busy}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://…"
             />
-            <button type="button" onClick={applyUrl}
-              style={{
-                padding: '9px 16px', borderRadius: 10, border: 'none',
-                background: 'linear-gradient(135deg,#22c55e,#15803d)', color: '#fff',
-                fontWeight: 700, fontSize: '.85rem', cursor: 'pointer', whiteSpace: 'nowrap',
-              }}>
-              ✓ Appliquer
-            </button>
-          </div>
+          </label>
+          <button type="button" onClick={applyUrl} disabled={busy}>
+            {busy ? 'Vérification…' : 'Utiliser cette image'}
+          </button>
         </div>
       )}
-
-      {/* Feedback */}
-      {error   && <div style={{ color: '#fca5a5', fontSize: '.78rem', marginTop: 8 }}>⚠️ {error}</div>}
-      {success && <div style={{ color: '#4ade80', fontSize: '.78rem', marginTop: 8 }}>✅ Image mise à jour !</div>}
-
-      {/* Bouton changer (mode fichier avec preview) */}
-      {mode === 'file' && preview && !loading && (
-        <button type="button" onClick={() => inputRef.current?.click()}
-          style={{
-            marginTop: 8, padding: '6px 14px', borderRadius: 8,
-            background: 'rgba(255,255,255,.06)', border: '1px solid rgba(120,200,140,.18)',
-            color: '#9aa6c0', cursor: 'pointer', fontSize: '.8rem', fontFamily: 'var(--font-body)',
-          }}>
-          📸 Changer l'image
-        </button>
+      <p className={styles.hint}>
+        JPG, PNG, WebP, GIF · jusqu’à 20 Mo avant optimisation · {maxSizeMB} Mo
+        maximum après optimisation.
+      </p>
+      {feedback && (
+        <p
+          className={feedback.ok ? styles.success : styles.error}
+          role={feedback.ok ? 'status' : 'alert'}
+        >
+          {feedback.text}
+        </p>
       )}
-
-      <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }} onChange={handleFileInput} />
+      <input
+        ref={input}
+        type="file"
+        accept={accept}
+        hidden
+        onChange={(e) => {
+          processFile(e.target.files?.[0])
+          e.target.value = ''
+        }}
+      />
     </div>
-  )
-}
-
-function tabStyle(active) {
-  return {
-    flex: 1, padding: '7px 12px', borderRadius: 9,
-    border: `1px solid ${active ? 'rgba(51,255,51,.4)' : 'rgba(120,200,140,.18)'}`,
-    background: active ? 'rgba(51,255,51,.12)' : 'transparent',
-    color: active ? '#33ff33' : '#9aa6c0',
-    fontWeight: 700, fontSize: '.82rem', cursor: 'pointer', transition: 'all .15s',
-  }
-}
-
-function Spinner() {
-  return (
-    <div style={{
-      width: 30, height: 30,
-      border: '3px solid rgba(51,255,51,.25)', borderTopColor: '#33ff33',
-      borderRadius: '50%', animation: 'spin .8s linear infinite',
-    }} />
   )
 }

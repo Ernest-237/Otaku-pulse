@@ -18,6 +18,7 @@ import { checkHealth } from './api'
 // chaque recompilation en développement, et repassait alors en dernier.
 import './styles/admin.css'
 import './styles/main.css'
+import './styles/jade.css'
 
 // Réveille le backend (Render, plan gratuit) dès l'ouverture du site, avant
 // même que l'utilisateur interagisse — réduit le risque d'échec sur une
@@ -44,3 +45,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 )
+
+import './styles/editorial.css'

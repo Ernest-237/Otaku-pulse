@@ -3,12 +3,13 @@ const express = require('express');
 const { User, Product, Wishlist } = require('../models/index');
 const { protect } = require('../middleware/auth');
 const router  = express.Router();
+const { versionedImage } = require('../utils/media');
 
 router.get('/profile', protect, (req, res) => res.json({ user: req.user.toJSON() }));
 
 router.patch('/profile', protect, async (req, res, next) => {
   try {
-    const allowed = ['firstName','lastName','phone','city','lang','avatar'];
+    const allowed = ['firstName','lastName','phone','whatsapp','quartier','city','lang','avatar'];
     const updates = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
     await req.user.update(updates);
@@ -27,6 +28,17 @@ router.patch('/password', protect, async (req, res, next) => {
 });
 
 // Toggle wishlist
+router.put('/wishlist/:productId', protect, async (req, res, next) => {
+  try {
+    const where = { userId: req.user.id, productId: req.params.productId };
+    if (req.body.enabled === false) { await Wishlist.destroy({ where }); return res.json({ added: false }); }
+    const product = await Product.findByPk(req.params.productId, { attributes: ['id','isActive'] });
+    if (!product || !product.isActive) return res.status(404).json({ error: 'Produit indisponible.' });
+    await Wishlist.findOrCreate({ where });
+    res.json({ added: true });
+  } catch (err) { next(err); }
+});
+
 router.post('/wishlist/:productId', protect, async (req, res, next) => {
   try {
     const { productId } = req.params;
@@ -43,9 +55,9 @@ router.post('/wishlist/:productId', protect, async (req, res, next) => {
 router.get('/wishlist', protect, async (req, res, next) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      include: [{ model: Product, as: 'wishlist' }],
+      include: [{ model: Product, as: 'wishlist', attributes: { exclude: ['imageData'] } }],
     });
-    res.json({ wishlist: user.wishlist });
+    res.json({ wishlist: (user?.wishlist || []).map(p => { const j = p.toJSON(); if (p.imageMime) j.imageUrl = versionedImage(`/api/upload/product/${p.id}/image`, p.updatedAt); return j; }) });
   } catch (err) { next(err); }
 });
 

@@ -1,3 +1,4 @@
+import OtakuMark from '../../../components/ui/OtakuMark'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -56,7 +57,7 @@ export default function Footer() {
             <div className={styles.brand}>
               <div className={styles.logo}>
                 <span className={styles.logoBolt}>
-                  <Zap size={18} strokeWidth={2.3} />
+                  <OtakuMark size={18} strokeWidth={2.3} />
                 </span>
                 <div>
                   <div className={styles.logoName}>OTAKU PULSE</div>
@@ -92,7 +93,8 @@ export default function Footer() {
               <ul className={styles.linkList}>
                 <li><Link to="/">{lang === 'fr' ? 'Accueil' : 'Home'}</Link></li>
                 <li><Link to="/boutique">{lang === 'fr' ? 'Boutique' : 'Shop'}</Link></li>
-                <li><Link to="/reservation">{lang === 'fr' ? 'Réserver un événement' : 'Book an event'}</Link></li>
+                <li><Link to="/evenements">{lang === 'fr' ? 'Nos événements' : 'Our events'}</Link></li>
+                <li><Link to="/reservation">{lang === 'fr' ? 'Organiser un événement' : 'Organize an event'}</Link></li>
                 <li><Link to="/blog">{lang === 'fr' ? 'Blog & Actus' : 'Blog & News'}</Link></li>
                 <li><Link to="/profil">{lang === 'fr' ? 'Mon compte' : 'My Account'}</Link></li>
               </ul>

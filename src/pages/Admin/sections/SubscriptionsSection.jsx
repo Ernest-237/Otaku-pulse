@@ -18,8 +18,8 @@ const PLAN_LABELS = {
 const PLAN_COLORS = {
   daily:   '#06b6d4',
   weekly:  '#22c55e',
-  monthly: '#a78bfa',
-  yearly:  '#eab308',
+  monthly: '#7051b0',
+  yearly:  '#906610',
 }
 
 const STATUS_VARIANT = {
@@ -33,7 +33,7 @@ export default function SubscriptionsSection({ toast }) {
   const [filter, setFilter] = useState('pending')
   const [selected, setSelected] = useState(null)
 
-  const { data, loading, execute } = useApi(
+  const { data, loading, error, execute } = useApi(
     () => adminMangaApi.getSubscriptions({
       status: filter !== 'all' ? filter : undefined,
       limit: 200,
@@ -71,25 +71,26 @@ export default function SubscriptionsSection({ toast }) {
     cancelled: subs.filter(s => s.status === 'cancelled').length,
   }
 
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
   return (
     <div>
       {/* KPI cards */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:'1.5rem' }}>
-        <div className={styles.statCard} style={{ borderLeft:`3px solid #f59e0b`, paddingLeft:'1rem' }}>
-          <div style={{ fontFamily:'var(--font-title)', fontSize:'2rem', letterSpacing:2, color:'#f59e0b', lineHeight:1 }}>{counts.pending}</div>
-          <div style={{ fontSize:'.7rem', color:'rgba(180,190,220,.5)', letterSpacing:1, textTransform:'uppercase', marginTop:4 }}>⏳ En attente</div>
+        <div className={styles.statCard} style={{ borderLeft:`3px solid #a36310`, paddingLeft:'1rem' }}>
+          <div style={{ fontFamily:'var(--font-title)', fontSize:'2rem', letterSpacing:2, color:'#a36310', lineHeight:1 }}>{counts.pending}</div>
+          <div style={{ fontSize:'.7rem', color:'#64735d', letterSpacing:1, textTransform:'uppercase', marginTop:4 }}>⏳ En attente</div>
         </div>
         <div className={styles.statCard} style={{ borderLeft:`3px solid #22c55e`, paddingLeft:'1rem' }}>
           <div style={{ fontFamily:'var(--font-title)', fontSize:'2rem', letterSpacing:2, color:'#22c55e', lineHeight:1 }}>{counts.active}</div>
-          <div style={{ fontSize:'.7rem', color:'rgba(180,190,220,.5)', letterSpacing:1, textTransform:'uppercase', marginTop:4 }}>✅ Actifs</div>
+          <div style={{ fontSize:'.7rem', color:'#64735d', letterSpacing:1, textTransform:'uppercase', marginTop:4 }}>✅ Actifs</div>
         </div>
         <div className={styles.statCard} style={{ borderLeft:`3px solid #6b7280`, paddingLeft:'1rem' }}>
           <div style={{ fontFamily:'var(--font-title)', fontSize:'2rem', letterSpacing:2, color:'#6b7280', lineHeight:1 }}>{counts.expired}</div>
-          <div style={{ fontSize:'.7rem', color:'rgba(180,190,220,.5)', letterSpacing:1, textTransform:'uppercase', marginTop:4 }}>⏰ Expirés</div>
+          <div style={{ fontSize:'.7rem', color:'#64735d', letterSpacing:1, textTransform:'uppercase', marginTop:4 }}>⏰ Expirés</div>
         </div>
         <div className={styles.statCard} style={{ borderLeft:`3px solid #22c55e`, paddingLeft:'1rem' }}>
           <div style={{ fontFamily:'var(--font-title)', fontSize:'1.6rem', letterSpacing:1, color:'#22c55e', lineHeight:1 }}>{totalRevenue.toLocaleString()}</div>
-          <div style={{ fontSize:'.7rem', color:'rgba(180,190,220,.5)', letterSpacing:1, textTransform:'uppercase', marginTop:4 }}>💰 FCFA actif</div>
+          <div style={{ fontSize:'.7rem', color:'#64735d', letterSpacing:1, textTransform:'uppercase', marginTop:4 }}>💰 FCFA actif</div>
         </div>
       </div>
 
@@ -122,8 +123,8 @@ export default function SubscriptionsSection({ toast }) {
                 {subs.map(s => (
                   <tr key={s.id} className={styles.tr} style={{ cursor:'pointer' }} onClick={() => setSelected(s)}>
                     <td>
-                      <strong style={{ color:'#e2e8f0' }}>{s.user?.pseudo || '—'}</strong>
-                      <div style={{ fontSize:'.72rem', color:'rgba(180,190,220,.5)' }}>{s.user?.email}</div>
+                      <strong style={{ color:'#263e30' }}>{s.user?.pseudo || '—'}</strong>
+                      <div style={{ fontSize:'.72rem', color:'#64735d' }}>{s.user?.email}</div>
                     </td>
                     <td>
                       <span style={{ padding:'3px 9px', borderRadius:50, background:`${PLAN_COLORS[s.planType]}22`, color:PLAN_COLORS[s.planType], border:`1px solid ${PLAN_COLORS[s.planType]}40`, fontSize:'.72rem', fontWeight:800 }}>
@@ -144,7 +145,7 @@ export default function SubscriptionsSection({ toast }) {
                       ) : <span style={{ color:'rgba(180,190,220,.4)', fontSize:'.82rem' }}>—</span>}
                     </td>
                     <td><Badge variant={STATUS_VARIANT[s.status]} style={{ fontSize:'.65rem' }}>{s.status}</Badge></td>
-                    <td style={{ fontSize:'.78rem', color:'rgba(180,190,220,.6)' }}>
+                    <td style={{ fontSize:'.78rem', color:'#60705f' }}>
                       {s.expiresAt ? new Date(s.expiresAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'2-digit' }) : '—'}
                     </td>
                     <td onClick={e => e.stopPropagation()} style={{ display:'flex', gap:4 }}>
@@ -185,8 +186,8 @@ function SubscriptionDetail({ sub, onClose, onActivate, onCancel }) {
       <div className={styles.detailGrid} style={{ marginBottom:'1.2rem' }}>
         <div className={styles.detailItem}>
           <div className={styles.detailLbl}>Utilisateur</div>
-          <strong style={{ color:'#e2e8f0' }}>{sub.user?.pseudo}</strong>
-          <div style={{ fontSize:'.72rem', color:'rgba(180,190,220,.5)' }}>{sub.user?.email}</div>
+          <strong style={{ color:'#263e30' }}>{sub.user?.pseudo}</strong>
+          <div style={{ fontSize:'.72rem', color:'#64735d' }}>{sub.user?.email}</div>
         </div>
         <div className={styles.detailItem}>
           <div className={styles.detailLbl}>WhatsApp</div>
@@ -221,7 +222,7 @@ function SubscriptionDetail({ sub, onClose, onActivate, onCancel }) {
         {sub.expiresAt && (
           <div className={styles.detailItem}>
             <div className={styles.detailLbl}>Expire le</div>
-            <strong style={{ fontSize:'.85rem', color:new Date(sub.expiresAt) > new Date() ? '#22c55e' : '#f87171' }}>
+            <strong style={{ fontSize:'.85rem', color:new Date(sub.expiresAt) > new Date() ? '#22c55e' : '#b53c44' }}>
               {new Date(sub.expiresAt).toLocaleDateString('fr-FR', { dateStyle: 'long' })}
             </strong>
           </div>
@@ -230,7 +231,7 @@ function SubscriptionDetail({ sub, onClose, onActivate, onCancel }) {
 
       {sub.adminNotes && (
         <div style={{ background:'rgba(245,158,11,.08)', border:'1px solid rgba(245,158,11,.2)', borderRadius:10, padding:'.9rem 1.1rem', marginBottom:'1rem' }}>
-          <div style={{ fontSize:'.68rem', color:'#fcd34d', fontWeight:800, letterSpacing:1, textTransform:'uppercase', marginBottom:5 }}>📝 Notes admin</div>
+          <div style={{ fontSize:'.68rem', color:'#956018', fontWeight:800, letterSpacing:1, textTransform:'uppercase', marginBottom:5 }}>📝 Notes admin</div>
           <p style={{ color:'rgba(252,211,77,.9)', fontSize:'.85rem', margin:0, lineHeight:1.6 }}>{sub.adminNotes}</p>
         </div>
       )}
@@ -238,28 +239,28 @@ function SubscriptionDetail({ sub, onClose, onActivate, onCancel }) {
       {/* Actions */}
       {sub.status === 'pending' && (
         <div style={{ background:'rgba(34,197,94,.05)', border:'1px solid rgba(34,197,94,.15)', borderRadius:12, padding:'1rem' }}>
-          <div style={{ fontSize:'.68rem', color:'#4ade80', fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', marginBottom:'.8rem' }}>⚡ Activation manuelle</div>
+          <div style={{ fontSize:'.68rem', color:'#32634d', fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', marginBottom:'.8rem' }}>⚡ Activation manuelle</div>
 
-          <p style={{ fontSize:'.82rem', color:'rgba(180,190,220,.7)', marginBottom:'1rem', lineHeight:1.6 }}>
+          <p style={{ fontSize:'.82rem', color:'#60705f', marginBottom:'1rem', lineHeight:1.6 }}>
             Vérifiez le paiement (MTN Money / Orange Money) puis activez l'abonnement. L'utilisateur recevra un email de confirmation.
           </p>
 
           <div style={{ marginBottom:'.8rem' }}>
-            <label style={{ display:'block', fontSize:'.7rem', color:'rgba(180,190,220,.5)', fontWeight:700, marginBottom:5, letterSpacing:1, textTransform:'uppercase' }}>Référence transaction</label>
+            <label style={{ display:'block', fontSize:'.7rem', color:'#64735d', fontWeight:700, marginBottom:5, letterSpacing:1, textTransform:'uppercase' }}>Référence transaction</label>
             <input value={paymentRef} onChange={e => setPaymentRef(e.target.value)}
               placeholder="Ex: MTN-123456789"
-              style={{ width:'100%', padding:'10px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', color:'#e2e8f0', fontSize:'.85rem', outline:'none', transition:'border-color .15s, background .15s' }}
+              style={{ width:'100%', padding:'10px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1.5px solid rgba(71,124,92,.12)', color:'#263e30', fontSize:'.85rem', outline:'none', transition:'border-color .15s, background .15s' }}
               onFocus={e => { e.target.style.borderColor='#22c55e'; e.target.style.background='rgba(34,197,94,.06)' }}
-              onBlur={e => { e.target.style.borderColor='rgba(255,255,255,.12)'; e.target.style.background='rgba(255,255,255,.04)' }} />
+              onBlur={e => { e.target.style.borderColor='rgba(71,124,92,.12)'; e.target.style.background='rgba(71,124,92,.04)' }} />
           </div>
 
           <div style={{ marginBottom:'1rem' }}>
-            <label style={{ display:'block', fontSize:'.7rem', color:'rgba(180,190,220,.5)', fontWeight:700, marginBottom:5, letterSpacing:1, textTransform:'uppercase' }}>Notes admin</label>
+            <label style={{ display:'block', fontSize:'.7rem', color:'#64735d', fontWeight:700, marginBottom:5, letterSpacing:1, textTransform:'uppercase' }}>Notes admin</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
               placeholder="Note interne (optionnel)..."
-              style={{ width:'100%', padding:'10px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', color:'#e2e8f0', fontSize:'.85rem', outline:'none', resize:'vertical', fontFamily:'var(--font-body)', lineHeight:1.5, transition:'border-color .15s, background .15s' }}
+              style={{ width:'100%', padding:'10px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1.5px solid rgba(71,124,92,.12)', color:'#263e30', fontSize:'.85rem', outline:'none', resize:'vertical', fontFamily:'var(--font-body)', lineHeight:1.5, transition:'border-color .15s, background .15s' }}
               onFocus={e => { e.target.style.borderColor='#22c55e'; e.target.style.background='rgba(34,197,94,.06)' }}
-              onBlur={e => { e.target.style.borderColor='rgba(255,255,255,.12)'; e.target.style.background='rgba(255,255,255,.04)' }} />
+              onBlur={e => { e.target.style.borderColor='rgba(71,124,92,.12)'; e.target.style.background='rgba(71,124,92,.04)' }} />
           </div>
 
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>

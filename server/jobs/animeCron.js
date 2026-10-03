@@ -29,6 +29,8 @@ async function runSync(label, opts = {}) {
     console.log(`🤖 Synchro anime — ${label}`)
     const result = await syncAnime(opts)
     if (opts.prune) await pruneStale()
+    // Run against the fresh catalogue, including on a brand-new installation.
+    await require('../services/communitySync').syncCommunity()
     return result
   } catch (err) {
     // Une erreur du bot ne doit JAMAIS faire tomber l'API : le planning est

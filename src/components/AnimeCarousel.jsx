@@ -1,21 +1,22 @@
+import MediaImage from './ui/MediaImage'
 // src/components/AnimeCarousel.jsx
 // Bandeau d'affiches anime en défilement automatique (planning admin-géré)
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useLang } from '../contexts/LangContext'
 import { useApi } from '../hooks/useApi'
-import { animeApi, API_BASE } from '../api'
+import { animeApi, API_BASE , resolveMediaUrl } from '../api'
 import styles from './AnimeCarousel.module.css'
 
 // Une affiche importée depuis AniList est une URL absolue vers leur CDN ;
 // une affiche téléversée est un chemin relatif servi par notre API.
 // Préfixer aveuglément par API_BASE casserait la première.
 const resolveCover = (url) =>
-  !url ? null : url.startsWith('http') ? url : `${API_BASE}${url}`
+  !url ? null : url.startsWith('http') ? url : resolveMediaUrl(url)
 
 export default function AnimeCarousel({ variant = 'light', label, fallback = null }) {
   const { lang } = useLang()
-  const { data, loading } = useApi(() => animeApi.getAll({ limit: 20 }), [], true)
+  const { data, loading } = useApi(() => animeApi.getAll({ discover: true, limit: 20 }), [], true)
   const animes = data?.animes || []
 
   // Dupliqué une fois pour un défilement en boucle continue (CSS pur, sans lib)
@@ -37,9 +38,9 @@ export default function AnimeCarousel({ variant = 'light', label, fallback = nul
           {track.map((a, i) => {
             const title = lang === 'en' ? (a.titleE || a.titleF) : a.titleF
             return (
-              <Link key={`${a.id}-${i}`} to="/fandom" className={styles.card} title={title}>
+              <Link key={`${a.id}-${i}`} to="/#anime-schedule" className={styles.card} title={title} tabIndex={i >= animes.length ? -1 : 0} aria-hidden={i >= animes.length || undefined}>
                 {a.coverUrl
-                  ? <img src={resolveCover(a.coverUrl)} alt={title} loading="lazy" />
+                  ? <MediaImage src={resolveCover(a.coverUrl)} alt={title} loading="lazy" />
                   : <span className={styles.cardFallback}>📺</span>}
                 <span className={`${styles.statusDot} ${styles[a.status] || ''}`} />
                 <span className={styles.cardTitle}>{title}</span>

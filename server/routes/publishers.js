@@ -1,3 +1,4 @@
+const { versionedImage } = require('../utils/media')
 // server/routes/publishers.js — Candidatures éditeurs
 const router = require('express').Router()
 const { body, validationResult } = require('express-validator')
@@ -90,7 +91,7 @@ router.get('/dashboard', protect, async (req, res, next) => {
     })
     const mangasWithUrl = myMangas.map(m => {
       const j = m.toJSON()
-      if (m.coverImageMime) j.coverUrl = `/api/manga/${m.id}/cover`
+      if (m.coverImageMime) j.coverUrl = versionedImage(`/api/manga/${m.id}/cover`, m.updatedAt)
       if (m.bgMusicMime)    j.bgMusicUrl = `/api/manga/${m.id}/music`
       return j
     })

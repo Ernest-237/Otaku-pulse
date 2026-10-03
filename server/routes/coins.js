@@ -1,3 +1,4 @@
+const { getChapterAccess } = require('../services/chapterAccess')
 // server/routes/coins.js — Système de coins
 const router = require('express').Router()
 const { Op } = require('sequelize')
@@ -129,12 +130,17 @@ router.post('/unlock/:chapterId', protect, async (req, res, next) => {
       return res.status(404).json({ error: 'Chapitre introuvable' })
     }
 
-    // Chapitre gratuit = pas besoin de débloquer
-    if (chapter.accessTier !== 'premium') {
+    const manga = await Manga.findByPk(chapter.mangaId, { transaction: t })
+    if (!manga) { await t.rollback(); return res.status(404).json({ error: 'Manga introuvable' }) }
+    const access = await getChapterAccess(req.user, chapter, manga, t)
+    if (access.reason === 'not_found') { await t.rollback(); return res.status(404).json({ error: 'Chapitre introuvable' }) }
+    if (access.allowed) {
       await t.rollback()
-      return res.status(400).json({ error: 'Ce chapitre est gratuit' })
+      return res.json({ alreadyUnlocked: true, message: 'Tu as déjà accès à ce chapitre.' })
     }
 
+    await getOrCreateWallet(req.user.id, t)
+    const wallet = await CoinWallet.findOne({ where: { userId: req.user.id }, transaction: t, lock: t.LOCK.UPDATE })
     // Déjà débloqué ?
     const already = await ChapterUnlock.findOne({
       where: { userId: req.user.id, chapterId: chapter.id },
@@ -145,10 +151,10 @@ router.post('/unlock/:chapterId', protect, async (req, res, next) => {
       return res.json({ alreadyUnlocked: true, message: 'Chapitre déjà débloqué' })
     }
 
-    const cost = chapter.coinCost || DEFAULT_CHAPTER_COST
+    const cost = chapter.coinCost ?? DEFAULT_CHAPTER_COST
+    if (!Number.isInteger(cost) || cost < 1) { await t.rollback(); return res.status(400).json({ error: 'Coût du chapitre invalide.' }) }
 
     // Vérifier le solde
-    const wallet = await getOrCreateWallet(req.user.id, t)
     if (wallet.balance < cost) {
       await t.rollback()
       return res.status(402).json({
@@ -186,11 +192,10 @@ router.post('/unlock/:chapterId', protect, async (req, res, next) => {
     }, { transaction: t })
 
     // ── Créditer l'éditeur (revenus) ──
-    const manga = await Manga.findByPk(chapter.mangaId, { transaction: t })
     if (manga && manga.authorId && manga.authorId !== req.user.id) {
       // L'éditeur touche 70% des coins dépensés (30% plateforme)
       const editorShare = Math.floor(cost * 0.7)
-      const author = await User.findByPk(manga.authorId, { transaction: t })
+      const author = await User.findByPk(manga.authorId, { transaction: t, lock: t.LOCK.UPDATE })
       if (author) {
         await author.update({
           coinsEarned: (author.coinsEarned || 0) + editorShare,
@@ -201,7 +206,7 @@ router.post('/unlock/:chapterId', protect, async (req, res, next) => {
           userId: author.id,
           type: 'earning',
           amount: editorShare,
-          balanceAfter: (author.coinsBalance || 0) + editorShare,
+          balanceAfter: author.coinsBalance || 0,
           description: `Revenu : chapitre ${chapter.chapterNumber} débloqué`,
           chapterId: chapter.id,
           mangaId: chapter.mangaId,

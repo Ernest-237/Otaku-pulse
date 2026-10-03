@@ -25,6 +25,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 const MEDIA_FIELDS = `
   id
+  idMal
+  characters(sort: [ROLE, RELEVANCE], perPage: 6) { nodes { name { full } image { medium } } }
   title { romaji english native }
   description(asHtml: false)
   coverImage { extraLarge large color }
@@ -54,6 +56,7 @@ query ($page: Int, $perPage: Int, $sort: [MediaSort], $season: MediaSeason, $sea
 
 async function anilist(variables) {
   const res = await fetch(ANILIST_URL, {
+    signal: AbortSignal.timeout(15000),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ query: QUERY, variables }),
@@ -148,6 +151,8 @@ function toAnime(m) {
     // deux champs, sinon l'interface anglaise afficherait du vide.
     titleF: romaji.slice(0, 200),
     titleE: english.slice(0, 200),
+    malId: m.idMal || null,
+    characters: (m.characters?.nodes || []).map(c => ({ name: c.name.full, imageUrl: c.image?.medium || null })),
 
     // AniList ne fournit pas de synopsis français. On remplit `synopsisE` et on
     // laisse `synopsisF` vide : l'affichage retombe sur l'anglais, et l'admin

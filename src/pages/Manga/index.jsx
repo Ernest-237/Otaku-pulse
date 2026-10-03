@@ -1,3 +1,5 @@
+import OtakuMark from '../../components/ui/OtakuMark'
+import MediaImage from '../../components/ui/MediaImage'
 // src/pages/Manga/index.jsx — Catalogue complet
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -8,7 +10,7 @@ import {
 import { useLang } from '../../contexts/LangContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useApi } from '../../hooks/useApi'
-import { mangaApi, API_BASE } from '../../api'
+import { mangaApi, API_BASE , resolveMediaUrl } from '../../api'
 import Navbar from '../../components/Navbar'
 import Footer from '../Home/sections/Footer'
 import { PageLoader, EmptyState } from '../../components/ui/Spinner'
@@ -160,7 +162,7 @@ export default function MangaCatalogPage() {
           <div className={styles.heroBarInner}>
             <div className={styles.heroLeft}>
               <span className={styles.heroBadge}>
-                <Sparkles size={12} /> CATALOGUE
+                <OtakuMark size={12} /> CATALOGUE
               </span>
               <h1 className={styles.heroTitle}>
                 {t.title.split(' ')[0]}{' '}
@@ -350,8 +352,8 @@ function MangaCard({ manga, t, lang }) {
     <Link to={`/manga/${manga.slug}`} className={styles.mangaCard}>
       <div className={styles.coverWrap}>
         {manga.coverUrl ? (
-          <img
-            src={`${API_BASE}${manga.coverUrl}`}
+          <MediaImage
+            src={resolveMediaUrl(manga.coverUrl)}
             alt={title}
             className={styles.coverImg}
             loading="lazy"
@@ -435,8 +437,8 @@ function ContinueCard({ progress, t, lang }) {
     >
       <div className={styles.continueCover}>
         {m.coverUrl ? (
-          <img
-            src={`${API_BASE}${m.coverUrl}`}
+          <MediaImage
+            src={resolveMediaUrl(m.coverUrl)}
             alt={title}
             loading="lazy"
           />

@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useWishlist } from '../../hooks/useWishlist'
+import MediaImage from '../../components/ui/MediaImage'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   IconCheck as Check,
   IconHeart as Heart,
@@ -21,7 +23,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useApi, useMutation } from '../../hooks/useApi'
-import { usersApi, ordersApi, API_BASE } from '../../api'
+import { usersApi, ordersApi, API_BASE , resolveMediaUrl } from '../../api'
 import QUARTIERS from '../../data/quartiers'
 import Navbar from '../../components/Navbar'
 import MyTickets from '../../components/MyTickets'
@@ -217,7 +219,7 @@ const copy = {
   },
 }
 
-export default function ProfilPage() {
+export default function ProfilPage({ cartPage = false }) {
   const { lang } = useLang()
   const t = copy[lang]
   const { user, logout, updateUser } = useAuth()
@@ -225,17 +227,20 @@ export default function ProfilPage() {
   const toast = useToast()
   const navigate = useNavigate()
 
-  const [tab, setTab] = useState('cart')
+  const [params, setParams] = useSearchParams()
+  const requestedTab = params.get('tab') || (cartPage ? 'cart' : 'profil')
+  const tab = ['cart','wishlist','orders','tickets','profil'].includes(requestedTab) ? requestedTab : 'profil'
+  const setTab = value => cartPage && value !== 'cart' ? navigate(`/profil?tab=${value}`) : setParams({ tab: value })
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [successOpen, setSuccessOpen] = useState(false)
   const [lastOrder, setLastOrder] = useState(null)
   const [selectedOrder, setSelectedOrder] = useState(null)
-  const [showLoginModal, setShowLoginModal] = useState(!user)
+  const [showLoginModal, setShowLoginModal] = useState(false)
 
   useEffect(() => { document.title = t.title }, [t.title])
   useEffect(() => { if (user) setShowLoginModal(false) }, [user])
 
-  const { data: ordersData, execute: refetchOrders } = useApi(
+  const { data: ordersData, loading: loadingOrders, error: ordersError, execute: refetchOrders } = useApi(
     () => (user ? ordersApi.getMy() : Promise.resolve({ orders: [] })),
     [user?.id], true
   )
@@ -279,10 +284,10 @@ export default function ProfilPage() {
               </div>
             )}
             <div className={styles.loginActions}>
-              <Link to="/" className={styles.loginPrimary}
-                onClick={() => sessionStorage.setItem('openLogin', '1')}>
+              <button type="button" className={styles.loginPrimary}
+                onClick={() => { setShowLoginModal(false); window.dispatchEvent(new CustomEvent('op:login')) }}>
                 {t.loginBtn}
-              </Link>
+              </button>
               <button className={styles.loginSecondary} onClick={() => setShowLoginModal(false)}>
                 {t.continueGuest}
               </button>
@@ -292,7 +297,7 @@ export default function ProfilPage() {
       )}
 
       {/* ── HERO ── */}
-      <section className={styles.hero}>
+      {cartPage ? <header className={styles.cartHeader}><div className="container"><p>🍡 Tes prochaines trouvailles</p><h1>Mon panier</h1><span>{count} article(s) · Quantités, livraison et total en un coup d’œil.</span><div className="account-shortcuts"><Link to="/boutique">← Continuer mes achats</Link><Link to="/profil?tab=orders">Mes commandes ↗</Link></div></div></header> : <section className={styles.hero}>
         <div className="container">
           <div className={styles.heroInner}>
             <div className={styles.avatarWrap}>
@@ -301,7 +306,7 @@ export default function ProfilPage() {
             </div>
             <div className={styles.heroInfo}>
               <div className={styles.heroPseudo}>{heroName}</div>
-              <div className={styles.heroEmail}>{user?.email || 'guest@otaku-pulse.com'}</div>
+              <div className={styles.heroEmail}>{user?.email || 'Ton panier est conservé sur cet appareil'}</div>
               <div className={styles.heroBadges}>
                 {user?.role === 'superadmin' && <Badge variant="red">Super Admin</Badge>}
                 {user?.role === 'admin'      && <Badge variant="amber">Admin</Badge>}
@@ -340,12 +345,13 @@ export default function ProfilPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* ── TABS ── */}
       <section className={styles.content}>
         <div className="container">
-          <div className={styles.tabs}>
+          {!cartPage && <div className="account-shortcuts"><Link to="/boutique">🍡 Boutique</Link><Link to="/manga/library">📚 Ma bibliothèque</Link><Link to="/manga/coins">🪙 Mes coins</Link><Link to="/evenements">🎌 Agenda</Link>{(user?.isPublisher || ['publisher','admin','superadmin'].includes(user?.role)) && <Link to="/manga/publisher">✒️ Studio manga</Link>}{['admin','superadmin'].includes(user?.role) && <Link to="/admin">Administration</Link>}</div>}
+          {!cartPage && <div className={styles.tabs}>
             {tabs.map((item) => (
               <button key={item.id}
                 className={`${styles.tab} ${tab === item.id ? styles.tabActive : ''}`}
@@ -354,12 +360,12 @@ export default function ProfilPage() {
                 {item.badge ? <span className={styles.tabBadge}>{item.badge}</span> : null}
               </button>
             ))}
-          </div>
+          </div>}
 
           {/* PANIER */}
           {tab === 'cart' && (
             items.length === 0
-              ? <EmptyState icon="🛒" title={t.emptyCart} message={t.emptyCartMsg} />
+              ? <><EmptyState icon="🍡" title={t.emptyCart} message={t.emptyCartMsg} /><Link to="/boutique">Découvrir la boutique ↗</Link></>
               : (
                 <div className={styles.cartLayout}>
                   <div>
@@ -369,7 +375,7 @@ export default function ProfilPage() {
                         <div key={item.id} className={styles.cartCard}>
                           <div className={styles.cartThumb}>
                             {item.imageUrl
-                              ? <img src={item.imageUrl.startsWith('/') ? `${API_BASE}${item.imageUrl}` : item.imageUrl} alt={item.name} />
+                              ? <MediaImage src={item.imageUrl.startsWith('/') ? resolveMediaUrl(item.imageUrl) : item.imageUrl} alt={item.name} />
                               : <span>{item.emoji || '🎁'}</span>}
                           </div>
                           <div className={styles.cartInfo}>
@@ -377,11 +383,11 @@ export default function ProfilPage() {
                             <div className={styles.cartPrice}>{(item.price * item.qty).toLocaleString()} FCFA</div>
                             <div className={styles.cartActions}>
                               <div className={styles.qtyBox}>
-                                <button className={styles.qtyBtn} onClick={() => updateQty(item.id, -1)}><Minus size={16} /></button>
+                                <button className={styles.qtyBtn} aria-label={`Diminuer ${item.name}`} onClick={() => updateQty(item.id, -1)}><Minus size={16} /></button>
                                 <span className={styles.qtyNum}>{item.qty}</span>
-                                <button className={styles.qtyBtn} onClick={() => updateQty(item.id, +1)}><Plus size={16} /></button>
+                                <button className={styles.qtyBtn} aria-label={`Augmenter ${item.name}`} disabled={item.qty >= Math.min(99, item.stock ?? 99)} onClick={() => updateQty(item.id, +1)}><Plus size={16} /></button>
                               </div>
-                              <button className={styles.rmBtn} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
+                              <button className={styles.rmBtn} aria-label={`Retirer ${item.name}`} onClick={() => removeItem(item.id)}><Trash2 size={16} /></button>
                             </div>
                           </div>
                         </div>
@@ -408,10 +414,10 @@ export default function ProfilPage() {
                     ) : (
                       <div className={styles.loginPrompt}>
                         <p>{t.loginPrompt}</p>
-                        <Link to="/" className={styles.loginPromptBtn}
-                          onClick={() => sessionStorage.setItem('openLogin', '1')}>
+                        <button type="button" className={styles.loginPromptBtn}
+                          onClick={() => window.dispatchEvent(new CustomEvent('op:login'))}>
                           {t.loginBtn}
-                        </Link>
+                        </button>
                       </div>
                     )}
                     <p className={styles.orderNote}>{t.note}</p>
@@ -421,9 +427,9 @@ export default function ProfilPage() {
           )}
 
           {tab === 'wishlist' && <WishlistTab t={t} toast={toast} addItem={addItem} setTab={setTab} />}
-          {tab === 'orders'   && <OrdersTab t={t} orders={ordersData?.orders || []} loading={!ordersData} onSelect={setSelectedOrder} />}
+          {tab === 'orders' && (ordersError ? <div role="alert" className="editorial-notice">{ordersError} <button onClick={refetchOrders}>Réessayer</button></div> : <OrdersTab t={t} orders={ordersData?.orders || []} loading={loadingOrders} onSelect={setSelectedOrder} />)}
           {tab === 'tickets'  && <MyTickets title="" showEmptyState />}
-          {tab === 'profil'   && <ProfilTab t={t} user={user} toast={toast} updateUser={updateUser} />}
+          {tab === 'profil' && (user ? <ProfilTab t={t} user={user} toast={toast} updateUser={updateUser} /> : <Button onClick={() => window.dispatchEvent(new CustomEvent('op:login'))}>Se connecter à mon espace</Button>)}
         </div>
       </section>
 
@@ -467,6 +473,22 @@ export default function ProfilPage() {
 
 /* ══ CHECKOUT MODAL — light mode ══════════════════════════════════ */
 function CheckoutModal({ t, items, total, shipping, subtotal, user, onClose, onSuccess, toast }) {
+  const { replaceItems } = useCart()
+  const lock = useRef(false)
+  const [paymentMethod, setPaymentMethod] = useState('mtn_money')
+  const [checkoutKey] = useState(() => {
+    const signature = JSON.stringify(items.map(i => [i.id, i.qty]).sort())
+    try {
+      const previous = JSON.parse(sessionStorage.getItem('op_checkout') || 'null')
+      if (previous?.signature === signature && previous.key) return previous.key
+    } catch {}
+    const key = crypto.randomUUID()
+    try { sessionStorage.setItem('op_checkout', JSON.stringify({ signature, key })) } catch {}
+    return key
+  })
+  const quote = useApi(() => ordersApi.quote(items.map(i => ({ productId: i.id, quantity: i.qty }))), [])
+  useEffect(() => { if (quote.data?.items) replaceItems(quote.data.items) }, [quote.data, replaceItems])
+  const unavailable = items.some(i => i.stock != null && i.qty > i.stock)
   const [whatsapp, setWhatsapp] = useState(user?.whatsapp || user?.phone || '')
   const [city,     setCity]     = useState(user?.city || 'Yaoundé')
   const [quartier, setQuartier] = useState(user?.quartier || '')
@@ -474,34 +496,45 @@ function CheckoutModal({ t, items, total, shipping, subtotal, user, onClose, onS
   const quartiersForCity = QUARTIERS[city] || []
 
   const handleOrder = async () => {
+    if (lock.current || quote.loading || quote.error || unavailable) return
     if (!whatsapp.trim()) { toast.error(t.whatsappRequired); return }
     if (!quartier.trim()) { toast.error(t.quartierRequired); return }
+    lock.current = true
     setPaying(true)
     try {
       const result = await ordersApi.create({
         items: items.map((item) => ({ productId: item.id, quantity: item.qty })),
-        paymentMethod: 'mtn_money',
+        paymentMethod,
+        checkoutKey,
+        expectedSubtotal: subtotal,
         whatsappNumber: whatsapp,
         quartier,
         city,
       })
-      onSuccess(result?.order)
+      if (!result?.order?.id) throw new Error('La confirmation n’a pas été reçue. Réessaie avec le même panier.')
+      try { sessionStorage.removeItem('op_checkout') } catch {}
+      onSuccess(result.order)
     } catch (err) {
       toast.error(err.message)
     } finally {
+      lock.current = false
       setPaying(false)
     }
   }
 
   return (
-    <Modal isOpen title={`🛒 ${t.checkoutTitle}`} onClose={onClose} wide
+    <Modal isOpen title={`🍡 ${t.checkoutTitle}`} onClose={onClose} wide dismissible={!paying}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>{t.cancel}</Button>
-          <Button variant="primary" loading={paying} onClick={handleOrder}>{t.confirmOrder}</Button>
+          <Button variant="ghost" onClick={onClose} disabled={paying}>{t.cancel}</Button>
+          <Button variant="primary" loading={paying} disabled={quote.loading || !!quote.error || unavailable} onClick={handleOrder}>{t.confirmOrder}</Button>
         </>
       }>
 
+      {quote.loading && <p role="status">Vérification des prix et des stocks…</p>}
+      {quote.error && <p role="alert" className="editorial-notice">{quote.error} <button onClick={quote.refresh}>Réessayer</button></p>}
+      {unavailable && <p role="alert" className="editorial-notice">Un article est épuisé ou sa quantité dépasse le stock. Reviens au panier pour l’ajuster.</p>}
+      <p style={{marginBottom:16, fontSize:'.83rem'}}>Vérifie le total actualisé avant de confirmer. Le paiement sera organisé avec l’équipe.</p>
       {/* Récap commande — light */}
       <div style={{
         background: 'var(--bg-soft)', border: '1.5px solid var(--border)',
@@ -534,6 +567,7 @@ function CheckoutModal({ t, items, total, shipping, subtotal, user, onClose, onS
         </div>
       </div>
 
+      <label className="editorial-field" style={{marginBottom:20}}>Mode de paiement<select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}><option value="mtn_money">MTN Mobile Money</option><option value="orange_money">Orange Money</option></select></label>
       {/* Formulaire livraison */}
       <p style={{ fontSize: '.75rem', fontWeight: 800, letterSpacing: 1, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '.8rem' }}>
         {t.deliveryInfo}
@@ -595,16 +629,16 @@ function CheckoutModal({ t, items, total, shipping, subtotal, user, onClose, onS
 
 /* ══ WISHLIST TAB ══════════════════════════════════════════════════ */
 function WishlistTab({ t, toast, addItem, setTab }) {
-  const { data, loading, execute } = useApi(() => usersApi.getWishlist(), [], true)
-  const wishlist = data?.wishlist || []
+  const { products: wishlist, loading, error, toggle, refresh } = useWishlist()
 
   const addProduct = (product) => { addItem(product); toast.success(t.added); setTab('cart') }
   const removeProduct = async (productId) => {
-    try { await usersApi.toggleWishlist(productId); execute(); toast.info(t.removedWishlist) }
+    try { await toggle(productId); toast.info(t.removedWishlist) }
     catch (err) { toast.error(err.message) }
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={refresh}>Réessayer</button></p>
   if (!wishlist.length) return <EmptyState icon="❤️" title={t.emptyWishlist} message={t.emptyWishlistMsg} />
 
   return (
@@ -613,12 +647,12 @@ function WishlistTab({ t, toast, addItem, setTab }) {
       <div className={styles.itemsGrid}>
         {wishlist.map((product) => (
           <div key={product.id} className={styles.itemCard}>
-            <div className={styles.itemImg}>{product.emoji || '🎁'}</div>
+            <div className={styles.itemImg}><MediaImage src={product.imageUrl} alt={product.nameF} /></div>
             <div className={styles.itemBody}>
               <div className={styles.itemName}>{product.nameF}</div>
               <div className={styles.itemPrice}>{product.price?.toLocaleString()} FCFA</div>
               <div className={styles.itemBtns}>
-                <Button variant="primary" size="sm" onClick={() => addProduct(product)}>{t.addToCart}</Button>
+                <Button variant="primary" size="sm" disabled={product.stock <= 0 || product.isActive === false} onClick={() => addProduct(product)}>{t.addToCart}</Button>
                 <Button variant="danger"  size="sm" onClick={() => removeProduct(product.id)}>{t.remove}</Button>
               </div>
             </div>

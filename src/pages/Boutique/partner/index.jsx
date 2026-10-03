@@ -1,3 +1,5 @@
+import OtakuMark from '../../../components/ui/OtakuMark'
+import MediaImage from '../../../components/ui/MediaImage'
 // src/pages/Boutique/partner/index.jsx — Espace Partenaire (boutique en libre-service)
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -9,7 +11,7 @@ import {
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi, useMutation } from '../../../hooks/useApi'
-import { suppliersApi, productsApi, API_BASE, shopUrl } from '../../../api'
+import { suppliersApi, productsApi, API_BASE, shopUrl , resolveMediaUrl } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../Home/sections/Footer'
@@ -265,7 +267,7 @@ function PartnerApplicationFlow({ shop, toast, onApplied }) {
         </label>
 
         <button onClick={submit} className={styles.btnPrimary} disabled={loading}>
-          {loading ? <Loader2 size={14} className={styles.spinIcon} /> : <Sparkles size={14} />}
+          {loading ? <Loader2 size={14} className={styles.spinIcon} /> : <OtakuMark size={14} />}
           Envoyer ma candidature
         </button>
 
@@ -399,7 +401,7 @@ function ProductsTab({ products, onEdit, onNew, onDelete }) {
         {products.map(p => (
           <div key={p.id} className={styles.mangaCard}>
             <div className={styles.mangaCover}>
-              {p.imageUrl ? <img src={`${API_BASE}${p.imageUrl}`} alt={p.nameF} loading="lazy" />
+              {p.imageUrl ? <MediaImage src={resolveMediaUrl(p.imageUrl)} alt={p.nameF} loading="lazy" />
                 : <div className={styles.mangaCoverPh}><ImageIcon size={32} /></div>}
               {!p.isActive && <span className={styles.mangaStatus} style={{ background:'#6b7280' }}>MASQUÉ</span>}
             </div>
@@ -604,7 +606,7 @@ function ShopSettingsTab({ shop, toast, onSaved }) {
     <div className={styles.tabContent}>
       <div className={styles.appCard} style={{ maxWidth: 560 }}>
         {shop.logoMime && (
-          <img src={`${API_BASE}/api/suppliers/${shop.id}/logo`} alt="logo"
+          <MediaImage src={`${API_BASE}/api/suppliers/${shop.id}/logo`} alt="logo"
             style={{ width:72, height:72, borderRadius:16, objectFit:'cover', margin:'0 auto 1rem' }} />
         )}
         <div className={styles.appField}>
@@ -693,7 +695,7 @@ function ShopSettingsTab({ shop, toast, onSaved }) {
           <input type="file" accept="image/*" onChange={e => s('logoFile', e.target.files?.[0] || null)} />
         </div>
         <button onClick={save} className={styles.btnPrimary} disabled={busy}>
-          {busy ? <Loader2 size={14} className={styles.spinIcon} /> : <Sparkles size={14} />}
+          {busy ? <Loader2 size={14} className={styles.spinIcon} /> : <OtakuMark size={14} />}
           Enregistrer
         </button>
 

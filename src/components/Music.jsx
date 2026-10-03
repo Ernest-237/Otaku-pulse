@@ -1,293 +1,101 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Music3, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { SkipForward, Volume2, VolumeX } from 'lucide-react'
 import { useMusicControls } from '../contexts/MusicContext'
+import styles from './MusicControls.module.css'
 
+// Optional local ambience. The automatically updated OP/ED catalogue lives in Soundtracks.
 const PLAYLIST = [
   '/assets/music/track-08.mpeg',
   '/assets/music/track-09.mpeg',
-  '/assets/music/track-01.mp3',
-  '/assets/music/track-00.mp3',
-  '/assets/music/track-02.mp3',
-  '/assets/music/track-03.mp3',
-  '/assets/music/track-04.mp3',
-  '/assets/music/track-05.mp3',
-  '/assets/music/track-06.mp3',
-  '/assets/music/track-07.mp3',
-
+  ...Array.from({ length: 8 }, (_, i) => `/assets/music/track-0${i}.mp3`),
 ]
 
-const LEGACY_SINGLE = '/assets/music/generique.mp3'
-
 export default function Music() {
-  const audioRef = useRef(null)
+  const audio = useRef(null)
+  const index = useRef(0)
+  const resumeAfterOverride = useRef(false)
   const [playing, setPlaying] = useState(false)
-  const [showPrompt, setShowPrompt] = useState(false)
-  const [trackIdx, setTrackIdx] = useState(0)
-  const [trackName, setTrackName] = useState('')
+  const [error, setError] = useState('')
   const { registerControls } = useMusicControls()
-  const wasPlayingRef = useRef(false)
-  const playingRef = useRef(playing)
-  playingRef.current = playing
-
-  const getPlaylist = useCallback(() => {
-    return PLAYLIST.length > 0 ? PLAYLIST : [LEGACY_SINGLE]
-  }, [])
-
-  const playTrack = useCallback(async (idx) => {
-    const playlist = getPlaylist()
-    const track = playlist[idx % playlist.length]
-    if (!audioRef.current) return false
-
-    audioRef.current.src = track
-    audioRef.current.volume = 0.3
-    audioRef.current.load()
-
+  const play = useCallback(async () => {
+    if (!audio.current) return
+    setError('')
+    audio.current.volume = 0.25
     try {
-      await audioRef.current.play()
-      setPlaying(true)
-      setShowPrompt(false)
-      const name = track
-        .split('/')
-        .pop()
-        ?.replace(/\.[^.]+$/, '')
-        .replace(/-/g, ' ')
-        .replace(/track\s*\d+\s*/i, '')
-        .trim()
-      setTrackName(name || `Piste ${idx + 1}`)
-      return true
+      await audio.current.play()
     } catch {
       setPlaying(false)
-      return false
+      setError('Lecture indisponible. Essaie la piste suivante.')
     }
-  }, [getPlaylist])
-
-  const nextTrack = useCallback(async () => {
-    const next = (trackIdx + 1) % getPlaylist().length
-    setTrackIdx(next)
-    await playTrack(next)
-  }, [trackIdx, getPlaylist, playTrack])
-
+  }, [])
+  const next = useCallback(() => {
+    index.current = (index.current + 1) % PLAYLIST.length
+    if (!audio.current) return
+    audio.current.src = PLAYLIST[index.current]
+    play()
+  }, [play])
   useEffect(() => {
-    const muted = localStorage.getItem('op_music_muted') === '1'
-    if (muted) return
-
-    const t = setTimeout(async () => {
-      const ok = await playTrack(0)
-      if (!ok) setShowPrompt(true)
-    }, 1000)
-
-    return () => clearTimeout(t)
-  }, [playTrack])
-
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    const onEnded = () => nextTrack()
-    audio.addEventListener('ended', onEnded)
-    return () => audio.removeEventListener('ended', onEnded)
-  }, [nextTrack])
-
-  // Permet à d'autres pages (ex: lecteur manga) de couper temporairement
-  // la playlist globale puis de la reprendre exactement où elle en était.
-  useEffect(() => {
+    const element = audio.current
     registerControls({
       pause: () => {
-        wasPlayingRef.current = playingRef.current
-        if (audioRef.current) audioRef.current.pause()
-        setPlaying(false)
+        resumeAfterOverride.current = !element.paused
+        element.pause()
       },
       resume: () => {
-        if (wasPlayingRef.current && audioRef.current) {
-          audioRef.current.play().then(() => setPlaying(true)).catch(() => {})
+        if (resumeAfterOverride.current) {
+          resumeAfterOverride.current = false
+          play()
         }
       },
     })
-  }, [registerControls])
-
-  const toggle = async (e) => {
-    e.stopPropagation()
-    if (!audioRef.current) return
-
-    if (playing) {
-      audioRef.current.pause()
-      setPlaying(false)
-      localStorage.setItem('op_music_muted', '1')
-    } else {
-      await playTrack(trackIdx)
-      localStorage.setItem('op_music_muted', '0')
+    return () => {
+      element.pause()
+      registerControls({ pause: () => {}, resume: () => {} })
     }
-  }
-
-  const acceptMusic = async () => {
-    localStorage.setItem('op_music_muted', '0')
-    await playTrack(0)
-    setShowPrompt(false)
-  }
-
-  const rejectMusic = () => {
-    localStorage.setItem('op_music_muted', '1')
-    setShowPrompt(false)
-  }
-
+  }, [registerControls, play])
   return (
-    <>
-      <audio ref={audioRef} preload="none" style={{ display: 'none' }} />
-
-      {showPrompt && !playing && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '5.5rem',
-            right: '1.5rem',
-            zIndex: 99999,
-            background: 'rgba(255,255,255,.98)',
-            border: '1.5px solid var(--border)',
-            borderRadius: 18,
-            padding: '1rem 1.1rem',
-            maxWidth: 250,
-            boxShadow: 'var(--shadow-lg)',
-            animation: 'slideIn .35s ease',
-          }}
-        >
-          <style>{`@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
-
-          <div style={{ color: 'var(--green-deep)', marginBottom: '.55rem' }}>
-            <Music3 size={22} strokeWidth={2.2} />
-          </div>
-
-          <p style={{ fontSize: '.83rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '.95rem' }}>
-            Activer la playlist Otaku pour une ambiance plus immersive ?
-          </p>
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={acceptMusic}
-              type="button"
-              style={{
-                flex: 1,
-                padding: '9px 10px',
-                borderRadius: 999,
-                border: 'none',
-                background: 'var(--green)',
-                color: '#fff',
-                fontSize: '.82rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-green)',
-              }}
-            >
-              Oui
-            </button>
-
-            <button
-              onClick={rejectMusic}
-              type="button"
-              style={{
-                flex: 1,
-                padding: '9px 10px',
-                borderRadius: 999,
-                background: 'var(--bg-soft)',
-                border: '1.5px solid var(--border)',
-                color: 'var(--text-muted)',
-                fontSize: '.82rem',
-                cursor: 'pointer',
-              }}
-            >
-              Non
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '5rem',
-          right: '1.5rem',
-          zIndex: 99999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 4,
+    <div className={styles.controls}>
+      <audio
+        ref={audio}
+        src={PLAYLIST[0]}
+        preload="none"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={next}
+        onError={() => {
+          setPlaying(false)
+          setError('Piste indisponible. Essaie la suivante.')
         }}
-      >
-        {playing && trackName && (
-          <div
-            style={{
-              background: 'rgba(255,255,255,.98)',
-              border: '1.5px solid var(--border)',
-              borderRadius: 999,
-              padding: '4px 10px',
-              fontSize: '.65rem',
-              color: 'var(--text-muted)',
-              fontWeight: 700,
-              maxWidth: 120,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              boxShadow: 'var(--shadow-xs)',
-              textTransform: 'capitalize',
-            }}
-          >
-            {trackName}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 6 }}>
-          {playing && getPlaylist().length > 1 && (
-            <button
-              onClick={nextTrack}
-              title="Piste suivante"
-              type="button"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,.98)',
-                border: '1.5px solid var(--border)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-strong)',
-                boxShadow: 'var(--shadow-sm)',
-              }}
-            >
-              <SkipForward size={16} strokeWidth={2.2} />
-            </button>
-          )}
-
-          <button
-            onClick={toggle}
-            title={playing ? 'Couper la musique' : 'Jouer la musique'}
-            type="button"
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              background: playing ? 'var(--green)' : 'rgba(255,255,255,.98)',
-              border: playing ? 'none' : '1.5px solid var(--border)',
-              color: playing ? '#fff' : 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: playing ? 'var(--shadow-green)' : 'var(--shadow-sm)',
-              transition: 'all .25s ease',
-              animation: playing ? 'musicPulse 2.5s ease-in-out infinite' : 'none',
-            }}
-          >
-            {playing ? <Volume2 size={18} strokeWidth={2.2} /> : <VolumeX size={18} strokeWidth={2.2} />}
-          </button>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes musicPulse {
-          0%,100% { box-shadow: var(--shadow-green); }
-          50%     { box-shadow: 0 8px 26px rgba(34,197,94,.28); }
+      />
+      {error && (
+        <span className={styles.error} role="status">
+          {error}
+        </span>
+      )}
+      {(playing || error) && (
+        <button
+          type="button"
+          onClick={next}
+          aria-label="Piste d’ambiance suivante"
+          title="Piste d’ambiance suivante"
+        >
+          <SkipForward size={15} />
+        </button>
+      )}
+      <button
+        type="button"
+        className={playing ? styles.playing : ''}
+        aria-label={
+          playing ? 'Mettre l’ambiance en pause' : 'Écouter l’ambiance musicale'
         }
-      `}</style>
-    </>
+        title={
+          playing ? 'Mettre l’ambiance en pause' : 'Écouter l’ambiance musicale'
+        }
+        aria-pressed={playing}
+        onClick={() => (playing ? audio.current?.pause() : play())}
+      >
+        {playing ? <Volume2 size={17} /> : <VolumeX size={17} />}
+      </button>
+    </div>
   )
 }

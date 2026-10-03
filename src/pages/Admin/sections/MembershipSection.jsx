@@ -33,7 +33,7 @@ export default function MembershipSection({ toast }) {
   const [selected, setSelected] = useState(null)
   const [search,   setSearch]   = useState('')
 
-  const { data, loading, execute } = useApi(
+  const { data, loading, error, execute } = useApi(
     () => request('GET', `/api/membership${filter !== 'all' ? `?status=${filter}` : ''}`),
     [filter], true
   )
@@ -54,6 +54,7 @@ export default function MembershipSection({ toast }) {
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
 
   // Stats
   const stats = [
@@ -115,9 +116,9 @@ export default function MembershipSection({ toast }) {
                 const meta = PLAN_META[r.plan] || PLAN_META.basic
                 const days = daysLeft(r.expiresAt)
                 const daysColor = days === null ? 'rgba(180,190,220,.4)'
-                  : days <= 30 ? '#f87171'
-                  : days <= 90 ? '#fbbf24'
-                  : '#4ade80'
+                  : days <= 30 ? '#b53c44'
+                  : days <= 90 ? '#956018'
+                  : '#32634d'
                 return (
                   <tr key={r.id} className={styles.tr}>
                     <td>
@@ -126,8 +127,8 @@ export default function MembershipSection({ toast }) {
                           {meta.emoji}
                         </div>
                         <div>
-                          <div style={{ fontWeight:700, fontSize:'.85rem', color:'#e2e8f0' }}>{r.nom}</div>
-                          <div style={{ fontSize:'.7rem', color:'rgba(180,190,220,.5)' }}>{r.user?.pseudo}</div>
+                          <div style={{ fontWeight:700, fontSize:'.85rem', color:'#263e30' }}>{r.nom}</div>
+                          <div style={{ fontSize:'.7rem', color:'#64735d' }}>{r.user?.pseudo}</div>
                         </div>
                       </div>
                     </td>
@@ -137,22 +138,22 @@ export default function MembershipSection({ toast }) {
                       </span>
                     </td>
                     <td>
-                      <div style={{ fontSize:'.78rem', color:'#cbd5e1' }}>{r.email}</div>
-                      <div style={{ fontSize:'.73rem', color:'rgba(180,190,220,.5)' }}>{r.phone}</div>
+                      <div style={{ fontSize:'.78rem', color:'#405342' }}>{r.email}</div>
+                      <div style={{ fontSize:'.73rem', color:'#64735d' }}>{r.phone}</div>
                     </td>
                     <td>
                       <span style={{ fontFamily:'monospace', fontSize:'.8rem', letterSpacing:1, color: r.cardId ? meta.color : 'rgba(180,190,220,.35)' }}>
                         {r.cardId || '—'}
                       </span>
                     </td>
-                    <td style={{ fontSize:'.78rem', color:'rgba(180,190,220,.6)' }}>
+                    <td style={{ fontSize:'.78rem', color:'#60705f' }}>
                       {r.expiresAt ? new Date(r.expiresAt).toLocaleDateString('fr-FR') : '—'}
                     </td>
                     <td>
                       {days !== null ? (
                         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
                           <span style={{ color:daysColor, fontWeight:800, fontSize:'.78rem' }}>{days}j</span>
-                          <div style={{ width:60, height:4, background:'rgba(255,255,255,.08)', borderRadius:99, overflow:'hidden' }}>
+                          <div style={{ width:60, height:4, background:'rgba(71,124,92,.08)', borderRadius:99, overflow:'hidden' }}>
                             <div style={{ height:'100%', width:`${Math.min(100,(days/365)*100)}%`, background:daysColor, borderRadius:99 }} />
                           </div>
                         </div>
@@ -165,7 +166,7 @@ export default function MembershipSection({ toast }) {
                         {STATUS_LABELS[r.status]||r.status}
                       </Badge>
                     </td>
-                    <td style={{ fontSize:'.75rem', color:'rgba(180,190,220,.5)' }}>
+                    <td style={{ fontSize:'.75rem', color:'#64735d' }}>
                       {new Date(r.createdAt).toLocaleDateString('fr-FR')}
                     </td>
                     <td>
@@ -224,12 +225,12 @@ function MembershipModal({ request:r, onClose, onSave }) {
 
   const inputStyle = {
     width:'100%', padding:'9px 12px', borderRadius:10,
-    background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)',
-    color:'#e2e8f0', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none',
+    background:'rgba(71,124,92,.04)', border:'1.5px solid rgba(71,124,92,.12)',
+    color:'#263e30', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none',
     transition:'border-color .15s, background .15s',
   }
   const onFocusField = e => { e.target.style.borderColor='#22c55e'; e.target.style.background='rgba(34,197,94,.06)' }
-  const onBlurField  = e => { e.target.style.borderColor='rgba(255,255,255,.12)'; e.target.style.background='rgba(255,255,255,.04)' }
+  const onBlurField  = e => { e.target.style.borderColor='rgba(71,124,92,.12)'; e.target.style.background='rgba(71,124,92,.04)' }
   const labelStyle = {
     display:'block', fontSize:'.68rem', fontWeight:800,
     letterSpacing:1, color:'rgba(180,190,220,.45)',
@@ -266,7 +267,7 @@ function MembershipModal({ request:r, onClose, onSave }) {
         ].map(([l,v]) => (
           <div key={l} className={styles.detailItem}>
             <div className={styles.detailLbl}>{l}</div>
-            <strong style={{ fontSize:'.88rem', color: l==='Plan' ? meta.color : '#e2e8f0' }}>{v}</strong>
+            <strong style={{ fontSize:'.88rem', color: l==='Plan' ? meta.color : '#263e30' }}>{v}</strong>
           </div>
         ))}
       </div>
@@ -297,21 +298,21 @@ function MembershipModal({ request:r, onClose, onSave }) {
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             {[[1,'+ 1 mois'],[3,'+ 3 mois'],[6,'+ 6 mois'],[12,'+ 1 an']].map(([m,lbl]) => (
               <button key={m} onClick={() => extend(m)}
-                style={{ padding:'6px 14px', borderRadius:99, background:'rgba(255,255,255,.06)', border:`1px solid ${meta.color}40`, color:meta.color, fontFamily:'var(--font-body)', fontSize:'.78rem', fontWeight:800, cursor:'pointer', transition:'all .2s' }}
+                style={{ padding:'6px 14px', borderRadius:99, background:'rgba(71,124,92,.06)', border:`1px solid ${meta.color}40`, color:meta.color, fontFamily:'var(--font-body)', fontSize:'.78rem', fontWeight:800, cursor:'pointer', transition:'all .2s' }}
                 onMouseEnter={e=>e.currentTarget.style.background=`${meta.color}22`}
-                onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.06)'}>
+                onMouseLeave={e=>e.currentTarget.style.background='rgba(71,124,92,.06)'}>
                 {lbl}
               </button>
             ))}
             {r.status === 'active' && (
               <button onClick={() => { extend(12); setStatus('active') }}
-                style={{ padding:'6px 14px', borderRadius:99, background:'rgba(22,163,74,.15)', border:'1px solid rgba(22,163,74,.4)', color:'#4ade80', fontFamily:'var(--font-body)', fontSize:'.78rem', fontWeight:800, cursor:'pointer' }}>
+                style={{ padding:'6px 14px', borderRadius:99, background:'rgba(22,163,74,.15)', border:'1px solid rgba(22,163,74,.4)', color:'#32634d', fontFamily:'var(--font-body)', fontSize:'.78rem', fontWeight:800, cursor:'pointer' }}>
                 🔄 Renouveler 1 an
               </button>
             )}
           </div>
           {expiresAt && (
-            <div style={{ marginTop:8, fontSize:'.75rem', color:'rgba(180,190,220,.5)' }}>
+            <div style={{ marginTop:8, fontSize:'.75rem', color:'#64735d' }}>
               Nouvelle date : <span style={{ color:meta.color, fontWeight:700 }}>
                 {new Date(expiresAt).toLocaleDateString('fr-FR', { dateStyle:'long' })}
               </span>
@@ -325,11 +326,11 @@ function MembershipModal({ request:r, onClose, onSave }) {
       {r.status === 'active' && days !== null && (
         <div style={{ marginBottom:'1rem', padding:'12px 14px', background:'rgba(22,163,74,.06)', border:'1px solid rgba(22,163,74,.2)', borderRadius:12 }}>
           <div style={{ display:'flex', justifyContent:'space-between', fontSize:'.75rem', fontWeight:700, marginBottom:6 }}>
-            <span style={{ color:'rgba(180,190,220,.5)' }}>Validité restante</span>
-            <span style={{ color: days<=30?'#f87171':days<=90?'#fbbf24':'#4ade80' }}>{days} jours</span>
+            <span style={{ color:'#64735d' }}>Validité restante</span>
+            <span style={{ color: days<=30?'#b53c44':days<=90?'#956018':'#32634d' }}>{days} jours</span>
           </div>
-          <div style={{ height:6, background:'rgba(255,255,255,.08)', borderRadius:99, overflow:'hidden' }}>
-            <div style={{ height:'100%', width:`${Math.min(100,(days/365)*100)}%`, background:'linear-gradient(90deg,#22c55e,#4ade80)', borderRadius:99, transition:'width .5s' }} />
+          <div style={{ height:6, background:'rgba(71,124,92,.08)', borderRadius:99, overflow:'hidden' }}>
+            <div style={{ height:'100%', width:`${Math.min(100,(days/365)*100)}%`, background:'linear-gradient(90deg,#22c55e,#32634d)', borderRadius:99, transition:'width .5s' }} />
           </div>
         </div>
       )}

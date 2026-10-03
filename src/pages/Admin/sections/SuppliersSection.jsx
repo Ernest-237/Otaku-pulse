@@ -1,3 +1,4 @@
+import MediaImage from '../../../components/ui/MediaImage'
 // src/pages/Admin/sections/SuppliersSection.jsx
 import { useState } from 'react'
 import { suppliersApi, API_BASE } from '../../../api'
@@ -21,7 +22,7 @@ export default function SuppliersSection({ toast }) {
   const [editing,   setEditing]   = useState(null)
   const [statsId,   setStatsId]   = useState(null)
   const [viewTab,   setViewTab]   = useState('all') // 'all' | 'pending'
-  const { data, loading, execute } = useApi(() => suppliersApi.getAll(), [], true)
+  const { data, loading, error, execute } = useApi(() => suppliersApi.getAll(), [], true)
   const suppliers = data?.suppliers || []
   const pending = suppliers.filter(s => s.status === 'pending')
   const shown = viewTab === 'pending' ? pending : suppliers
@@ -54,6 +55,7 @@ export default function SuppliersSection({ toast }) {
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
 
   return (
     <div>
@@ -94,13 +96,13 @@ export default function SuppliersSection({ toast }) {
         <div style={{ padding:'1rem', display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:12 }}>
           {shown.map(s => (
             <div key={s.id} style={{
-              background:'rgba(255,255,255,.03)', border:'1px solid var(--border)',
+              background:'rgba(71,124,92,.03)', border:'1px solid var(--border)',
               borderRadius:14, padding:'1.2rem', transition:'all .3s',
             }}>
               <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:'1rem' }}>
                 {/* Logo */}
-                <div style={{ width:48, height:48, borderRadius:10, background:'rgba(255,255,255,.06)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
-                  <img src={`${API_BASE}/api/upload/supplier/${s.id}/logo`} alt={s.name}
+                <div style={{ width:48, height:48, borderRadius:10, background:'rgba(71,124,92,.06)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+                  <MediaImage src={`${API_BASE}/api/upload/supplier/${s.id}/logo`} alt={s.name}
                     style={{ width:'100%', height:'100%', objectFit:'cover' }}
                     onError={e => { e.target.style.display='none'; e.target.parentNode.innerHTML='🤝' }} />
                 </div>
@@ -120,7 +122,7 @@ export default function SuppliersSection({ toast }) {
                   ['💰', `${s.commission || 25}% commission`],
                   ['🏦', s.bankName || 'Non renseigné'],
                 ].map(([ico, val], i) => (
-                  <div key={i} style={{ background:'rgba(255,255,255,.03)', borderRadius:8, padding:'6px 10px', fontSize:'.78rem' }}>
+                  <div key={i} style={{ background:'rgba(71,124,92,.03)', borderRadius:8, padding:'6px 10px', fontSize:'.78rem' }}>
                     <span style={{ marginRight:5 }}>{ico}</span>{val}
                   </div>
                 ))}
@@ -167,7 +169,7 @@ function SupplierStats({ id }) {
           ['CA Total', `${data.totalSales?.toLocaleString()} FCFA`],
           ['Commission OP', `${data.totalCommission?.toLocaleString()} FCFA`],
         ].map(([l,v]) => (
-          <div key={l} style={{ background:'rgba(255,255,255,.04)', borderRadius:8, padding:'8px 10px' }}>
+          <div key={l} style={{ background:'rgba(71,124,92,.04)', borderRadius:8, padding:'8px 10px' }}>
             <div style={{ fontSize:'.65rem', color:'var(--muted)', marginBottom:2 }}>{l}</div>
             <div style={{ fontFamily:'var(--font-title)', fontSize:'.95rem', color:'var(--green)' }}>{v}</div>
           </div>
@@ -242,8 +244,8 @@ function HIn({ label, value, onChange, type='text' }) {
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <input type={type} value={value??''} onChange={e => onChange(e.target.value)}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none' }}
-        onFocus={e=>e.target.style.borderColor='#22c55e'} onBlur={e=>e.target.style.borderColor='rgba(255,255,255,.1)'} />
+        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none' }}
+        onFocus={e=>e.target.style.borderColor='#22c55e'} onBlur={e=>e.target.style.borderColor='rgba(71,124,92,.1)'} />
     </div>
   )
 }
@@ -252,8 +254,8 @@ function HTa({ label, value, onChange, rows=3 }) {
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <textarea value={value??''} onChange={e => onChange(e.target.value)} rows={rows}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', resize:'vertical', lineHeight:1.5 }}
-        onFocus={e=>e.target.style.borderColor='#22c55e'} onBlur={e=>e.target.style.borderColor='rgba(255,255,255,.1)'} />
+        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', resize:'vertical', lineHeight:1.5 }}
+        onFocus={e=>e.target.style.borderColor='#22c55e'} onBlur={e=>e.target.style.borderColor='rgba(71,124,92,.1)'} />
     </div>
   )
 }

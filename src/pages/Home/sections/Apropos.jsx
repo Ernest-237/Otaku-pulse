@@ -27,8 +27,8 @@ export default function Apropos() {
           <div className={styles.left}>
             <div className={styles.tag}>✨ {lang==='fr' ? 'Notre Histoire' : 'Our Story'}</div>
             <h2 className={styles.title}>
-              {lang==='fr' ? 'À PROPOS D\'' : 'ABOUT '}
-              <span className={styles.accent}>OTAKU PULSE</span>
+              {lang==='fr' ? 'Une passion. ' : 'One passion. '}
+              <span className={styles.accent}>{lang==='fr' ? 'Une communauté.' : 'One community.'}</span>
             </h2>
             <p className={styles.desc}>
               {lang==='fr'

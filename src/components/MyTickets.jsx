@@ -2,6 +2,7 @@
 // Affiche les inscriptions de l'utilisateur à trois états : liste d'attente,
 // réservé (paiement en attente), ou billet confirmé (paiement validé par l'admin).
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useApi } from '../hooks/useApi'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -11,6 +12,7 @@ import { IconTicket } from './icons'
 import styles from './MyTickets.module.css'
 
 function statusMeta(reg) {
+  if (reg.status === 'cancelled' || reg.event?.status === 'cancelled') return { color: '#a75353', label: 'ANNULÉ', active: false }
   if (reg.status === 'waitlist') {
     return { color: '#f59e0b', label: "🕒 LISTE D'ATTENTE", active: false }
   }
@@ -23,7 +25,7 @@ function statusMeta(reg) {
 export default function MyTickets({ title = 'Mes billets', showEmptyState = false, className = '' }) {
   const { user } = useAuth()
   const toast = useToast()
-  const { data, execute: refetch } = useApi(
+  const { data, loading, error, execute: refetch } = useApi(
     () => user ? eventsApi.getMine() : Promise.resolve({ registrations: [] }),
     [user?.id], true
   )
@@ -32,6 +34,7 @@ export default function MyTickets({ title = 'Mes billets', showEmptyState = fals
   const registrations = data?.registrations || []
 
   const cancel = async (registrationId) => {
+    if (busyId || !confirm('Annuler cette réservation ? Un paiement déjà effectué doit être remboursé par l’équipe.')) return
     setBusyId(registrationId)
     try {
       await eventsApi.cancel(registrationId)
@@ -44,12 +47,15 @@ export default function MyTickets({ title = 'Mes billets', showEmptyState = fals
     }
   }
 
+  if (loading) return <p role="status">Chargement des billets…</p>
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={refetch}>Réessayer</button></p>
   if (registrations.length === 0) {
     if (!showEmptyState) return null
     return (
       <div className={`${styles.empty} ${className}`}>
         <IconTicket size={32} />
         <p>Tu n'as pas encore réservé de billet.</p>
+        <Link to="/evenements">Voir l’agenda ↗</Link>
       </div>
     )
   }
@@ -68,14 +74,14 @@ export default function MyTickets({ title = 'Mes billets', showEmptyState = fals
               statusLabel={s.label}
               statusActive={s.active}
               title={reg.event?.titleF || 'Événement'}
-              subtitle={reg.event?.date ? new Date(reg.event.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : ''}
+              subtitle={reg.event?.date ? new Date(`${reg.event.date.slice(0, 10)}T12:00:00`).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : ''}
               meta={[
                 { label: 'Lieu', value: reg.event?.venue || reg.event?.city || '—' },
                 { label: 'Invités', value: reg.guests || 1 },
               ]}
               code={reg.ticketCode || reg.id.slice(0, 8).toUpperCase()}
               footer={
-                <button className={styles.cancelBtn} disabled={busyId === reg.id} onClick={() => cancel(reg.id)}>
+                reg.status !== 'cancelled' && <button className={styles.cancelBtn} disabled={!!busyId} onClick={() => cancel(reg.id)}>
                   Annuler
                 </button>
               }

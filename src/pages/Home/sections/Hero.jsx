@@ -1,164 +1,135 @@
+import OtakuMark from '../../../components/ui/OtakuMark'
+import MediaImage from '../../../components/ui/MediaImage'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { CalendarDays, MapPin, PlayCircle, ShoppingBag, Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ArrowDown, ArrowUpRight, Leaf, Sparkles } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { heroApi } from '../../../api'
-import AnimeCarousel from '../../../components/AnimeCarousel'
 import styles from './Hero.module.css'
-
-const HERO_DEFAULT = {
-  taglineF: "Tente l'expérience Otaku",
-  taglineE: 'Try the Otaku experience',
-  line1F: "VIVEZ L'EXPÉRIENCE",
-  line1E: 'LIVE THE EXPERIENCE',
-  line2F: 'AU-DELÀ DE',
-  line2E: 'BEYOND THE',
-  accentF: "L'ÉCRAN",
-  accentE: 'THE SCREEN',
-  subtitleF:
-    'Premier service de goodies Otaku au Cameroun. Mangas, posters, accessoires et articles collectors livrés chez toi à Yaoundé, Douala et Bafoussam.',
-  subtitleE:
-    'First Otaku goods service in Cameroon. Manga, posters, accessories and collector items delivered to Yaoundé, Douala and Bafoussam.',
-  bgImageUrl: '',
-  bgImageData: null,
-  bgImageMime: null,
-}
-
-// Image de repli quand aucune image n'est configurée dans l'admin.
-// Doit rester alignée sur le défaut de HeroSection.jsx (`/img/deku.jpg`) :
-// les deux divergeaient, et le site public affichait `flowers.jpg` alors que
-// l'aperçu de l'admin montrait Deku.
-const HERO_IMAGE = '/img/deku.jpg'
-const HERO_GIF = '/assets/hero/follow.gif'
 
 export default function Hero() {
   const { lang } = useLang()
-  const navigate = useNavigate()
-  const [hero, setHero] = useState(HERO_DEFAULT)
-
+  const fr = lang === 'fr'
+  const [hero, setHero] = useState(null)
   useEffect(() => {
-    heroApi.get()
+    let active = true
+    heroApi
+      .get()
       .then((d) => {
-        if (d?.hero) setHero((prev) => ({ ...HERO_DEFAULT, ...d.hero }))
+        if (active) setHero(d?.hero)
       })
       .catch(() => {})
+    return () => {
+      active = false
+    }
   }, [])
-
-  const h = hero
-  const stats = [
-    { val: '50+', fr: 'Thèmes anime', en: 'Anime themes' },
-    { val: '200+', fr: 'Clients heureux', en: 'Happy clients' },
-    { val: '3', fr: 'Villes livrées', en: 'Cities covered' },
-    { val: '4.9', fr: 'Note clients', en: 'Customer rating' },
-  ]
-
-  const bgImg = h.bgImageData && h.bgImageMime
-    ? `data:${h.bgImageMime};base64,${h.bgImageData}`
-    : h.bgImageUrl?.trim() || null
-
+  const image =
+    hero?.bgImageData && hero?.bgImageMime
+      ? `data:${hero.bgImageMime};base64,${hero.bgImageData}`
+      : hero?.bgImageUrl || '/assets/hero/tree.jpg'
+  const content = (key) => hero?.[`${key}${fr ? 'F' : 'E'}`]?.trim()
   return (
     <section id="hero" className={styles.hero}>
-      <div className={styles.bgDecor} />
-
-      <div className={`container ${styles.heroInner}`}>
-        <div className={styles.left}>
-          <div className={styles.badge}>
-            <span className={styles.badgeDot} />
-            <Sparkles size={14} strokeWidth={2.2} />
-            <span>{lang === 'fr' ? h.taglineF : h.taglineE}</span>
-          </div>
-
-          <h1 className={styles.title}>
-            <span className={styles.titleLine1}>{lang === 'fr' ? h.line1F : h.line1E}</span>
-            <span className={styles.titleLine2}>{lang === 'fr' ? h.line2F : h.line2E}</span>
-            <span className={styles.titleAccent}>{lang === 'fr' ? h.accentF : h.accentE}</span>
+      <div className={`container ${styles.inner}`}>
+        <div className={styles.copy}>
+          <span className={styles.eyebrow}>
+            <Leaf size={15} /> OTAKU PULSE <span>•</span>{' '}
+            {content('tagline') ||
+              (fr
+                ? 'LE RENDEZ-VOUS DES PASSIONNÉS'
+                : 'A PLACE FOR ANIME LOVERS')}
+          </span>
+          <h1>
+            {content('line1') || (fr ? 'Un peu d’anime.' : 'A little anime.')}
+            <br />
+            {content('line2') || (fr ? 'Beaucoup de' : 'A whole lot of')}
+            <br />
+            <em>{content('accent') || 'passion.'}</em>
           </h1>
-
-          <p className={styles.subtitle}>{lang === 'fr' ? h.subtitleF : h.subtitleE}</p>
-
-          <div className={styles.ctas}>
-            <button className={styles.ctaPrimary} onClick={() => navigate('/reservation')}>
-              <CalendarDays size={18} strokeWidth={2.2} />
-              <span>{lang === 'fr' ? 'Préparer mon événement' : 'Book my event'}</span>
-            </button>
-
-            <button className={styles.ctaSecondary} onClick={() => navigate('/boutique')}>
-              <ShoppingBag size={18} strokeWidth={2.2} />
-              <span>{lang === 'fr' ? 'Aller à la boutique' : 'Go to shop'}</span>
-            </button>
+          <p>
+            {content('subtitle') ||
+              (fr
+                ? 'Trouve ta prochaine obsession, vibre au rythme des génériques et partage ton univers. Ici, tu es chez toi.'
+                : 'Find your next obsession, discover anime soundtracks and share your world. Make yourself at home.')}
+          </p>
+          <div className={styles.actions}>
+            <a href="#anime-schedule" className={styles.primary}>
+              {fr ? 'Explorer les animés' : 'Explore anime'}{' '}
+              <ArrowUpRight size={18} />
+            </a>
+            <Link to="/fandom?tab=quiz" className={styles.secondary}>
+              {fr ? 'Relever un défi' : 'Take a challenge'}{' '}
+              <OtakuMark size={16} />
+            </Link>
           </div>
-
-          <div className={styles.stats}>
-            {stats.map((s, i) => (
-              <div key={i} className={styles.stat}>
-                <span className={styles.statVal}>{s.val}</span>
-                <span className={styles.statLbl}>{lang === 'fr' ? s.fr : s.en}</span>
-              </div>
-            ))}
+          <div className={styles.note}>
+            <span />
+            {fr
+              ? 'Anime, culture & communauté · Depuis le Cameroun'
+              : 'Anime, culture & community · From Cameroon'}
           </div>
         </div>
-
-        <div className={styles.right}>
-          <div className={styles.mainImgFrame}>
-            {bgImg ? (
-              <img
-                src={bgImg}
-                alt="Otaku Pulse"
-                className={styles.mainImg}
-                onError={(e) => {
-                  e.target.style.display = 'none'
-                }}
-              />
-            ) : (
-              <img
-                src={HERO_IMAGE}
-                alt="Otaku Pulse"
-                className={styles.mainImg}
-                onError={(e) => {
-                  e.target.parentElement.classList.add(styles.imgFallback)
-                }}
-              />
-            )}
-
-            <div className={styles.imgOverlay} />
-
-            <div className={styles.imgBadge}>
-              <MapPin size={14} strokeWidth={2.3} />
-              <span>Cameroun</span>
+        <div className={styles.art}>
+          <div className={styles.orbit} aria-hidden="true" />
+          <div className={styles.imageFrame}>
+            <MediaImage
+              src={image}
+              alt={
+                fr
+                  ? 'Une parenthèse dans un univers anime'
+                  : 'A moment in an anime world'
+              }
+              fetchPriority="high"
+              onError={(e) => {
+                if (!e.currentTarget.src.endsWith('/img/deku.jpg'))
+                  e.currentTarget.src = '/img/deku.jpg'
+              }}
+            />
+            <div className={styles.imageShade} />
+            <span className={styles.vertical} aria-hidden="true">
+              夢を見る • OTAKU LIFE
+            </span>
+            <div className={styles.artCaption}>
+              <span>
+                01 / {fr ? 'ENTRE DANS L’UNIVERS' : 'ENTER THE WORLD'}
+              </span>
+              <strong>
+                {fr
+                  ? 'Les belles histoires\nse partagent.'
+                  : 'Good stories\nare meant to be shared.'}
+              </strong>
             </div>
           </div>
-
-          <AnimeCarousel
-            variant="light"
-            label={lang === 'fr' ? 'Animés du moment' : 'Right now'}
-            fallback={
-              <div className={styles.gifFrame}>
-                <div className={styles.gifLabel}>
-                  <span className={styles.gifDot} />
-                  <span>{lang === 'fr' ? 'Saison en cours' : 'Current season'}</span>
-                </div>
-                <div className={styles.gifContent}>
-                  <img
-                    src={HERO_GIF}
-                    alt="Saison Otaku Pulse"
-                    className={styles.gifImg}
-                    onError={(e) => {
-                      e.target.style.display = 'none'
-                      e.target.nextSibling.style.display = 'flex'
-                    }}
-                  />
-                  <div className={styles.gifFallbackContent} style={{ display: 'none' }}>
-                    <PlayCircle size={36} strokeWidth={2.1} />
-                    <span className={styles.gifFallbackText}>
-                      {lang === 'fr' ? 'Ajoute ton GIF saisonnier ici' : 'Add your seasonal GIF here'}
-                    </span>
-                    <code>/assets/hero/seasonal.gif</code>
-                  </div>
-                </div>
-              </div>
-            }
-          />
+          <Link to="/fandom" className={styles.floatingNote}>
+            <span>
+              <Leaf size={21} />
+            </span>
+            <div>
+              <small>
+                {fr ? 'TON PETIT RITUEL OTAKU' : 'YOUR OTAKU RITUAL'}
+              </small>
+              <strong>
+                {fr
+                  ? 'Découvrir. Jouer. Partager.'
+                  : 'Discover. Play. Connect.'}
+              </strong>
+            </div>
+            <ArrowUpRight size={18} />
+          </Link>
+          <span className={styles.seal} aria-hidden="true">
+            好<br />奇<br />心
+          </span>
         </div>
+      </div>
+      <div className={`container ${styles.bottom}`}>
+        <span>{fr ? 'CULTIVE TA CURIOSITÉ' : 'STAY CURIOUS'}</span>
+        <a
+          href="#anime-schedule"
+          aria-label={fr ? 'Découvrir la sélection' : 'Discover the selection'}
+        >
+          <ArrowDown size={18} />
+        </a>
+        <span>アニメの世界へ</span>
       </div>
     </section>
   )

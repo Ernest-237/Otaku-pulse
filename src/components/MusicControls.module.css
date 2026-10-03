@@ -1,0 +1,50 @@
+.controls {
+  position: fixed;
+  bottom: 24px;
+  right: 22px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  z-index: 85;
+}
+.controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s;
+}
+.controls .playing {
+  background: var(--green-800);
+  color: white;
+}
+.error {
+  position: absolute;
+  right: 0;
+  bottom: 54px;
+  min-width: 210px;
+  max-width: 240px;
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  box-shadow: var(--shadow-md);
+}
+@media (max-width: 640px) {
+  .controls {
+    bottom: 16px;
+    right: 14px;
+  }
+  .controls button {
+    width: 38px;
+    height: 38px;
+  }
+}

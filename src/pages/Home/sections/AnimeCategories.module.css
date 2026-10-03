@@ -1,179 +1,65 @@
-/* AnimeCategories.module.css v4 — Néon otaku */
 .section {
-  padding:5rem 0;
-  background:var(--bg-alt);
-  border-top:1.5px solid var(--border);
-  border-bottom:1.5px solid var(--border);
+  padding: 32px 0 65px;
 }
-.header  { text-align:center; margin-bottom:2.5rem; }
-.tag {
-  display:inline-flex; align-items:center; gap:6px;
-  background:var(--green-pale);
-  border:1.5px solid var(--green-200);
-  color:var(--green-700);
-  border-radius:var(--radius-full);
-  font-size:.75rem; font-weight:800; letter-spacing:.5px;
-  padding:4px 12px; margin-bottom:.8rem;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
 }
-.title  {
-  font-family:var(--font-title);
-  font-size:clamp(2rem,5vw,3.2rem);
-  letter-spacing:4px;
-  color:var(--text-strong);
-  margin-bottom:.5rem;
-}
-.accent {
-  color: var(--green-700);
-  text-shadow: 0 0 16px var(--neon-glow);
-}
-.subtitle { font-size:.9rem; color:var(--text-muted); }
-
-.mainGrid { display:grid; grid-template-columns:1fr 320px; gap:16px; margin-bottom:20px; }
-
-/* Hero banner */
-.heroBanner {
-  position:relative; border-radius:var(--radius-xl); overflow:hidden;
-  background: var(--green-ultra);
-  border:2px solid var(--green-200);
-  min-height:280px;
-  display:flex; align-items:flex-end;
-  box-shadow:var(--shadow-md);
-  transition: all .3s;
-}
-.heroBanner:hover { box-shadow: var(--shadow-lg); border-color: var(--green-300); }
-.heroBannerInner { padding:2rem; position:relative; z-index:2; }
-.heroBannerIcon {
-  width: 60px; height: 60px;
-  background: var(--green-700);
-  color: #fff;
-  border-radius: var(--radius-lg);
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 1rem;
-  box-shadow: var(--shadow-green-sm);
-}
-.heroBannerTag {
-  font-family:var(--font-body); font-size:.7rem; font-weight:800;
-  letter-spacing:2px; color:var(--green-700); text-transform:uppercase;
-  margin-bottom:.4rem;
-}
-.heroBannerTitle {
-  font-family:var(--font-title);
-  font-size:clamp(1.6rem,3vw,2.4rem); letter-spacing:3px;
-  color:var(--text-strong); margin-bottom:1rem; line-height:1.1;
-}
-.heroBannerDiscount { display:flex; align-items:baseline; gap:4px; margin-bottom:1.2rem; }
-.pct {
-  font-family:var(--font-title); font-size:3rem;
-  color:var(--green-700); letter-spacing:2px; line-height:1;
-  text-shadow: 0 0 20px var(--neon-glow);
-}
-.pctOff { font-family:var(--font-body); font-size:1rem; font-weight:800; color:var(--green-700); }
-.exploreBtn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding:10px 24px; border-radius:var(--radius-full);
-  border:2px solid var(--green-700); background:none;
-  color:var(--green-700);
-  font-family:var(--font-body); font-size:.85rem; font-weight:800;
-  cursor:pointer; transition:all .3s;
-}
-.exploreBtn:hover { background:var(--green-700); color:#fff; box-shadow:var(--shadow-green); }
-
-.floatingBadge {
-  position:absolute; pointer-events:none;
-  animation:float 4s ease-in-out infinite;
-  color: var(--green-600);
-  display: flex; align-items: center; justify-content: center;
-  width: 36px; height: 36px;
+.card {
+  display: block;
+  border: 1px solid var(--border);
   background: var(--bg-card);
-  border-radius: 50%;
-  box-shadow: var(--shadow-sm);
-  opacity: .9;
+  border-radius: 18px;
+  padding: 26px;
+  transition:
+    transform 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s;
+  color: var(--text);
 }
-@keyframes float { 0%,100%{transform:translateY(0)rotate(0)} 50%{transform:translateY(-10px)rotate(8deg)} }
-
-/* Promo cols */
-.promoCols { display:flex; flex-direction:column; gap:16px; }
-.promoBanner {
-  border-radius:var(--radius-lg); border:1.5px solid var(--border);
-  padding:1.5rem; flex:1;
-  display:flex; flex-direction:column; justify-content:space-between;
-  gap:1rem; min-height:120px;
-  position:relative; overflow:hidden;
-  background:var(--bg-card); box-shadow:var(--shadow-sm);
-  transition: all .25s;
-}
-.promoBanner:hover {
+.card:hover {
+  transform: translateY(-5px);
   border-color: var(--green-300);
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
 }
-.promoTag {
-  font-family:var(--font-body); font-size:.68rem; font-weight:800;
-  letter-spacing:1.5px; text-transform:uppercase;
-  color: var(--text-muted); margin-bottom:.3rem;
+.top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--green);
+  margin-bottom: 24px;
 }
-.promoPct { display:flex; align-items:baseline; gap:3px; }
-.pctBig {
-  font-family:var(--font-title); font-size:2.8rem;
-  letter-spacing:2px; line-height:1;
-  color: var(--green-700);
+.top > span {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
 }
-.pctSmall { font-family:var(--font-body); font-size:.9rem; font-weight:800; color: var(--green-700); }
-.promoIconWrap {
-  position:absolute; right:1.2rem; top:50%;
-  transform:translateY(-50%);
-  color: var(--green-200);
+.top > svg:last-child {
+  margin-left: auto;
 }
-.promoBtn {
-  align-self:flex-start;
-  display: inline-flex; align-items: center; gap: 6px;
-  padding:7px 18px; border-radius:var(--radius-full);
-  background:var(--green-ultra);
-  color: var(--green-700);
-  font-family:var(--font-body); font-size:.75rem; font-weight:800; letter-spacing:1px;
-  cursor:pointer; border:1.5px solid var(--green-200);
-  transition:all .25s;
+.card h3 {
+  font-size: 21px;
+  letter-spacing: -0.5px;
+  color: var(--green-950);
+  margin-bottom: 8px;
 }
-.promoBtn:hover { background:var(--green-700); color:#fff; border-color: var(--green-700); }
-
-/* Anime chips */
-.animesBar {
-  display:flex; gap:10px; flex-wrap:wrap; justify-content:center;
-  padding:1.5rem; background:var(--bg-card);
-  border-radius:var(--radius-xl); border:1.5px solid var(--border);
-  box-shadow:var(--shadow-sm);
+.card p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-muted);
 }
-.animeChip {
-  display:flex; align-items:center; gap:8px;
-  padding:10px 18px; border-radius:var(--radius-full);
-  border:1.5px solid var(--border);
-  cursor:pointer; transition:all .25s;
-  background: var(--bg-card);
-  color: var(--text);
-  white-space:nowrap;
-}
-.animeChip:hover {
-  transform:translateY(-3px);
-  box-shadow:var(--shadow-md);
-  border-color: var(--green-400);
-  background: var(--green-ultra);
-  color: var(--green-800);
-}
-.animeIcon { display: flex; align-items: center; justify-content: center; color: var(--green-600); }
-.animeChip:hover .animeIcon { color: var(--green-700); }
-.animeName  { font-family:var(--font-body); font-size:.85rem; font-weight:800; }
-
-/* Responsive */
-@media (max-width: 960px) {
-  .mainGrid { grid-template-columns: 1fr; }
-  .promoCols { flex-direction: row; }
-  .section { padding: 3.5rem 0; }
-}
-@media (max-width: 768px) { .heroBanner { min-height: 220px; } }
-@media (max-width: 600px) {
-  .promoCols { flex-direction: column; }
-  .animesBar { gap: 6px; padding: 1rem; }
-  .animeChip { padding: 8px 12px; }
-  .animeName { font-size: .78rem; }
-  .heroBannerTitle { font-size: clamp(1.3rem, 5vw, 1.8rem); }
+@media (max-width: 650px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    padding: 21px;
+  }
+  .top {
+    margin-bottom: 14px;
+  }
+  .section {
+    padding-bottom: 40px;
+  }
 }

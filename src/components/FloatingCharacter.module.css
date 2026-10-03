@@ -1,287 +1,114 @@
-/* FloatingCharacter.module.css v2 — Charte néon otaku light */
-
 .wrapper {
   position: fixed;
-  bottom: 0;
-  left: 1.5rem;
-  z-index: 9000;
+  bottom: 24px;
+  left: 22px;
+  z-index: 90;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0;
-  pointer-events: none;
-  animation: slideInChar .6s cubic-bezier(.34, 1.2, .64, 1) forwards;
+  gap: 12px;
 }
-@keyframes slideInChar {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+.trigger {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-card);
+  background: var(--green-100);
+  box-shadow: var(--shadow-md);
+  padding: 0;
+  color: var(--green-800);
 }
-
-.minimized .charImg { filter: brightness(.92); }
-
-/* ── Bulle de citation ── */
+.trigger > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.initials {
+  font-size: 13px;
+  font-weight: 800;
+}
+.quoteIcon {
+  position: absolute;
+  bottom: -2px;
+  right: -3px;
+  background: var(--green-800);
+  color: white;
+  border-radius: 50%;
+  padding: 4px;
+  width: 22px;
+  height: 22px;
+}
 .bubble {
   position: relative;
+  width: min(280px, calc(100vw - 44px));
+  border: 1px solid var(--border);
+  border-radius: 18px;
   background: var(--bg-card);
-  border: 1.5px solid var(--green-200);
-  border-radius: var(--radius-lg);
-  padding: 1.1rem 1.2rem .9rem;
-  max-width: 280px;
-  min-width: 230px;
-  margin-bottom: -2px;
-  margin-left: 12px;
-  pointer-events: all;
+  padding: 24px;
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(12px);
+  animation: appear 0.2s ease;
 }
-
-/* Liseré néon en haut */
-.bubble::before {
-  content: '';
+.close {
   position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: var(--neon);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  box-shadow: 0 0 8px var(--neon-glow);
-}
-
-.bubbleIn { animation: bubbleAppear .35s ease forwards; }
-.bubbleOut { animation: bubbleDisappear .25s ease forwards; }
-@keyframes bubbleAppear {
-  from { opacity: 0; transform: translateY(8px) scale(.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes bubbleDisappear {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(4px); }
-}
-
-/* Queue de bulle */
-.bubbleTail {
-  position: absolute;
-  bottom: -10px;
-  left: 28px;
-  width: 0; height: 0;
-  border-left: 10px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 10px solid var(--bg-card);
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .08));
-}
-/* Petite bordure pour la queue */
-.bubble::after {
-  content: '';
-  position: absolute;
-  bottom: -12px;
-  left: 27px;
-  width: 0; height: 0;
-  border-left: 11px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 11px solid var(--green-200);
-  z-index: -1;
-}
-
-/* Bouton fermer */
-.closeBtn {
-  position: absolute;
-  top: 8px; right: 8px;
-  background: var(--bg-soft);
-  border: 1.5px solid var(--border);
-  border-radius: 50%;
-  width: 24px; height: 24px;
-  display: flex;
-  align-items: center; justify-content: center;
+  right: 10px;
+  top: 10px;
+  background: none;
+  border: 0;
   color: var(--text-muted);
-  cursor: pointer;
-  transition: all .2s ease;
+  padding: 5px;
 }
-.closeBtn:hover {
-  background: var(--red-pale);
-  color: var(--red);
-  border-color: rgba(220, 38, 38, .2);
+.label {
+  font-size: 8px;
+  letter-spacing: 1.8px;
+  color: var(--green);
 }
-
-/* Icône guillemet */
-.quoteIcon {
-  color: var(--green-600);
-  display: inline-flex;
-  margin-bottom: .5rem;
-  background: var(--green-pale);
-  width: 32px; height: 32px;
-  border-radius: var(--radius-sm);
-  align-items: center; justify-content: center;
-}
-
-.quoteText {
-  font-size: .82rem;
-  color: var(--text);
+.bubble blockquote {
+  font-family: Georgia, serif;
+  font-size: 16px;
   line-height: 1.6;
-  margin-bottom: .8rem;
-  font-style: italic;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  margin: 14px 0;
+  color: var(--green-950);
 }
-
-.quoteMeta {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  margin-bottom: .8rem;
-  padding-top: .6rem;
-  border-top: 1px solid var(--border);
-}
-.charName {
-  font-family: var(--font-title);
-  font-size: .82rem;
-  letter-spacing: 1.5px;
-  color: var(--green-700);
-}
-.animeName {
-  font-size: .68rem;
-  color: var(--text-light);
-  letter-spacing: .5px;
-}
-
-.nextBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: var(--green-pale);
-  border: 1.5px solid var(--green-200);
-  color: var(--green-700);
-  border-radius: var(--radius-full);
-  padding: 5px 12px;
-  font-family: var(--font-body);
-  font-size: .72rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all .2s ease;
-}
-.nextBtn:hover {
-  background: var(--green-700);
-  color: #fff;
-  border-color: var(--green-700);
-  transform: translateX(2px);
-}
-
-/* ── Personnage ── */
-.character {
-  position: relative;
-  width: 110px;
-  cursor: pointer;
-  pointer-events: all;
-  user-select: none;
-  animation: charFloat 4s ease-in-out infinite;
-}
-@keyframes charFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-.charImg {
-  width: 110px;
-  height: 140px;
-  object-fit: cover;
-  object-position: top;
-  border-radius: var(--radius-xl, 20px);
-  border: 2px solid var(--green-200);
-  filter: drop-shadow(0 6px 14px rgba(22, 163, 74, .25));
+.bubble strong {
+  font-size: 12px;
   display: block;
 }
-
-.charEmojiDefault {
-  font-size: 5rem;
-  text-align: center;
-  line-height: 1;
-  display: none;
-  color: var(--green-700);
-  width: 110px;
-  height: 140px;
-  align-items: center;
-  justify-content: center;
+.bubble small {
+  font-size: 9px;
+  display: block;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
-
-.charFallback .charEmojiDefault { display: flex; }
-.charFallback .charImg { display: none !important; }
-
-/* Badge de notification */
-.charBadge {
-  position: absolute;
-  top: 8px;
-  right: 0;
-  background: var(--green-700);
-  color: #fff;
-  width: 24px; height: 24px;
-  border-radius: 50%;
+.next {
+  margin-top: 15px;
   display: flex;
-  align-items: center; justify-content: center;
-  box-shadow: var(--shadow-green-sm), 0 0 0 2px var(--bg);
-  animation: badgePulse 2s ease-in-out infinite;
-  border: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  background: none;
+  border: 0;
+  color: var(--green);
+  padding: 5px 0;
 }
-@keyframes badgePulse {
-  0%, 100% { transform: scale(1); box-shadow: var(--shadow-green-sm), 0 0 0 2px var(--bg); }
-  50% { transform: scale(1.12); box-shadow: var(--shadow-green), 0 0 0 4px var(--green-50); }
-}
-
-/* Ombre douce sous le perso */
-.charShadow {
-  width: 70px;
-  height: 12px;
-  margin: 0 auto;
-  background: radial-gradient(ellipse, rgba(22, 163, 74, .25) 0%, transparent 70%);
-  border-radius: 50%;
-  margin-top: -6px;
-  filter: blur(2px);
-}
-
-/* ── RESPONSIVE ── */
-@media (max-width: 768px) {
-  .wrapper { left: 1rem; }
-  .bubble {
-    max-width: 220px;
-    min-width: 190px;
-    padding: .9rem 1rem .8rem;
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
-  .quoteText { font-size: .78rem; -webkit-line-clamp: 3; }
-  .character { width: 90px; }
-  .charImg { width: 90px; height: 114px; }
-  .charEmojiDefault { width: 90px; height: 120px; font-size: 4rem; }
-  .charShadow { width: 56px; }
-}
-
-@media (max-width: 480px) {
-  .wrapper { left: .6rem; }
-  .bubble {
-    max-width: 200px;
-    min-width: 170px;
-    padding: .8rem .9rem .7rem;
-    margin-left: 8px;
+  to {
+    opacity: 1;
+    transform: none;
   }
-  .bubbleTail { left: 22px; }
-  .bubble::after { left: 21px; }
-  .quoteText { font-size: .74rem; -webkit-line-clamp: 3; }
-  .quoteIcon { width: 28px; height: 28px; }
-  .quoteIcon svg { width: 16px; height: 16px; }
-  .character { width: 75px; }
-  .charImg { width: 75px; height: 95px; }
-  .charEmojiDefault { width: 75px; height: 100px; font-size: 3.5rem; }
-  .charShadow { width: 48px; height: 10px; }
-  .charBadge { width: 22px; height: 22px; top: 6px; }
-  .nextBtn { font-size: .7rem; padding: 4px 10px; }
-  .charName { font-size: .78rem; }
-  .animeName { font-size: .64rem; }
 }
-
-@media (max-width: 360px) {
-  .wrapper { left: .4rem; }
-  .bubble {
-    max-width: 180px;
-    min-width: 150px;
+@media (max-width: 640px) {
+  .wrapper {
+    bottom: 16px;
+    left: 14px;
   }
-  .character { width: 65px; }
-  .charImg { width: 65px; height: 83px; }
-  .charEmojiDefault { width: 65px; height: 90px; font-size: 3rem; }
+  .trigger {
+    width: 42px;
+    height: 42px;
+  }
 }

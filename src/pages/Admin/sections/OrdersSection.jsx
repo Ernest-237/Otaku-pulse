@@ -9,7 +9,7 @@ import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
 import styles from '../Admin.module.css'
 
 const STATUSES = [
-  { key:'pending',   label:'⏳ En attente',      desc:'Commande reçue, pas encore traitée',  color:'#f59e0b' },
+  { key:'pending',   label:'⏳ En attente',      desc:'Commande reçue, pas encore traitée',  color:'#a36310' },
   { key:'confirmed', label:'✅ Confirmée',        desc:'Commande confirmée, paiement reçu',   color:'#22c55e' },
   { key:'preparing', label:'📦 Préparation',     desc:'Articles en cours de préparation',    color:'#3b82f6' },
   { key:'shipped',   label:'🚚 Expédiée',         desc:'Commande en route vers le client',    color:'#8b5cf6' },
@@ -21,7 +21,7 @@ const STATUSES = [
 export default function OrdersSection({ toast }) {
   const [filter,   setFilter]   = useState('all')
   const [selected, setSelected] = useState(null)
-  const { data, loading, execute } = useApi(() => adminApi.getOrders({ limit:100 }), [], true)
+  const { data, loading, error, execute } = useApi(() => adminApi.getOrders({ limit:100 }), [], true)
   const orders  = data?.orders || []
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter)
 
@@ -40,6 +40,7 @@ export default function OrdersSection({ toast }) {
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
 
   // Résumé par statut
   const statusCounts = {}
@@ -52,14 +53,14 @@ export default function OrdersSection({ toast }) {
         {[{ key:'all', label:'Toutes', color:'var(--green)' }, ...STATUSES].map(s => (
           <button key={s.key} onClick={() => setFilter(s.key)} style={{
             padding:'8px 14px', borderRadius:50, whiteSpace:'nowrap', cursor:'pointer',
-            background: filter===s.key ? `${s.color}22` : 'rgba(255,255,255,.04)',
-            border: `1px solid ${filter===s.key ? s.color : 'rgba(255,255,255,.08)'}`,
+            background: filter===s.key ? `${s.color}22` : 'rgba(71,124,92,.04)',
+            border: `1px solid ${filter===s.key ? s.color : 'rgba(71,124,92,.08)'}`,
             color: filter===s.key ? s.color : 'var(--muted)',
             fontFamily:'var(--font-body)', fontSize:'.82rem', fontWeight:700, letterSpacing:'.5px',
             display:'flex', alignItems:'center', gap:6,
           }}>
             {s.label}
-            <span style={{ background:'rgba(255,255,255,.1)', borderRadius:10, padding:'2px 7px', fontSize:'.68rem' }}>
+            <span style={{ background:'rgba(71,124,92,.1)', borderRadius:10, padding:'2px 7px', fontSize:'.68rem' }}>
               {s.key === 'all' ? orders.length : (statusCounts[s.key] || 0)}
             </span>
           </button>
@@ -142,7 +143,7 @@ function OrderDetail({ order:o, onClose, onUpdateStatus }) {
         <div style={{ marginBottom:'1.5rem' }}>
           <div style={{ display:'flex', position:'relative', justifyContent:'space-between', marginBottom:'.5rem' }}>
             {/* Ligne de progression */}
-            <div style={{ position:'absolute', top:14, left:0, right:0, height:3, background:'rgba(255,255,255,.08)', borderRadius:2 }}>
+            <div style={{ position:'absolute', top:14, left:0, right:0, height:3, background:'rgba(71,124,92,.08)', borderRadius:2 }}>
               <div style={{ height:'100%', width:`${Math.max(0,(currentStep/(STEP_ORDER.length-1))*100)}%`, background:'#22c55e', borderRadius:2, transition:'width .5s' }} />
             </div>
             {STEP_ORDER.map((s,i) => {
@@ -152,8 +153,8 @@ function OrderDetail({ order:o, onClose, onUpdateStatus }) {
                 <div key={s} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, zIndex:1 }}>
                   <div style={{
                     width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'.8rem',
-                    background: done ? '#22c55e' : 'rgba(255,255,255,.1)',
-                    border: `2px solid ${done ? '#22c55e' : 'rgba(255,255,255,.2)'}`,
+                    background: done ? '#22c55e' : 'rgba(71,124,92,.1)',
+                    border: `2px solid ${done ? '#22c55e' : 'rgba(71,124,92,.2)'}`,
                     boxShadow: active ? '0 0 12px rgba(34,197,94,.5)' : 'none',
                   }}>
                     {done ? '✓' : i+1}
@@ -169,10 +170,10 @@ function OrderDetail({ order:o, onClose, onUpdateStatus }) {
       )}
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1.5rem' }}>
-        <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem' }}>
+        <div style={{ background:'rgba(71,124,92,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem' }}>
           <div style={{ fontSize:'.72rem', fontWeight:700, color:'var(--muted)', letterSpacing:1, textTransform:'uppercase', marginBottom:'1rem' }}>📦 Détails commande</div>
           {(o.items||[]).map((item,i) => (
-            <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:'.85rem', marginBottom:6, padding:'4px 0', borderBottom:'1px solid rgba(255,255,255,.05)' }}>
+            <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:'.85rem', marginBottom:6, padding:'4px 0', borderBottom:'1px solid rgba(71,124,92,.05)' }}>
               <span>{item.emoji||'🎁'} {item.nameF} ×{item.quantity}</span>
               <span style={{ color:'var(--green)', fontFamily:'var(--font-title)' }}>{item.lineTotal?.toLocaleString()} F</span>
             </div>
@@ -185,7 +186,7 @@ function OrderDetail({ order:o, onClose, onUpdateStatus }) {
           </div>
         </div>
 
-        <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem' }}>
+        <div style={{ background:'rgba(71,124,92,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem' }}>
           <div style={{ fontSize:'.72rem', fontWeight:700, color:'var(--muted)', letterSpacing:1, textTransform:'uppercase', marginBottom:'1rem' }}>🚚 Livraison client</div>
           {[
             ['Client',   o.user?.pseudo || '—'],
@@ -206,7 +207,7 @@ function OrderDetail({ order:o, onClose, onUpdateStatus }) {
       </div>
 
       {/* Historique statuts */}
-      <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem', marginBottom:'1.5rem' }}>
+      <div style={{ background:'rgba(71,124,92,.03)', border:'1px solid var(--border)', borderRadius:12, padding:'1rem', marginBottom:'1.5rem' }}>
         <div style={{ fontSize:'.72rem', fontWeight:700, color:'var(--muted)', letterSpacing:1, textTransform:'uppercase', marginBottom:'1rem' }}>📋 Historique de suivi</div>
         <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
           {(o.statusHistory||[]).map((h,i) => (
@@ -229,16 +230,16 @@ function OrderDetail({ order:o, onClose, onUpdateStatus }) {
         <div style={{ background:'rgba(34,197,94,.05)', border:'1px solid rgba(34,197,94,.15)', borderRadius:12, padding:'1rem' }}>
           <div style={{ fontSize:'.72rem', fontWeight:700, color:'var(--green)', letterSpacing:1, textTransform:'uppercase', marginBottom:'1rem' }}>⚡ Changer le statut</div>
           <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} rows={2} placeholder="Note optionnelle (ex: Colis déposé à la boutique...)"
-            style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.85rem', outline:'none', resize:'none', marginBottom:'1rem', lineHeight:1.5, transition:'border-color .15s, background .15s' }}
+            style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1.5px solid rgba(71,124,92,.12)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.85rem', outline:'none', resize:'none', marginBottom:'1rem', lineHeight:1.5, transition:'border-color .15s, background .15s' }}
             onFocus={e => { e.target.style.borderColor='#22c55e'; e.target.style.background='rgba(34,197,94,.06)' }}
-            onBlur={e => { e.target.style.borderColor='rgba(255,255,255,.12)'; e.target.style.background='rgba(255,255,255,.04)' }} />
+            onBlur={e => { e.target.style.borderColor='rgba(71,124,92,.12)'; e.target.style.background='rgba(71,124,92,.04)' }} />
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             {STATUSES.filter(s => !['pending'].includes(s.key)).map(s => (
               <button key={s.key} onClick={() => { onUpdateStatus(s.key, noteText); setNoteText('') }}
                 style={{
                   padding:'8px 14px', borderRadius:8, cursor:'pointer',
-                  background: o.status===s.key ? `${s.color}22` : 'rgba(255,255,255,.04)',
-                  border: `1px solid ${o.status===s.key ? s.color : 'rgba(255,255,255,.1)'}`,
+                  background: o.status===s.key ? `${s.color}22` : 'rgba(71,124,92,.04)',
+                  border: `1px solid ${o.status===s.key ? s.color : 'rgba(71,124,92,.1)'}`,
                   color: o.status===s.key ? s.color : 'var(--muted)',
                   fontFamily:'var(--font-body)', fontSize:'.82rem', fontWeight:700, transition:'all .2s',
                 }}>{s.label}</button>

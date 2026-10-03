@@ -1,3 +1,4 @@
+import MediaImage from '../../../components/ui/MediaImage'
 // src/pages/Manga/detail/index.jsx — Page détail manga
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
@@ -9,7 +10,7 @@ import {
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi, useMutation } from '../../../hooks/useApi'
-import { mangaApi, libraryApi, commentsApi, API_BASE } from '../../../api'
+import { mangaApi, libraryApi, commentsApi, API_BASE , resolveMediaUrl } from '../../../api'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../Home/sections/Footer'
 import { PageLoader, EmptyState } from '../../../components/ui/Spinner'
@@ -212,8 +213,8 @@ export default function MangaDetailPage() {
         {/* Bannière de fond */}
         <div className={styles.heroBg}>
           {manga.bannerUrl && (
-            <img
-              src={`${API_BASE}${manga.bannerUrl}`}
+            <MediaImage
+              src={resolveMediaUrl(manga.bannerUrl)}
               alt=""
               aria-hidden
               className={styles.heroBgImg}
@@ -231,8 +232,8 @@ export default function MangaDetailPage() {
             {/* Cover */}
             <div className={styles.coverWrap}>
               {manga.coverUrl ? (
-                <img
-                  src={`${API_BASE}${manga.coverUrl}`}
+                <MediaImage
+                  src={resolveMediaUrl(manga.coverUrl)}
                   alt={title}
                   className={styles.coverImg}
                 />
@@ -544,7 +545,7 @@ function ChaptersList({ chapters, mangaSlug, progress, t, lang }) {
             <div className={styles.chapterAccess}>
               {c.accessTier === 'premium' ? (
                 <span className={styles.chapterPremium}>
-                  <Lock size={11} /> {t.premium}
+                  <Lock size={11} /> {c.coinCost ?? 5} coins
                 </span>
               ) : (
                 <span className={styles.chapterFree}>{t.free}</span>

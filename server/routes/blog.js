@@ -5,13 +5,17 @@
 const express  = require('express');
 const { Op }   = require('sequelize');
 const { protect, restrictTo } = require('../middleware/auth');
-const router   = express.Router();
+const router = express.Router();
+const { normalizeImageFields, versionedImage } = require('../utils/media');
+const { postPayload, pagination } = require('../utils/publication');
+let blogModels;
 
 const { sequelize } = require('../config/database');
 const { DataTypes } = require('sequelize');
 
 // ── Définir les modèles Blog si pas encore fait ──────────
 function getBlogModels() {
+  if (blogModels) return blogModels;
   const { sequelize: db } = require('../config/database');
 
   // Post
@@ -27,9 +31,15 @@ function getBlogModels() {
     imageUrl:    { type: DataTypes.TEXT },           // lien externe OU data URL (TEXT au lieu de STRING(500))
     emoji:       { type: DataTypes.STRING(10), defaultValue: '📰' },
     isFeatured:  { type: DataTypes.BOOLEAN, defaultValue: false },
-    isPublished: { type: DataTypes.BOOLEAN, defaultValue: true },
+    isPublished: { type: DataTypes.BOOLEAN, defaultValue: false },
     authorId:    { type: DataTypes.UUID },
     views:       { type: DataTypes.INTEGER, defaultValue: 0 },
+    publishedAt: { type: DataTypes.DATE },
+    eventDate: { type: DataTypes.DATEONLY },
+    eventCity: { type: DataTypes.STRING(100) },
+    eventVenue: { type: DataTypes.STRING(200) },
+    eventUrl: { type: DataTypes.STRING(500) },
+    eventPrice: { type: DataTypes.INTEGER },
     // Pour les promos
     promoCode:   { type: DataTypes.STRING(30) },
     promoExpiry: { type: DataTypes.DATE },
@@ -59,38 +69,25 @@ function getBlogModels() {
     expiresAt:{ type: DataTypes.DATE },
   }, { tableName: 'promo_popups', timestamps: true });
 
-  // Sync tables
-  Post.sync({ alter: true }).catch(() => {});
-  Partner.sync({ alter: true }).catch(() => {});
-  PromoPopup.sync({ alter: true }).catch(() => {});
-
-  return { Post, Partner, PromoPopup };
+  blogModels = { Post, Partner, PromoPopup };
+  return blogModels;
 }
 
 // ── Helper : normalise les champs image du body ──────────
 // Si imageUrl contient une data URL base64 → on la déplace dans imageData/imageMime
 // pour éviter de stocker une énorme base64 dans un champ inadapté.
-function normalizeImageFields(body) {
-  const out = { ...body };
-  if (typeof out.imageUrl === 'string' && out.imageUrl.startsWith('data:')) {
-    const match = out.imageUrl.match(/^data:([^;]+);base64,(.*)$/s);
-    if (match) {
-      out.imageMime = match[1];
-      out.imageData = match[2];
-      out.imageUrl  = null; // on ne garde pas la data URL dans imageUrl
-    }
-  }
-  return out;
-}
+getBlogModels(); // Register once; schema sync belongs to server initialization.
 
 // ── GET /api/blog — liste publique ───────────────────────
 router.get('/', async (req, res, next) => {
   try {
     const { Post } = getBlogModels();
-    const { category, limit = 20, page = 1 } = req.query;
-    const where = { isPublished: true };
+    const { category, search } = req.query;
+    const { limit, page, offset } = pagination(req.query);
+    const where = { isPublished: true, [Op.or]: [{ publishedAt: null }, { publishedAt: { [Op.lte]: new Date() } }] };
+    if (search) where.title = { [Op.iLike]: '%' + String(search).slice(0, 100) + '%' };
     if (category && category !== 'all') where.category = category;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+
 
     const { rows, count: total } = await Post.findAndCountAll({
       where, order: [['isFeatured','DESC'],['createdAt','DESC']],
@@ -102,7 +99,7 @@ router.get('/', async (req, res, next) => {
     const posts = rows.map(p => {
       const j = p.toJSON();
       if (!j.imageUrl && j.imageMime) {
-        j.imageUrl = `/api/blog/${j.id}/image`; // pointer vers la route image
+        j.imageUrl = versionedImage(`/api/blog/${j.id}/image`, j.updatedAt); // pointer vers la route image
       }
       return j;
     });
@@ -151,15 +148,28 @@ router.get('/:id/image', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get('/admin/posts', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    const { Post } = getBlogModels();
+    const { limit, offset } = pagination(req.query);
+    const where = {};
+    if (req.query.state === 'draft') where.isPublished = false;
+    if (req.query.state === 'published') where.isPublished = true;
+    if (req.query.search) where.title = { [Op.iLike]: `%${String(req.query.search).slice(0, 100)}%` };
+    const { rows, count } = await Post.findAndCountAll({ where, limit, offset, order: [['updatedAt','DESC']], attributes: { exclude: ['imageData'] } });
+    res.json({ posts: rows.map(p => { const j = p.toJSON(); if (!j.imageUrl && j.imageMime) j.imageUrl = versionedImage(`/api/blog/${j.id}/image`, j.updatedAt); return j; }), total: count });
+  } catch (err) { next(err); }
+});
+
 // ── GET /api/blog/:id ─────────────────────────────────────
 router.get('/:id', async (req, res, next) => {
   try {
     const { Post } = getBlogModels();
     const post = await Post.findByPk(req.params.id, { attributes: { exclude: ['imageData'] } });
-    if (!post || !post.isPublished) return res.status(404).json({ error: 'Article introuvable.' });
+    if (!post || !post.isPublished || (post.publishedAt && new Date(post.publishedAt) > new Date())) return res.status(404).json({ error: 'Article introuvable.' });
     await post.increment('views');
     const j = post.toJSON();
-    if (!j.imageUrl && j.imageMime) j.imageUrl = `/api/blog/${j.id}/image`;
+    if (!j.imageUrl && j.imageMime) j.imageUrl = versionedImage(`/api/blog/${j.id}/image`, j.updatedAt);
     res.json({ post: j });
   } catch (err) { next(err); }
 });
@@ -168,11 +178,11 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
   try {
     const { Post } = getBlogModels();
-    const payload = normalizeImageFields(req.body);
+    const payload = postPayload(req.body);
     const post = await Post.create({ ...payload, authorId: req.user.id });
     const j = post.toJSON();
     delete j.imageData;
-    if (!j.imageUrl && j.imageMime) j.imageUrl = `/api/blog/${j.id}/image`;
+    if (!j.imageUrl && j.imageMime) j.imageUrl = versionedImage(`/api/blog/${j.id}/image`, j.updatedAt);
     res.status(201).json({ post: j });
   } catch (err) { next(err); }
 });
@@ -183,11 +193,11 @@ router.patch('/:id', protect, restrictTo('admin','superadmin'), async (req, res,
     const { Post } = getBlogModels();
     const post = await Post.findByPk(req.params.id);
     if (!post) return res.status(404).json({ error: 'Article introuvable.' });
-    const payload = normalizeImageFields(req.body);
+    const payload = postPayload(req.body, post.toJSON());
     await post.update(payload);
     const j = post.toJSON();
     delete j.imageData;
-    if (!j.imageUrl && j.imageMime) j.imageUrl = `/api/blog/${j.id}/image`;
+    if (!j.imageUrl && j.imageMime) j.imageUrl = versionedImage(`/api/blog/${j.id}/image`, j.updatedAt);
     res.json({ post: j });
   } catch (err) { next(err); }
 });
@@ -233,6 +243,7 @@ router.post('/popup', protect, restrictTo('admin','superadmin'), async (req, res
   try {
     const { PromoPopup } = getBlogModels();
     await PromoPopup.update({ isActive: false }, { where: {} });
+    if (req.body.isActive === false) return res.json({ popup: null });
     const popup = await PromoPopup.create({ ...req.body, isActive: true });
     res.status(201).json({ popup });
   } catch (err) { next(err); }

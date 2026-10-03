@@ -3,6 +3,7 @@ const router = require('express').Router()
 const { body, validationResult } = require('express-validator')
 const { ReadingProgress, Chapter, Manga } = require('../models/index')
 const { protect } = require('../middleware/auth')
+const { getChapterAccess } = require('../services/chapterAccess')
 
 const validate = (req, res, next) => {
   const errors = validationResult(req)
@@ -21,7 +22,10 @@ router.post('/progress', protect, [
     const { mangaId, chapterId, pageIndex, isCompleted } = req.body
 
     const chapter = await Chapter.findByPk(chapterId)
+    if (chapter && (chapter.mangaId !== mangaId || pageIndex >= chapter.pageCount)) return res.status(400).json({ error: 'Progression incohérente avec le chapitre.' })
     if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' })
+    const manga = await Manga.findByPk(mangaId)
+    if (!manga || !(await getChapterAccess(req.user, chapter, manga)).allowed) return res.status(403).json({ error: 'Ce chapitre doit être débloqué avant de sauvegarder la lecture.' })
 
     const wasCompleted = await ReadingProgress.findOne({
       where: { userId: req.user.id, mangaId },

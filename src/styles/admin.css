@@ -61,7 +61,7 @@
    PALETTE
    ═══════════════════════════════════════════════════════
 
-   L'ancienne identité admin — noir verdâtre #0a0e0a plus néon #33ff33 sur
+   L'ancienne identité admin — noir verdâtre #f5f5eb plus néon #477c5c sur
    presque chaque élément — saturait l'œil : deux couleurs très éloignées, à
    contraste maximal, appliquées partout en même temps. Rien ne ressortait
    parce que tout criait.
@@ -72,25 +72,25 @@
    réservées aux statuts. */
 @theme {
   /* Fonds, du plus profond au plus clair */
-  --color-ink-950: #0b0f14;   /* fond de page */
-  --color-ink-900: #111720;   /* barre latérale, en-tête */
-  --color-ink-850: #161d27;   /* cartes */
-  --color-ink-800: #1c2531;   /* survol, champs de saisie */
-  --color-ink-700: #26313f;   /* bordure appuyée */
+  --color-ink-950: #f8f7f0;   /* fond de page */
+  --color-ink-900: #f0f3e9;   /* barre latérale, en-tête */
+  --color-ink-850: #fffef9;   /* cartes */
+  --color-ink-800: #e9eee2;   /* survol, champs de saisie */
+  --color-ink-700: #cad6c5;   /* bordure appuyée */
 
-  --color-line:      #222c39; /* filets et séparateurs */
-  --color-line-soft: #1a222d;
+  --color-line:      #d5ddcd; /* filets et séparateurs */
+  --color-line-soft: #e8ebdf;
 
   /* Textes */
-  --color-fg:        #e6ebf2; /* texte principal */
-  --color-fg-muted:  #8996a8; /* texte secondaire */
-  --color-fg-faint:  #5d6a7d; /* légendes, méta */
+  --color-fg:        #263e30; /* texte principal */
+  --color-fg-muted:  #60705f; /* texte secondaire */
+  --color-fg-faint:  #657360; /* légendes, méta */
 
   /* Accent — utilisé avec parcimonie */
-  --color-brand:      #10b981;
-  --color-brand-hi:   #34d399;
-  --color-brand-deep: #059669;
-  --color-brand-soft: #10b9811a;
+  --color-brand:      #477c5c;
+  --color-brand-hi:   #32634d;
+  --color-brand-deep: #234c3c;
+  --color-brand-soft: #477c5c1a;
 
   /* Statuts */
   --color-warn:   #f59e0b;
@@ -225,27 +225,27 @@
    Conséquence utile : les 13 écrans adoptent le nouveau design sans qu'une
    seule de leurs lignes soit modifiée. */
 :root {
-  --ad-bg:        #0b0f14;
-  --ad-surface:   #111720;
-  --ad-card:      #161d27;
-  --ad-card-2:    #1c2531;
+  --ad-bg:        #f8f7f0;
+  --ad-surface:   #f0f3e9;
+  --ad-card:      #fffef9;
+  --ad-card-2:    #e9eee2;
 
-  --ad-border:    #222c39;
-  --ad-border-2:  #26313f;
-  --ad-border-hi: #10b981;
+  --ad-border:    #d5ddcd;
+  --ad-border-2:  #cad6c5;
+  --ad-border-hi: #477c5c;
 
-  --ad-accent:    #10b981;   /* était #33ff33 — le néon saturait tout l'écran */
-  --ad-accent-d:  #34d399;
-  --ad-accent-dd: #059669;
+  --ad-accent:    #477c5c;   /* était #477c5c — le néon saturait tout l'écran */
+  --ad-accent-d:  #32634d;
+  --ad-accent-dd: #234c3c;
 
   /* Halos fortement atténués : ils étaient appliqués à presque chaque élément,
      ce qui empêchait l'œil de distinguer l'important du décoratif. */
   --ad-glow:      rgba(16, 185, 129, .18);
   --ad-glow-soft: rgba(16, 185, 129, .07);
 
-  --ad-text:      #e6ebf2;
-  --ad-text-2:    #8996a8;
-  --ad-text-3:    #5d6a7d;
+  --ad-text:      #263e30;
+  --ad-text-2:    #60705f;
+  --ad-text-3:    #657360;
 
   --ad-amber:     #f59e0b;
   --ad-red:       #ef4444;
@@ -312,14 +312,17 @@
    palette claire intacte, et les sections deviennent lisibles sans qu'une
    seule de leurs lignes soit modifiée. */
 .adm-root {
-  --text:       #e6ebf2;
-  --text-light: #5d6a7d;
-  --muted:      #8996a8;
-  --border:     #222c39;
-  --green:      #10b981;
-  --green-700:  #10b981;
-  --green-600:  #34d399;
-  --bg:         #0b0f14;
-  --bg-alt:     #161d27;
-  --bg-soft:    #1c2531;
+  --text:       #263e30;
+  --text-light: #657360;
+  --muted:      #60705f;
+  --border:     #d5ddcd;
+  --green:      #477c5c;
+  --green-700:  #477c5c;
+  --green-600:  #32634d;
+  --bg:         #f8f7f0;
+  --bg-alt:     #fffef9;
+  --bg-soft:    #e9eee2;
 }
+
+.adm-root { --ad-bg: #f8f7f0; --ad-surface: #f0f3e9; --ad-card: #fffef9; --ad-card-2: #edf1e6; --ad-text: #263e30; --ad-text-2: #60705f; --ad-text-3: #64735d; --ad-border: #d5ddcd; --ad-border-2: #e5e8dc; --ad-border-hi: #a4b89b; --ad-accent: #477c5c; --ad-glow: #477c5c15; --ad-glow-soft: #477c5c08; --text-strong:#1d332a; --text-muted:#60705f; font-family:var(--font-body); }
+.adm-root .adm-btn-primary { color:#fffef9; }

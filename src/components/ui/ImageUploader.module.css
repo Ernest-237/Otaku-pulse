@@ -1,0 +1,98 @@
+.wrap {
+  width: 100%;
+  min-width: 0;
+}
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.tabs button,
+.link button {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+.tabs button[aria-pressed='true'] {
+  background: var(--green-100);
+  border-color: var(--green);
+  color: var(--green-900);
+}
+.drop {
+  position: relative;
+  width: 100%;
+  min-height: 155px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--green-400);
+  border-radius: 14px;
+  background: var(--green-50);
+  overflow: hidden;
+  color: var(--green-800);
+  font-size: 13px;
+  padding: 20px;
+}
+.drop img {
+  max-height: 210px;
+  object-fit: contain;
+  width: 100%;
+}
+.drop .caption {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  background: #fffef9e8;
+  padding: 7px;
+  border-radius: 7px;
+}
+.hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 9px 0;
+}
+.success,
+.error {
+  font-size: 12px;
+  margin-top: 8px;
+}
+.success {
+  color: var(--green);
+}
+.error {
+  color: var(--red);
+}
+.link {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.link img {
+  width: 100%;
+  max-height: 190px;
+  object-fit: contain;
+}
+.link label {
+  flex: 1;
+  min-width: 180px;
+  font-size: 12px;
+  color: var(--text);
+}
+.link input {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+}
+.link button {
+  align-self: flex-end;
+  background: var(--green-800);
+  color: white;
+}
+.wrap button:disabled {
+  opacity: 0.6;
+}

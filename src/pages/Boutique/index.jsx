@@ -1,3 +1,5 @@
+import { useWishlist } from '../../hooks/useWishlist'
+import MediaImage from '../../components/ui/MediaImage'
 import { useState, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -19,7 +21,7 @@ import { useCart } from '../../contexts/CartContext'
 import { useLang } from '../../contexts/LangContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useApi } from '../../hooks/useApi'
-import { productsApi, API_BASE } from '../../api'
+import { productsApi, API_BASE , resolveMediaUrl } from '../../api'
 import Navbar from '../../components/Navbar'
 import { PageLoader, EmptyState } from '../../components/ui/Spinner'
 import styles from './Boutique.module.css'
@@ -215,13 +217,7 @@ export default function BoutiquePage() {
 
   const [cat, setCat] = useState('all')
   const [search, setSearch] = useState(() => new URLSearchParams(location.search).get('q') || '')
-  const [wished, setWished] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('op_wishlist') || '[]')
-    } catch {
-      return []
-    }
-  })
+  const { ids: wished, toggle: toggleFavorite } = useWishlist()
 
   const fetchProducts = useCallback(() => productsApi.getAll({ limit: 100 }), [])
   const { data, loading, error, refresh } = useApi(fetchProducts, [], true)
@@ -238,13 +234,9 @@ export default function BoutiquePage() {
   // Mode "menus" activé quand on est sur la catégorie nutrition
   const isMenuView = cat === 'nutrition'
 
-  const toggleWish = (id) => {
-    const next = wished.includes(id) ? wished.filter((x) => x !== id) : [...wished, id]
-    const wasWished = wished.includes(id)
-
-    setWished(next)
-    localStorage.setItem('op_wishlist', JSON.stringify(next))
-    toast.info(wasWished ? T.wishRemove : T.wishAdd)
+  const toggleWish = async id => {
+    try { const added = await toggleFavorite(id); if (added !== null) toast.info(added ? T.wishAdd : T.wishRemove) }
+    catch (err) { toast.error(err.message) }
   }
 
   const addCart = (product) => {
@@ -467,7 +459,7 @@ function ProductCard({ product: p, lang, t, inWish, onAddCart, onToggleWish }) {
   const hasPromo = p.oldPrice && p.oldPrice > p.price
   const discount = hasPromo ? Math.round((1 - p.price / p.oldPrice) * 100) : 0
 
-  const imgSrc = p.imageUrl ? (p.imageUrl.startsWith('/') ? `${API_BASE}${p.imageUrl}` : p.imageUrl) : null
+  const imgSrc = p.imageUrl ? (p.imageUrl.startsWith('/') ? resolveMediaUrl(p.imageUrl) : p.imageUrl) : null
 
   return (
     <article className={styles.card}>
@@ -495,7 +487,7 @@ function ProductCard({ product: p, lang, t, inWish, onAddCart, onToggleWish }) {
 
       <div className={styles.cardImg}>
         {imgSrc ? (
-          <img src={imgSrc} alt={p.nameF} loading="lazy" className={styles.productImg} />
+          <MediaImage src={imgSrc} alt={p.nameF} loading="lazy" className={styles.productImg} />
         ) : (
           <div className={styles.fallbackIcon}>
             <Package size={34} />

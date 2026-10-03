@@ -5,6 +5,33 @@ const { Anime } = require('../models/index');
 const { protect, restrictTo } = require('../middleware/auth');
 const { syncAnime, pruneStale } = require('../services/animeSync');
 const router  = express.Router();
+let portraitCache = { portraits: {}, expires: 0 };
+let portraitRequest;
+router.get('/quote-portraits', async (req, res) => {
+  if (Date.now() > portraitCache.expires) {
+    if (!portraitRequest) portraitRequest = (async () => {
+      try {
+        const response = await fetch('https://graphql.anilist.co', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(10000),
+          body: JSON.stringify({ query: '{ Page(perPage: 3) { characters(id_in: [85, 40881, 40882]) { id image { medium } } } }' }),
+        });
+        if (!response.ok) throw new Error('Portraits indisponibles');
+        const body = await response.json();
+        if (!Array.isArray(body.data?.Page?.characters)) throw new Error('Portraits invalides');
+        portraitCache = { portraits: Object.fromEntries(body.data.Page.characters.map(c => [c.id, c.image?.medium])), expires: Date.now() + 86400000 };
+      } catch (_) { portraitCache.expires = Date.now() + 300000; }
+    })().finally(() => { portraitRequest = null; });
+    await portraitRequest;
+  }
+  res.set('Cache-Control', 'public, max-age=300').json({ portraits: portraitCache.portraits });
+});
+
+router.get('/themes', async (req, res, next) => {
+  try {
+    const animes = await Anime.findAll({ where: { isActive: true }, attributes: ['id', 'titleF', 'themes', 'themesSyncedAt'], order: [['popularity', 'DESC']], limit: 100 });
+    res.json({ themes: animes.flatMap(a => a.themes || []), updatedAt: animes.map(a => a.themesSyncedAt).filter(Boolean).sort((a, b) => b - a)[0] || null });
+  } catch (error) { next(error); }
+});
 
 // L'image téléversée à la main l'emporte sur celle importée : si un admin a
 // pris la peine d'uploader sa propre affiche, c'est un choix délibéré.
@@ -31,14 +58,15 @@ router.get('/', async (req, res, next) => {
   try {
     const { status, month, limit = 30 } = req.query;
     const where = { isActive: true };
-    if (status) where.status = status;
+    if (status && ['airing', 'upcoming', 'ended'].includes(status)) where.status = status;
+    if (req.query.discover === 'true') where.status = ['airing', 'upcoming'];
     if (month) {
       const { start, end } = monthRange(month); // accepte 'YYYY-MM' ou 'YYYY-MM-DD'
       where.month = { [Op.gte]: start, [Op.lt]: end };
     }
     const animes = await Anime.findAll({
-      where, order: [['order', 'ASC'], ['createdAt', 'ASC']],
-      limit: parseInt(limit),
+      where, order: [['order', 'ASC'], ['popularity', 'DESC'], ['createdAt', 'DESC']],
+      limit: Math.max(1, Math.min(parseInt(limit, 10) || 30, 100)),
       attributes: { exclude: ['coverImageData'] },
     });
     res.json({ animes: animes.map(withCoverUrl) });
@@ -133,6 +161,9 @@ router.post('/sync', protect, restrictTo('admin','superadmin'), async (req, res,
     const perPage = Math.min(parseInt(req.body?.perPage, 10) || 25, 50);
     const result  = await syncAnime({ perPage });
     if (req.body?.prune) result.pruned = await pruneStale();
+    // The theme provider may be slow; do not keep the admin's HTTP request open.
+    require('../services/communitySync').syncCommunity().catch(error => console.error('Bot communauté:', error.message));
+    result.communityScheduled = true;
     res.json({
       ...result,
       message: `${result.created} ajouté(s), ${result.updated} mis à jour, ${result.skipped} préservé(s).`,

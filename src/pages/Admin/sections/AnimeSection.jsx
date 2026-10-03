@@ -1,7 +1,8 @@
+import MediaImage from '../../../components/ui/MediaImage'
 // src/pages/Admin/sections/AnimeSection.jsx
 // Planning animés à venir/en cours : cover, opening, personnages — mis à jour chaque semaine
 import { useState } from 'react'
-import { animeApi, API_BASE } from '../../../api'
+import { animeApi, API_BASE , resolveMediaUrl } from '../../../api'
 import { useApi } from '../../../hooks/useApi'
 import ImageUploader from '../../../components/ui/ImageUploader'
 import Button from '../../../components/ui/Button'
@@ -14,7 +15,7 @@ import styles from '../Admin.module.css'
 // téléversée à la main), soit une URL absolue vers le CDN AniList (image
 // importée). Préfixer aveuglément par API_BASE casserait la seconde.
 const resolveCover = (url) =>
-  !url ? null : url.startsWith('http') ? url : `${API_BASE}${url}`
+  !url ? null : url.startsWith('http') ? url : resolveMediaUrl(url)
 
 
 const STATUS_OPTS = [
@@ -92,7 +93,7 @@ function SyncPanel({ toast, onSynced }) {
 }
 
 export default function AnimeSection({ toast }) {
-  const { data, loading, execute } = useApi(() => animeApi.getAll({ limit:100 }), [], true)
+  const { data, loading, error, execute } = useApi(() => animeApi.getAll({ limit:100 }), [], true)
   const [modal,   setModal]   = useState(false)
   const [editing, setEditing] = useState(null)
   const animes = data?.animes || []
@@ -117,6 +118,7 @@ export default function AnimeSection({ toast }) {
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
 
   return (
     <div>
@@ -131,7 +133,7 @@ export default function AnimeSection({ toast }) {
         {animes.map(a => (
           <div key={a.id} className="flex gap-2.5 rounded-xl border border-line bg-ink-800/40 p-2.5">
             {a.coverUrl
-              ? <img src={resolveCover(a.coverUrl)} alt="" loading="lazy"
+              ? <MediaImage src={resolveCover(a.coverUrl)} alt="" loading="lazy"
                   className="h-[76px] w-[56px] shrink-0 rounded-lg object-cover" />
               : <div className="flex h-[76px] w-[56px] shrink-0 items-center justify-center rounded-lg bg-ink-800 text-xl">📺</div>}
 
@@ -236,7 +238,7 @@ function AnimeModal({ anime:a, onClose, onSave, toast }) {
       <div style={{ marginBottom:'1rem' }}>
         <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:6, textTransform:'uppercase' }}>Cover</label>
         <ImageUploader
-          currentUrl={a?.coverUrl ? `${API_BASE}${a.coverUrl}` : null}
+          currentUrl={a?.coverUrl ? resolveMediaUrl(a.coverUrl) : null}
           onUpload={async (data, mime) => { s('coverImageData', data); s('coverImageMime', mime) }}
           allowUrl={false}
           placeholder="Cliquer pour choisir la cover"
@@ -249,7 +251,7 @@ function AnimeModal({ anime:a, onClose, onSave, toast }) {
           <div style={{ display:'flex', gap:8, marginBottom:4, padding:'0 2px' }}>
             <span style={{ flex:1.2, fontSize:'.62rem', fontWeight:700, letterSpacing:1, color:'#22c55e', textTransform:'uppercase' }}>Nom</span>
             <span style={{ flex:1, fontSize:'.62rem', fontWeight:700, letterSpacing:1, color:'#60a5fa', textTransform:'uppercase' }}>Rôle</span>
-            <span style={{ flex:1.5, fontSize:'.62rem', fontWeight:700, letterSpacing:1, color:'#a78bfa', textTransform:'uppercase' }}>Image (URL)</span>
+            <span style={{ flex:1.5, fontSize:'.62rem', fontWeight:700, letterSpacing:1, color:'#7051b0', textTransform:'uppercase' }}>Image (URL)</span>
             <span style={{ width:22, flexShrink:0 }} />
           </div>
         )}
@@ -261,23 +263,23 @@ function AnimeModal({ anime:a, onClose, onSave, toast }) {
               style={{ ...fieldBaseStyle, flex:1, padding:'8px 10px', fontSize:'.85rem' }} onFocus={onFocusField} onBlur={onBlurField} />
             <input value={c.imageUrl} onChange={e => setChar(i,'imageUrl',e.target.value)} placeholder="https:// (optionnel)"
               style={{ ...fieldBaseStyle, flex:1.5, padding:'8px 10px', fontSize:'.85rem' }} onFocus={onFocusField} onBlur={onBlurField} />
-            <button type="button" onClick={() => delChar(i)} style={{ background:'none', border:'none', color:'#f87171', cursor:'pointer', fontSize:'1rem', flexShrink:0, width:22 }}>✕</button>
+            <button type="button" onClick={() => delChar(i)} style={{ background:'none', border:'none', color:'#b53c44', cursor:'pointer', fontSize:'1rem', flexShrink:0, width:22 }}>✕</button>
           </div>
         ))}
         <Button variant="ghost" size="sm" onClick={addChar}>+ Personnage</Button>
       </div>
 
-      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}>
-        <input type="checkbox" checked={form.isActive} onChange={e => s('isActive', e.target.checked)} style={{ accentColor:'#33ff33' }} /> ✅ Visible sur le site
+      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#405342' }}>
+        <input type="checkbox" checked={form.isActive} onChange={e => s('isActive', e.target.checked)} style={{ accentColor:'#477c5c' }} /> ✅ Visible sur le site
       </label>
     </Modal>
   )
 }
 
 /* ══ Helpers de formulaire ══ */
-const fieldBaseStyle = { width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', transition:'border-color .15s, background .15s' }
+const fieldBaseStyle = { width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1.5px solid rgba(71,124,92,.12)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', transition:'border-color .15s, background .15s' }
 const onFocusField = e => { e.target.style.borderColor = '#22c55e'; e.target.style.background = 'rgba(34,197,94,.06)' }
-const onBlurField  = e => { e.target.style.borderColor = 'rgba(255,255,255,.12)'; e.target.style.background = 'rgba(255,255,255,.04)' }
+const onBlurField  = e => { e.target.style.borderColor = 'rgba(71,124,92,.12)'; e.target.style.background = 'rgba(71,124,92,.04)' }
 
 function HInput({ label, value, onChange, type='text', placeholder }) {
   return (
@@ -303,7 +305,7 @@ function HSelect({ label, value, onChange, options }) {
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
         style={fieldBaseStyle} onFocus={onFocusField} onBlur={onBlurField}>
-        {options.map(o => <option key={o.v} value={o.v} style={{ background:'#0f140f' }}>{o.l}</option>)}
+        {options.map(o => <option key={o.v} value={o.v} style={{ background:'#fffef9' }}>{o.l}</option>)}
       </select>
     </div>
   )

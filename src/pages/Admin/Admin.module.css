@@ -1,26 +1,26 @@
 /* ═══════════════════════════════════════════════════════
    OTAKU PULSE — ADMIN PANEL v5 · DARK NÉON GAMING
-   Noir verdâtre + vert néon #10b981 punchy + glows
+   Noir verdâtre + vert néon #477c5c punchy + glows
    ═══════════════════════════════════════════════════════ */
 
 .layout {
   /* ── Tokens dark néon gaming ── */
-  --ad-bg:        #0a0e0a;   /* fond noir verdâtre */
-  --ad-surface:   #0f140f;   /* sidebar / topbar */
-  --ad-card:      #121a12;   /* cards (ressortent du fond) */
-  --ad-card-2:    #16221a;   /* cards survol / inputs */
+  --ad-bg:        #f5f5eb;   /* fond noir verdâtre */
+  --ad-surface:   #fffef9;   /* sidebar / topbar */
+  --ad-card:      #fffef9;   /* cards (ressortent du fond) */
+  --ad-card-2:    #eef1e7;   /* cards survol / inputs */
   --ad-border:    rgba(16,185,129,0.12);
   --ad-border-2:  rgba(16,185,129,0.11);
   --ad-border-hi: rgba(16,185,129,0.23);
-  --ad-accent:    #10b981;   /* néon signature */
+  --ad-accent:    #477c5c;   /* néon signature */
   --ad-accent-d:  #22c55e;   /* vert action */
   --ad-accent-dd: #15803d;   /* vert profond */
   --ad-glow:      rgba(16,185,129,0.15);
   --ad-glow-soft: rgba(16,185,129,0.12);
-  --ad-text:      #e8ffe8;   /* blanc verdâtre */
-  --ad-text-2:    #8fa896;   /* texte secondaire verdâtre */
-  --ad-text-3:    #5f6b85;
-  --ad-amber:     #f59e0b;
+  --ad-text:      #263e30;   /* blanc verdâtre */
+  --ad-text-2:    #60705f;   /* texte secondaire verdâtre */
+  --ad-text-3:    #60705f;
+  --ad-amber:     #a36310;
   --ad-red:       #ef4444;
   --ad-blue:      #3b82f6;
   --ad-pink:      #ec4899;
@@ -36,7 +36,7 @@
 /* ── SIDEBAR ── */
 .sidebar {
   width: 240px; height: 100vh; position: fixed; top: 0; left: 0;
-  background: linear-gradient(180deg, #0f140f, #080b08);
+  background: linear-gradient(180deg, #fffef9, #080b08);
   border-right: 1px solid var(--ad-border);
   box-shadow: 1px 0 20px rgba(16,185,129,0.04);
   display: flex; flex-direction: column; z-index: 100; overflow-y: auto;
@@ -91,7 +91,7 @@
 .logoutBtn {
   width: 100%; padding: 9px; border-radius: 10px;
   background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.22);
-  color: #fca5a5; font-family: var(--font-body); font-size: .85rem; font-weight: 700;
+  color: #b53c44; font-family: var(--font-body); font-size: .85rem; font-weight: 700;
   cursor: pointer; transition: all .18s;
 }
 .logoutBtn:hover { background: rgba(239,68,68,.2); color: #fff; box-shadow: 0 0 14px rgba(239,68,68,.2); }
@@ -100,7 +100,7 @@
 .main { flex: 1; margin-left: 240px; display: flex; flex-direction: column; min-height: 100vh; }
 .topbar {
   display: flex; align-items: center; gap: 1.5rem; padding: 1rem 2rem;
-  background: linear-gradient(180deg, #0f140f, #0c100c);
+  background: linear-gradient(180deg, #fffef9, #0c100c);
   border-bottom: 1px solid var(--ad-border);
   position: sticky; top: 0; z-index: 50;
   box-shadow: 0 4px 20px rgba(0,0,0,.3);
@@ -156,7 +156,7 @@
   letter-spacing: 1.5px; text-transform: uppercase; color: var(--ad-text-2);
   border-bottom: 1px solid var(--ad-border); white-space: nowrap;
 }
-.table td { padding: .85rem 1rem; border-bottom: 1px solid var(--ad-border); font-size: .85rem; color: #c5d6c8; }
+.table td { padding: .85rem 1rem; border-bottom: 1px solid var(--ad-border); font-size: .85rem; color: #263e30; }
 .tr:hover td { background: rgba(16,185,129,0.05); }
 .productThumb { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid var(--ad-border-2); }
 .productEmoji { font-size: 1.8rem; text-align: center; }
@@ -164,7 +164,7 @@
 /* ── FILTERS ── */
 .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; }
 .filterBtn {
-  padding: 7px 15px; border-radius: 9999px; background: rgba(255,255,255,.03);
+  padding: 7px 15px; border-radius: 9999px; background: rgba(71,124,92,.03);
   border: 1px solid var(--ad-border-2); color: var(--ad-text-2);
   font-family: var(--font-body); font-size: .8rem; font-weight: 700;
   cursor: pointer; transition: all .18s; white-space: nowrap;
@@ -185,7 +185,7 @@
 /* ── LIST ROWS ── */
 .listRow {
   display: flex; align-items: center; gap: 12px; padding: .85rem 1.2rem;
-  border-bottom: 1px solid var(--ad-border); font-size: .85rem; color: #c5d6c8;
+  border-bottom: 1px solid var(--ad-border); font-size: .85rem; color: #263e30;
 }
 .listRow:last-child { border-bottom: none; }
 .postItem {
@@ -196,7 +196,7 @@
 
 /* ── DETAIL GRID ── */
 .detailGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.detailItem { background: rgba(255,255,255,.02); border: 1px solid var(--ad-border); border-radius: 12px; padding: .85rem 1rem; }
+.detailItem { background: rgba(71,124,92,.02); border: 1px solid var(--ad-border); border-radius: 12px; padding: .85rem 1rem; }
 .detailLbl { font-size: .64rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ad-text-2); margin-bottom: 4px; }
 
 /* ── FORM GRID ── */
@@ -244,7 +244,7 @@
 .coinReqTxLabel { font-size: .78rem; color: var(--ad-text-2); font-weight: 600; }
 .coinReqTxCode { font-family: 'Courier New', monospace; font-size: .95rem; font-weight: 700; color: var(--ad-accent); background: rgba(16,185,129,0.08); padding: 3px 10px; border-radius: 6px; letter-spacing: .03em; }
 .coinReqWa { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: .8rem; color: var(--ad-accent-d); font-weight: 600; }
-.coinReqNotes { display: flex; align-items: center; gap: 6px; background: rgba(239,68,68,.08); border-radius: 8px; padding: .6rem .9rem; font-size: .82rem; color: #fca5a5; margin-bottom: .8rem; }
+.coinReqNotes { display: flex; align-items: center; gap: 6px; background: rgba(239,68,68,.08); border-radius: 8px; padding: .6rem .9rem; font-size: .82rem; color: #b53c44; margin-bottom: .8rem; }
 .coinReqActions { display: flex; gap: 10px; justify-content: flex-end; }
 .coinReqReject { display: inline-flex; align-items: center; gap: 5px; padding: 9px 16px; border: 1px solid var(--ad-red); border-radius: 10px; background: transparent; color: var(--ad-red); font-weight: 700; font-size: .85rem; cursor: pointer; transition: all .15s; }
 .coinReqReject:hover:not(:disabled) { background: rgba(239,68,68,.12); }
@@ -262,7 +262,7 @@
 .modalTextarea, .modalInput { width: 100%; background: var(--ad-bg); border: 1px solid var(--ad-border-2); border-radius: 10px; padding: .7rem .9rem; color: var(--ad-text); font-size: .9rem; font-family: inherit; }
 .modalTextarea:focus, .modalInput:focus { outline: none; border-color: var(--ad-border-hi); box-shadow: 0 0 0 3px rgba(16,185,129,0.12); }
 .modalField { display: flex; flex-direction: column; gap: 5px; margin-bottom: 1rem; }
-.modalField label { font-size: .8rem; font-weight: 700; color: #cbd5e1; }
+.modalField label { font-size: .8rem; font-weight: 700; color: #405342; }
 .modalActions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.3rem; }
 .btnGhost { padding: 9px 16px; border: 1px solid var(--ad-border-2); border-radius: 10px; background: transparent; color: var(--ad-text-2); font-weight: 700; font-size: .85rem; cursor: pointer; transition: all .15s; }
 .btnGhost:hover { border-color: var(--ad-border-hi); color: var(--ad-text); }

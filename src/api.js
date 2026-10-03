@@ -1,5 +1,8 @@
+import { queryString } from './utils/query'
 // src/api.js — OTAKU PULSE v2
 export const API_BASE = import.meta.env.VITE_API_URL || 'https://magenta-mantis-809260.hostingersite.com'
+import { resolveMediaPath } from './utils/media'
+export const resolveMediaUrl = value => resolveMediaPath(value, API_BASE)
 
 function getToken()  { return localStorage.getItem('op_token') }
 function headers(auth = true) {
@@ -43,7 +46,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 async function fetchWithTimeout(url, opts) {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const timeout = typeof opts.body === 'string' && opts.body.length > 512 * 1024 ? 120000 : REQUEST_TIMEOUT_MS
+  const timer = setTimeout(() => controller.abort(), timeout)
   try {
     return await fetch(url, { ...opts, signal: controller.signal })
   } finally {
@@ -67,13 +71,14 @@ export async function request(method, path, body = null, auth = true) {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        if (err.details?.length) throw new Error(err.details.map(d => d.msg).join(', '))
-        throw new Error(err.error || `Erreur ${res.status}`)
+        const failure = new Error(err.details?.length ? err.details.map(d => d.msg).join(', ') : err.error || `Erreur ${res.status}`)
+        failure.status = res.status
+        throw failure
       }
       return await res.json()
     } catch (err) {
       const isNetworkError = err.name === 'AbortError' || err instanceof TypeError
-      if (!isNetworkError || attempt === MAX_RETRIES) {
+      if (!isNetworkError || attempt === MAX_RETRIES || !['GET', 'HEAD'].includes(method)) {
         throw isNetworkError
           ? new Error('Connexion instable — vérifie ta connexion internet et réessaie dans quelques secondes.')
           : err
@@ -97,7 +102,8 @@ export const authApi = {
 
 // ── PRODUCTS ──────────────────────────────────────────
 export const productsApi = {
-  getAll:   (p = {}) => request('GET', `/api/products?${new URLSearchParams(p)}`, null, false),
+  getAdmin: (p = {}) => request('GET', `/api/products/admin/list?${queryString(p)}`),
+  getAll:   (p = {}) => request('GET', `/api/products?${queryString(p)}`, null, false),
   getBySlug:(slug)   => request('GET', `/api/products/${slug}`, null, false),
   create:   (data)   => request('POST', '/api/products', data),
   update:   (id, d)  => request('PATCH', `/api/products/${id}`, d),
@@ -113,6 +119,7 @@ export const productsApi = {
 
 // ── ORDERS ────────────────────────────────────────────
 export const ordersApi = {
+  quote:        (items) => request('POST', '/api/orders/quote', { items }),
   create:       (payload) => request('POST', '/api/orders', payload),
   getMy:        ()        => request('GET',  '/api/orders/my'),
   getById:      (id)      => request('GET',  `/api/orders/${id}`),
@@ -122,7 +129,8 @@ export const ordersApi = {
 
 // ── EVENTS ────────────────────────────────────────────
 export const eventsApi = {
-  getAll:   (p = {}) => request('GET', `/api/events?${new URLSearchParams(p)}`, null, false),
+  getAdmin: (p = {}) => request('GET', `/api/events/admin/list?${queryString(p)}`),
+  getAll:   (p = {}) => request('GET', `/api/events?${queryString(p)}`, null, false),
   getById:  (id)     => request('GET', `/api/events/${id}`, null, false),
   register: (eventId, guests, whatsapp) => request('POST', '/api/events/register', { eventId, guests, whatsapp }),
   create:   (data)   => request('POST', '/api/events', data),
@@ -131,7 +139,8 @@ export const eventsApi = {
   cancel:   (registrationId) => request('DELETE', `/api/events/registrations/${registrationId}`),
   // ── Admin : gestion des inscrits & paiement ──
   getRegistrations: (eventId)        => request('GET', `/api/events/${eventId}/registrations`),
-  confirmPayment:   (registrationId) => request('PATCH', `/api/events/registrations/${registrationId}/confirm-payment`),
+    confirmPayment:   (registrationId) => request('PATCH', `/api/events/registrations/${registrationId}/confirm-payment`),
+    confirmRegistration: (id) => request('PATCH', `/api/events/registrations/${id}/confirm`),
 }
 
 // ── USERS ─────────────────────────────────────────────
@@ -139,20 +148,21 @@ export const usersApi = {
   updateProfile:  (data) => request('PATCH', '/api/users/profile', data),
   changePassword: (data) => request('PATCH', '/api/users/password', data),
   getWishlist:    ()     => request('GET',   '/api/users/wishlist'),
+  setWishlist:    (id, enabled) => request('PUT', `/api/users/wishlist/${id}`, { enabled }),
   toggleWishlist: (pid)  => request('POST',  `/api/users/wishlist/${pid}`),
 }
 
 // ── ADMIN ─────────────────────────────────────────────
 export const adminApi = {
   getDashboard: ()         => request('GET', '/api/admin/dashboard'),
-  getUsers:     (p = {})   => request('GET', `/api/admin/users?${new URLSearchParams(p)}`),
+  getUsers:     (p = {})   => request('GET', `/api/admin/users?${queryString(p)}`),
   updateUser:   (id, d)    => request('PATCH', `/api/admin/users/${id}`, d),
   // Changement de rôle : route dédiée, réservée au superadmin côté serveur.
   // Séparée de `updateUser` parce qu'accorder des privilèges n'est pas une
   // modification de profil comme une autre.
   setUserRole:  (id, role) => request('PATCH', `/api/admin/users/${id}/role`, { role }),
-  getOrders:    (p = {})   => request('GET', `/api/admin/orders?${new URLSearchParams(p)}`),
-  getContacts:  (p = {})   => request('GET', `/api/admin/contacts?${new URLSearchParams(p)}`),
+  getOrders:    (p = {})   => request('GET', `/api/admin/orders?${queryString(p)}`),
+  getContacts:  (p = {})   => request('GET', `/api/admin/contacts?${queryString(p)}`),
 }
 
 // ── CONTACT ───────────────────────────────────────────
@@ -168,7 +178,8 @@ export const newsletterApi = {
 
 // ── BLOG ──────────────────────────────────────────────
 export const blogApi = {
-  getPosts:      (p = {})  => request('GET', `/api/blog?${new URLSearchParams(p)}`, null, false),
+  getAdminPosts: (p = {}) => request('GET', `/api/blog/admin/posts?${queryString(p)}`),
+  getPosts:      (p = {})  => request('GET', `/api/blog?${queryString(p)}`, null, false),
   getPost:       (id)      => request('GET', `/api/blog/${id}`, null, false),
   createPost:    (data)    => request('POST',   '/api/blog', data),
   updatePost:    (id, d)   => request('PATCH',  `/api/blog/${id}`, d),
@@ -189,7 +200,7 @@ export const heroApi = {
 
 // ── SUPPLIERS ─────────────────────────────────────────
 export const suppliersApi = {
-  getAll:      (p = {}) => request('GET', `/api/suppliers?${new URLSearchParams(p)}`),
+  getAll:      (p = {}) => request('GET', `/api/suppliers?${queryString(p)}`),
   getById:     (id)     => request('GET', `/api/suppliers/${id}`),
   create:      (data)   => request('POST',   '/api/suppliers', data),
   update:      (id, d)  => request('PATCH',  `/api/suppliers/${id}`, d),
@@ -238,10 +249,10 @@ export function fileToBase64(file) {
 
 // ── MANGA ─────────────────────────────────────────────
 export const mangaApi = {
-  getAll:          (p = {})           => request('GET', `/api/manga?${new URLSearchParams(p)}`, null, false),
+  getAll:          (p = {})           => request('GET', `/api/manga?${queryString(p)}`, null, false),
   getBySlug:       (slug)             => request('GET', `/api/manga/${slug}`, null, false),
   continueReading: ()                 => request('GET', '/api/manga/continue-reading'),
-  getMy:           (p = {})           => request('GET', `/api/manga/my/list?${new URLSearchParams(p)}`),
+  getMy:           (p = {})           => request('GET', `/api/manga/my/list?${queryString(p)}`),
   create:          (data)             => request('POST',  '/api/manga', data),
   update:          (id, data)         => request('PATCH', `/api/manga/${id}`, data),
   moderate:        (id, status, notes)=> request('PATCH', `/api/manga/${id}/moderate`, { status, notes }),
@@ -253,7 +264,7 @@ export const mangaApi = {
 
 // ── CHAPTERS ──────────────────────────────────────────
 export const chaptersApi = {
-  getByManga: (mangaId)        => request('GET', `/api/chapters/by-manga/${mangaId}`, null, false),
+  getByManga: (mangaId)        => request('GET', `/api/chapters/by-manga/${mangaId}`),
   getById:    (id)             => request('GET', `/api/chapters/${id}`, null, true),
   // Création d'un chapitre rattaché à un manga : (mangaId, data)
   create:     (mangaId, data)  => request('POST', '/api/chapters', { ...data, mangaId }),
@@ -270,8 +281,8 @@ export const readingApi = {
 
 // ── LIBRARY ───────────────────────────────────────────
 export const libraryApi = {
-  getAll:       (p = {})         => request('GET', `/api/library?${new URLSearchParams(p)}`),
-  getMyLibrary: (p = {})         => request('GET', `/api/library?${new URLSearchParams(p)}`),
+  getAll:       (p = {})         => request('GET', `/api/library?${queryString(p)}`),
+  getMyLibrary: (p = {})         => request('GET', `/api/library?${queryString(p)}`),
   getCounts:    ()               => request('GET', '/api/library/counts'),
   add:          (mangaId, status)=> request('POST', `/api/library/${mangaId}`, { status }),
   remove:       (mangaId)        => request('DELETE', `/api/library/${mangaId}`),
@@ -284,7 +295,7 @@ export const subscriptionsApi = {
   getMy:       ()         => request('GET', '/api/subscriptions/my'),
   request:     (data)     => request('POST', '/api/subscriptions/request', data),
   // Admin
-  getAll:      (p = {})   => request('GET', `/api/subscriptions?${new URLSearchParams(p)}`),
+  getAll:      (p = {})   => request('GET', `/api/subscriptions?${queryString(p)}`),
   activate:    (id, data) => request('PATCH', `/api/subscriptions/${id}/activate`, data),
   update:      (id, data) => request('PATCH', `/api/subscriptions/${id}`, data),
 }
@@ -296,13 +307,13 @@ export const publishersApi = {
   getMyApplication: ()                  => request('GET',  '/api/publishers/my-application'),
   getDashboard:     ()                  => request('GET',  '/api/publishers/dashboard'),
   // Admin
-  getAll:           (p = {})            => request('GET', `/api/publishers?${new URLSearchParams(p)}`),
+  getAll:           (p = {})            => request('GET', `/api/publishers?${queryString(p)}`),
   review:           (id, status, notes) => request('PATCH', `/api/publishers/${id}/review`, { status, adminNotes: notes }),
 }
 
 // ── COMMENTS ──────────────────────────────────────────
 export const commentsApi = {
-  getForManga:   (mangaId, p={})  => request('GET', `/api/comments/manga/${mangaId}?${new URLSearchParams(p)}`, null, false),
+  getForManga:   (mangaId, p={})  => request('GET', `/api/comments/manga/${mangaId}?${queryString(p)}`, null, false),
   getForChapter: (chapterId)      => request('GET', `/api/comments/chapter/${chapterId}`, null, false),
   create:        (data)           => request('POST', '/api/comments', data),
   delete:        (id)             => request('DELETE', `/api/comments/${id}`),
@@ -315,7 +326,7 @@ export const coinsApi = {
   getPacks:        ()              => request('GET',  '/api/coins/packs', null, false),
   // Protégées
   getWallet:       ()              => request('GET',  '/api/coins/wallet'),
-  getTransactions: (p = {})        => request('GET',  `/api/coins/transactions?${new URLSearchParams(p)}`),
+  getTransactions: (p = {})        => request('GET',  `/api/coins/transactions?${queryString(p)}`),
   purchase:        (data)          => request('POST', '/api/coins/purchase', data),
   getMyPurchases:  ()              => request('GET',  '/api/coins/my-purchases'),
   unlockChapter:   (chapterId)     => request('POST', `/api/coins/unlock/${chapterId}`),
@@ -334,7 +345,7 @@ export const followApi = {
 // ══════════════════════════════════════════════════════
 export const adminCoinsApi = {
   getDashboard:   ()             => request('GET',   '/api/admin/coins/dashboard'),
-  getRequests:    (p = {})       => request('GET',   `/api/admin/coins/requests?${new URLSearchParams(p)}`),
+  getRequests:    (p = {})       => request('GET',   `/api/admin/coins/requests?${queryString(p)}`),
   approve:        (id, data={})  => request('PATCH', `/api/admin/coins/requests/${id}/approve`, data),
   reject:         (id, data={})  => request('PATCH', `/api/admin/coins/requests/${id}/reject`, data),
   adjust:         (data)         => request('POST',  '/api/admin/coins/adjust', data),
@@ -345,7 +356,7 @@ export const adminCoinsApi = {
 // ══════════════════════════════════════════════════════
 export const adminMangaApi = {
   getDashboard:     ()              => request('GET', '/api/admin/manga/dashboard'),
-  getMangas:        (p = {})        => request('GET', `/api/admin/manga/list?${new URLSearchParams(p)}`),
+  getMangas:        (p = {})        => request('GET', `/api/admin/manga/list?${queryString(p)}`),
   updateManga:      (id, data)      => request('PATCH', `/api/admin/manga/manga/${id}`, data),
   deleteManga:      (id)            => request('DELETE', `/api/admin/manga/manga/${id}`),
   moderateManga:    (id, status, notes='') => request('PATCH', `/api/admin/manga/manga/${id}`, {
@@ -358,17 +369,17 @@ export const adminMangaApi = {
   moderateChapter:  (id, data)      => request('PATCH', `/api/admin/manga/chapters/${id}`, data),
   deleteChapter:    (id)            => request('DELETE', `/api/admin/manga/chapters/${id}`),
   // Commentaires
-  getComments:      (p = {})        => request('GET', `/api/admin/manga/comments/list?${new URLSearchParams(p)}`),
+  getComments:      (p = {})        => request('GET', `/api/admin/manga/comments/list?${queryString(p)}`),
   deleteComment:    (id)            => request('DELETE', `/api/admin/manga/comments/${id}`),
   hideComment:      (id, isHidden)  => request('PATCH', `/api/comments/${id}/hide`, { isHidden }),
   // Publishers
   getPublishers:    ()              => request('GET', '/api/admin/manga/publishers/list'),
   togglePublisher:  (userId, revoke)=> request('PATCH', `/api/admin/manga/publishers/${userId}`, { revoke }),
   // Candidatures publisher
-  getPubApps:       (p = {})        => request('GET', `/api/publishers?${new URLSearchParams(p)}`),
+  getPubApps:       (p = {})        => request('GET', `/api/publishers?${queryString(p)}`),
   reviewPubApp:     (id, status, notes) => request('PATCH', `/api/publishers/${id}/review`, { status, adminNotes: notes }),
   // Abonnements
-  getSubscriptions: (p = {})        => request('GET', `/api/subscriptions?${new URLSearchParams(p)}`),
+  getSubscriptions: (p = {})        => request('GET', `/api/subscriptions?${queryString(p)}`),
   activateSub:      (id, data = {}) => request('PATCH', `/api/subscriptions/${id}/activate`, data),
   updateSub:        (id, data)      => request('PATCH', `/api/subscriptions/${id}`, data),
 }
@@ -386,7 +397,7 @@ export const fandomApi = {
   deleteCosplay:    (id)            => request('DELETE', `/api/fandom/cosplay/${id}`),
   cosplayLeaderboard: ()            => request('GET',  '/api/fandom/cosplay/leaderboard', null, false),
   // Quiz
-  getQuizQuestions: (p = {})        => request('GET',  `/api/fandom/quiz/questions?${new URLSearchParams(p)}`, null, false),
+  getQuizQuestions: (p = {})        => request('GET',  `/api/fandom/quiz/questions?${queryString(p)}`, null, false),
   submitQuiz:       (answers)       => request('POST', '/api/fandom/quiz/submit', { answers }),
   quizLeaderboard:  ()              => request('GET',  '/api/fandom/quiz/leaderboard', null, false),
   // Mini-jeux
@@ -412,7 +423,7 @@ export const fandomApi = {
 
 // ── ANIME (planning à venir/en cours) ────────────────
 export const animeApi = {
-  getAll:   (p = {}) => request('GET', `/api/anime?${new URLSearchParams(p)}`, null, false),
+  getAll:   (p = {}) => request('GET', `/api/anime?${queryString(p)}`, null, false),
   getById:  (id)     => request('GET', `/api/anime/${id}`, null, false),
   create:   (data)   => request('POST', '/api/anime', data),
   update:   (id, d)  => request('PATCH', `/api/anime/${id}`, d),

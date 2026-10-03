@@ -1,3 +1,7 @@
+import OtakuMark from '../../../components/ui/OtakuMark'
+import CreateChapterModal from './CreateChapterModal'
+import { prepareImage } from '../../../utils/media'
+import MediaImage from '../../../components/ui/MediaImage'
 // src/pages/Manga/publisher/index.jsx — Dashboard Créateur (style Webtoon Canvas)
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -11,7 +15,7 @@ import {
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi, useMutation } from '../../../hooks/useApi'
-import { mangaApi, chaptersApi, publishersApi, API_BASE } from '../../../api'
+import { mangaApi, chaptersApi, publishersApi, API_BASE , resolveMediaUrl } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../Home/sections/Footer'
@@ -438,7 +442,7 @@ function OverviewTab({ stats, topMangas, t, lang, onNewManga }) {
                 <Link to={`/manga/${m.slug}`} key={m.id} className={styles.topItem}>
                   <span className={styles.topRank}>#{i + 1}</span>
                   {m.coverUrl ? (
-                    <img src={`${API_BASE}${m.coverUrl}`} alt={title} className={styles.topCover} />
+                    <MediaImage src={resolveMediaUrl(m.coverUrl)} alt={title} className={styles.topCover} />
                   ) : (
                     <div className={styles.topCoverPh}><BookOpen size={16} /></div>
                   )}
@@ -620,7 +624,7 @@ function PublisherApplicationFlow({ existingApp, t, toast }) {
         </div>
 
         <button onClick={submit} className={styles.btnPrimary} disabled={loading}>
-          {loading ? <Loader2 size={14} className={styles.spinIcon} /> : <Sparkles size={14} />}
+          {loading ? <Loader2 size={14} className={styles.spinIcon} /> : <OtakuMark size={14} />}
           {t.submitApp}
         </button>
 
@@ -641,7 +645,7 @@ function MyMangaCard({ manga, lang, t, onAddChapter, onManageChapters, onEditMus
     <div className={styles.mangaCard}>
       <div className={styles.mangaCover}>
         {manga.coverUrl ? (
-          <img src={`${API_BASE}${manga.coverUrl}`} alt={title} loading="lazy" />
+          <MediaImage src={resolveMediaUrl(manga.coverUrl)} alt={title} loading="lazy" />
         ) : (
           <div className={styles.mangaCoverPh}><BookOpen size={32} /></div>
         )}
@@ -703,6 +707,7 @@ function CreateMangaModal({ t, onClose, onSuccess, toast }) {
     language: 'fr', accessTier: 'free', ageRating: '13+',
     genres: [], coverFile: null, bannerFile: null,
   })
+  const [processing, setProcessing] = useState(false)
   const { mutate, loading } = useMutation((data) => mangaApi.create(data))
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -711,13 +716,15 @@ function CreateMangaModal({ t, onClose, onSuccess, toast }) {
   }
 
   const submit = async () => {
+    if (processing || loading) return
     if (!form.titleF.trim())    return toast.error('Titre français requis')
     if (!form.synopsisF.trim()) return toast.error('Synopsis français requis')
     if (!form.coverFile)        return toast.error('Couverture requise')
 
+    setProcessing(true)
     try {
-      const cover  = await readFileToBase64Safe(form.coverFile)
-      const banner = form.bannerFile ? await readFileToBase64Safe(form.bannerFile) : null
+      const cover  = await prepareImage(form.coverFile)
+      const banner = form.bannerFile ? await prepareImage(form.bannerFile) : null
 
       const payload = {
         titleF: form.titleF.trim(), titleE: form.titleE.trim() || null,
@@ -735,16 +742,16 @@ function CreateMangaModal({ t, onClose, onSuccess, toast }) {
     } catch (err) {
       console.error('Manga create error:', err)
       toast.error(err.message || 'Erreur lors de la création')
-    }
+    } finally { setProcessing(false) }
   }
 
   return (
-    <Modal isOpen onClose={onClose} title={t.formMangaTitle} wide
+    <Modal isOpen dismissible={!processing && !loading} onClose={onClose} title={t.formMangaTitle} wide
       footer={
         <>
           <button onClick={onClose} className={styles.modalBtnGhost}>{t.cancel}</button>
-          <button onClick={submit} disabled={loading} className={styles.modalBtnPrimary}>
-            {loading ? <Loader2 size={14} className={styles.spinIcon} /> : <Sparkles size={14} />}
+          <button onClick={submit} disabled={loading || processing} className={styles.modalBtnPrimary}>
+            {loading ? <Loader2 size={14} className={styles.spinIcon} /> : <OtakuMark size={14} />}
             {loading ? t.submitting : t.create}
           </button>
         </>
@@ -816,149 +823,6 @@ function CreateMangaModal({ t, onClose, onSuccess, toast }) {
   )
 }
 
-/* ══ CREATE CHAPTER MODAL ══ */
-function CreateChapterModal({ manga, t, onClose, onSuccess, toast }) {
-  const { lang } = useLang()
-  const title = lang === 'fr' ? manga.titleF : (manga.titleE || manga.titleF)
-  const mangaId = String(manga?.id || '')
-  const [form, setForm] = useState({
-    chapterNumber: (manga.totalChapters || 0) + 1,
-    title: '', accessTier: 'free', pageFiles: [],
-  })
-  const { mutate, loading } = useMutation((data) => {
-    if (!mangaId) return Promise.resolve({ error: 'ID du manga manquant' })
-    return chaptersApi.create(mangaId, data)
-  })
-  const [progress, setProgress] = useState(0)
-
-  const handleFiles = (files) => {
-    const all = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'))
-    const tooLarge = all.filter(f => f.size > MAX_IMAGE_MB * 1024 * 1024)
-    const ok = all.filter(f => f.size <= MAX_IMAGE_MB * 1024 * 1024)
-    if (tooLarge.length) {
-      toast.error(`${tooLarge.length} image(s) trop lourde(s) (max ${MAX_IMAGE_MB}Mo) : ${tooLarge.map(f => f.name).join(', ')} — compresse-les ou choisis-en d'autres.`)
-    }
-    setForm(f => ({ ...f, pageFiles: [...f.pageFiles, ...ok] }))
-  }
-  const removePage = (idx) => setForm(f => ({ ...f, pageFiles: f.pageFiles.filter((_, i) => i !== idx) }))
-  const movePage = (from, to) => {
-    if (to < 0 || to >= form.pageFiles.length) return
-    const newPages = [...form.pageFiles]
-    const [moved] = newPages.splice(from, 1)
-    newPages.splice(to, 0, moved)
-    setForm(f => ({ ...f, pageFiles: newPages }))
-  }
-
-  const submit = async () => {
-    if (!mangaId)               return toast.error('Erreur : ID manga manquant')
-    if (!form.chapterNumber)    return toast.error('Numéro requis')
-    if (!form.pageFiles.length) return toast.error('Ajoute au moins 1 page')
-
-    try {
-      const pages = []
-      for (let i = 0; i < form.pageFiles.length; i++) {
-        const result = await readFileToBase64Safe(form.pageFiles[i])
-        pages.push({ data: result.data, mime: result.mime, order: i })
-        setProgress(Math.round(((i + 1) / form.pageFiles.length) * 100))
-      }
-
-      const payload = {
-        chapterNumber: parseFloat(form.chapterNumber),
-        title: form.title.trim() || null,
-        accessTier: form.accessTier,
-        pages, isPublished: true,
-      }
-
-      const { error } = await mutate(payload)
-      if (error) toast.error(error)
-      else onSuccess()
-    } catch (err) {
-      console.error('Chapter publish error:', err)
-      toast.error(err.message || 'Erreur lors de la publication')
-    } finally {
-      setProgress(0)
-    }
-  }
-
-  const totalMB = form.pageFiles.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024)
-
-  return (
-    <Modal isOpen onClose={onClose} title={t.formChapterTitle(title)} wide
-      footer={
-        <>
-          <button onClick={onClose} className={styles.modalBtnGhost}>{t.cancel}</button>
-          <button onClick={submit} disabled={loading} className={styles.modalBtnPrimary}>
-            {loading ? <Loader2 size={14} className={styles.spinIcon} /> : <Upload size={14} />}
-            {loading ? `${t.submitting} ${progress}%` : t.publish}
-          </button>
-        </>
-      }>
-      <div className={styles.formGrid3}>
-        <FormField label={t.chapterNumber}>
-          <input type="number" step="0.1" value={form.chapterNumber}
-            onChange={e => setForm(f => ({ ...f, chapterNumber: e.target.value }))}
-            className={styles.formInput} />
-        </FormField>
-        <FormField label={t.chapterTitle}>
-          <input type="text" value={form.title}
-            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            placeholder="Ex: Le réveil" className={styles.formInput} maxLength={150} />
-        </FormField>
-        <FormField label={t.chapterAccess}>
-          <select value={form.accessTier}
-            onChange={e => setForm(f => ({ ...f, accessTier: e.target.value }))}
-            className={styles.formInput}>
-            <option value="free">🆓 {t.accessFree}</option>
-            <option value="premium">👑 {t.accessPremium}</option>
-          </select>
-        </FormField>
-      </div>
-
-      <FormField label={t.chapterPages + ' *'}>
-        <div className={styles.dropZone}
-          onDragOver={e => e.preventDefault()}
-          onDrop={e => { e.preventDefault(); handleFiles(e.dataTransfer.files) }}>
-          <input type="file" multiple accept="image/*"
-            onChange={e => handleFiles(e.target.files)} id="chapPages" style={{ display: 'none' }} />
-          <label htmlFor="chapPages" className={styles.dropZoneLabel}>
-            <ImageIcon size={28} />
-            <strong>{t.pickFiles}</strong>
-            <span>Glisse-dépose ou clique pour choisir</span>
-          </label>
-        </div>
-
-        {form.pageFiles.length > 0 && (
-          <>
-            <div className={styles.pagesCount}>
-              {t.pagesCount(form.pageFiles.length)}
-              {' · '}
-              <span style={{ color: totalMB > 40 ? '#dc2626' : 'inherit' }}>
-                {totalMB.toFixed(1)} Mo au total
-              </span>
-            </div>
-            <div className={styles.pagesList}>
-              {form.pageFiles.map((f, i) => (
-                <div key={i} className={styles.pageItem}>
-                  <span className={styles.pageItemNum}>{i + 1}</span>
-                  <span className={styles.pageItemName}>{f.name}</span>
-                  <span className={styles.pageItemSize}>{(f.size / 1024).toFixed(0)}KB</span>
-                  <div className={styles.pageItemActions}>
-                    <button onClick={() => movePage(i, i - 1)} disabled={i === 0} title="Monter">↑</button>
-                    <button onClick={() => movePage(i, i + 1)} disabled={i === form.pageFiles.length - 1} title="Descendre">↓</button>
-                    <button onClick={() => removePage(i)} title="Retirer" className={styles.pageItemRemove}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </FormField>
-    </Modal>
-  )
-}
-
 /* ══ GESTION DES CHAPITRES (suppression chapitre/page) ══ */
 function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
   const title = lang === 'fr' ? manga.titleF : (manga.titleE || manga.titleF)
@@ -1003,6 +867,7 @@ function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
   }
 
   const addPages = async (files) => {
+    if (busy) return
     const all = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'))
     const tooLarge = all.filter(f => f.size > MAX_IMAGE_MB * 1024 * 1024)
     const ok = all.filter(f => f.size <= MAX_IMAGE_MB * 1024 * 1024)
@@ -1014,7 +879,7 @@ function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
     try {
       const newPages = []
       for (const f of ok) {
-        const result = await readFileToBase64Safe(f)
+        const result = await prepareImage(f, { page: true, maxSizeMB: 10 })
         newPages.push({ data: result.data, mime: result.mime })
       }
       setEditing(c => ({ ...c, pages: [...c.pages, ...newPages] }))
@@ -1028,7 +893,7 @@ function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
     setBusy(true)
     try {
       const pages = editing.pages.map((p, i) => ({ ...p, order: i }))
-      await chaptersApi.update(editing.id, { pages })
+      await chaptersApi.update(editing.id, { pages, title: editing.title, accessTier: editing.accessTier, coinCost: editing.coinCost || 5, isPublished: editing.isPublished })
       toast.success('✅ Pages mises à jour')
       setEditing(null)
       await loadChapters()
@@ -1055,6 +920,7 @@ function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
       }>
       {editing ? (
         <div className={styles.pagesList}>
+          <div className="editorial-form" style={{ marginBottom: 20 }}><label className="editorial-field">Titre<input value={editing.title || ''} onChange={e => setEditing(c => ({ ...c, title: e.target.value }))} /></label><label className="editorial-field">Accès<select value={editing.accessTier} onChange={e => setEditing(c => ({ ...c, accessTier: e.target.value }))}><option value="free">Gratuit</option><option value="premium">Premium</option></select></label>{editing.accessTier === 'premium' && <label className="editorial-field">Prix en coins<input type="number" min="1" max="10000" value={editing.coinCost || 5} onChange={e => setEditing(c => ({ ...c, coinCost: Number(e.target.value) }))} /></label>}<label className="editorial-check"><input type="checkbox" checked={!!editing.isPublished} onChange={e => setEditing(c => ({ ...c, isPublished: e.target.checked }))} />Chapitre publié</label></div>
           <div className={styles.dropZone}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); addPages(e.dataTransfer.files) }}
@@ -1069,10 +935,10 @@ function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
             </label>
           </div>
           {editing.pages.map((p, i) => {
-            const src = p.url ? `${API_BASE}${p.url}` : (p.data ? `data:${p.mime || 'image/jpeg'};base64,${p.data}` : null)
+            const src = p.url ? resolveMediaUrl(p.url) : (p.data ? `data:${p.mime || 'image/jpeg'};base64,${p.data}` : null)
             return (
               <div key={i} className={styles.pageItem}>
-                {src && <img src={src} alt={`Page ${i+1}`} style={{ width:36, height:48, objectFit:'cover', borderRadius:4, flexShrink:0 }} />}
+                {src && <MediaImage src={src} alt={`Page ${i+1}`} style={{ width:36, height:48, objectFit:'cover', borderRadius:4, flexShrink:0 }} />}
                 <span className={styles.pageItemNum}>{i + 1}</span>
                 <span className={styles.pageItemName}>Page {i + 1}</span>
                 <div className={styles.pageItemActions}>
@@ -1094,7 +960,7 @@ function ManageChaptersModal({ manga, lang, onClose, onChanged, toast }) {
             <div key={c.id} className={styles.pageItem}>
               <span className={styles.pageItemNum}>{c.chapterNumber}</span>
               <span className={styles.pageItemName}>{c.title || `Chapitre ${c.chapterNumber}`}</span>
-              <span className={styles.pageItemSize}>{c.pageCount} pages</span>
+              <span className={styles.pageItemSize}>{c.pageCount} pages · {c.isPublished ? 'Publié' : 'Brouillon'} · {c.accessTier === 'premium' ? `${c.coinCost} coins` : 'Gratuit'}</span>
               <div className={styles.pageItemActions}>
                 <button onClick={() => openEdit(c.id)} disabled={busy} title="Modifier les pages">
                   <Edit3 size={12} />
@@ -1170,7 +1036,7 @@ function MangaMusicModal({ manga, lang, onClose, onChanged, toast }) {
       {manga.bgMusicUrl && !file && (
         <div style={{ marginBottom: '1rem', padding: '.8rem', background: 'rgba(34,197,94,.06)', border: '1px solid rgba(34,197,94,.2)', borderRadius: 10 }}>
           <div style={{ fontSize: '.8rem', fontWeight: 700, marginBottom: 6 }}>🎶 Musique actuelle : {manga.bgMusicName || 'fichier audio'}</div>
-          <audio controls src={`${API_BASE}${manga.bgMusicUrl}`} style={{ width: '100%', height: 36 }} />
+          <audio controls src={resolveMediaUrl(manga.bgMusicUrl)} style={{ width: '100%', height: 36 }} />
           <button onClick={remove} disabled={busy} className={styles.pageItemRemove} style={{ marginTop: 8 }}>
             <Trash2 size={12} /> Retirer
           </button>

@@ -36,7 +36,7 @@ app.use((req, res, next) => {
 
 app.use('/api/',      rateLimit({ windowMs:15*60*1000, max:300, standardHeaders:true }))
 app.use('/api/auth/', rateLimit({ windowMs:15*60*1000, max:25,  standardHeaders:true }))
-app.use(express.json({ limit: '60mb' }))  // 60MB : couvre un chapitre manga de ~15 pages à 10MB chacune (base64)
+app.use(express.json({ limit: '60mb' }))  // 40 Mo d'images de chapitre + encodage base64 et métadonnées.
 app.use(express.urlencoded({ extended:true, limit:'60mb' }))
 
 // ── Routes ────────────────────────────────────────────
@@ -87,7 +87,8 @@ app.use((err, req, res, next) => {
     return res.status(409).json({ error: err.errors[0]?.message || 'Valeur déjà utilisée.' })
   if (err.type === 'entity.too.large' || err.status === 413)
     return res.status(413).json({ error: 'Fichiers trop volumineux au total — réduis le nombre de pages ou compresse tes images.' })
-  res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Erreur serveur' : err.message })
+  const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 600 ? err.status : 500
+  res.status(status).json({ error: status < 500 || process.env.NODE_ENV !== 'production' ? err.message : 'Erreur serveur' })
 })
 
 const PORT = process.env.PORT || 4000
@@ -102,6 +103,7 @@ const initialize = async () => {
     await syncDatabase(false)
 
     require('./jobs/animeCron').startAnimeCron()
+    require('./jobs/communityCron').startCommunityCron()
   } catch (error) {
     console.error('❌ Erreur initialisation :', error)
   }

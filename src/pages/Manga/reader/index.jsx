@@ -1,3 +1,4 @@
+import MediaImage from '../../../components/ui/MediaImage'
 // src/pages/Manga/reader/index.jsx — Lecteur immersif vertical webtoon + coins
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
@@ -7,7 +8,7 @@ import {
 } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
-import { mangaApi, chaptersApi, readingApi, coinsApi, API_BASE } from '../../../api'
+import { mangaApi, chaptersApi, readingApi, coinsApi, API_BASE , resolveMediaUrl } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
 import { useMusicControls } from '../../../contexts/MusicContext'
 import ChapterUnlockGate from './ChapterUnlockGate'
@@ -131,72 +132,23 @@ export default function ReaderPage() {
         setChaptersList(mangaRes.chapters || [])
 
         // 2. Trouver le chapitre dans la liste
-        const ch = (mangaRes.chapters || []).find(c => String(c.chapterNumber) === String(chapterNumber))
+        const ch = (mangaRes.chapters || []).find(c => Number(c.chapterNumber) === Number(chapterNumber))
         if (!ch) {
           setError('chapter_not_found')
           setLoading(false)
           return
         }
 
-        // 3. Vérifier l'accès AVANT de charger les pages
-        const premium = ch.accessTier === 'premium'
-
-        if (!premium) {
-          // Chapitre gratuit → accès direct
-          setIsUnlocked(true)
-          setAccessChecked(true)
-        } else {
-          // Chapitre premium → vérifier déblocage (si connecté)
-          if (!isLoggedIn) {
-            setChapter(ch)
-            setPages([])
-            setPremiumLocked(true)
-            setAccessChecked(true)
-            setLoading(false)
-            return
-          }
-
-          try {
-            const [walletRes, unlocksRes] = await Promise.all([
-              coinsApi.getWallet(),
-              coinsApi.getUnlocks(ch.mangaId || mangaRes.manga.id),
-            ])
-            if (cancelled) return
-            setWalletBalance(walletRes?.wallet?.balance ?? 0)
-            const unlockedIds = unlocksRes?.unlockedChapterIds || []
-            const unlocked = unlockedIds.includes(ch.id)
-            setIsUnlocked(unlocked)
-            setAccessChecked(true)
-
-            if (!unlocked) {
-              // Premium non débloqué → afficher la gate de déblocage
-              setChapter(ch)
-              setPages([])
-              setLoading(false)
-              return
-            }
-          } catch (accessErr) {
-            console.error('Access check error:', accessErr)
-            setAccessChecked(true)
-            // En cas d'erreur de vérif, on tente quand même de charger (le backend protègera)
-          }
-        }
-
-        // 4. Load chapter pages (gratuit OU premium débloqué)
-        try {
-          const chapRes = await chaptersApi.getById(ch.id)
-          if (cancelled) return
-          setChapter(chapRes.chapter)
-          setPages(chapRes.chapter?.pages || [])
-        } catch (chapErr) {
-          // Si erreur 403 = premium locked côté backend
-          if (chapErr.status === 403 || chapErr.message?.includes('premium') || chapErr.message?.includes('coins')) {
-            setChapter(ch)
-            setPages([])
-            setPremiumLocked(true)
-          } else {
-            throw chapErr
-          }
+        const chapRes = await chaptersApi.getById(ch.id)
+        if (cancelled) return
+        const allowed = chapRes.access?.allowed === true
+        setChapter(chapRes.chapter)
+        setPages(allowed ? chapRes.chapter?.pages || [] : [])
+        setIsUnlocked(allowed)
+        setAccessChecked(true)
+        setPremiumLocked(!allowed && !isLoggedIn)
+        if (!allowed && isLoggedIn) {
+          try { const wallet = await coinsApi.getWallet(); if (!cancelled) setWalletBalance(wallet?.wallet?.balance ?? 0) } catch { /* The unlock action reports wallet failures. */ }
         }
 
         setLoading(false)
@@ -226,7 +178,7 @@ export default function ReaderPage() {
     pauseForOverride()
     const audio = bgAudioRef.current
     if (audio) {
-      audio.src = `${API_BASE}${manga.bgMusicUrl}`
+      audio.src = resolveMediaUrl(manga.bgMusicUrl)
       audio.loop = true
       audio.volume = 0.25
       if (!bgMuted) audio.play().catch(() => {})
@@ -354,7 +306,7 @@ export default function ReaderPage() {
     [...chaptersList].sort((a,b) => parseFloat(a.chapterNumber) - parseFloat(b.chapterNumber))
   , [chaptersList])
 
-  const currentChapIdx = sortedChapters.findIndex(c => String(c.chapterNumber) === String(chapterNumber))
+  const currentChapIdx = sortedChapters.findIndex(c => Number(c.chapterNumber) === Number(chapterNumber))
   const prevChapter = currentChapIdx > 0 ? sortedChapters[currentChapIdx - 1] : null
   const nextChapter = currentChapIdx >= 0 && currentChapIdx < sortedChapters.length - 1
     ? sortedChapters[currentChapIdx + 1] : null
@@ -369,10 +321,12 @@ export default function ReaderPage() {
   /* ── Après déblocage réussi : recharger les pages ── */
   const handleUnlocked = useCallback(async (newBalance) => {
     setWalletBalance(newBalance)
-    setIsUnlocked(true)
     setLoading(true)
     try {
       const chapRes = await chaptersApi.getById(chapter.id)
+      if (!chapRes.access?.allowed) throw new Error('Accès encore indisponible. Réessaie dans un instant.')
+      setIsUnlocked(true)
+      setPremiumLocked(false)
       setChapter(chapRes.chapter)
       setPages(chapRes.chapter?.pages || [])
     } catch (err) {
@@ -579,7 +533,7 @@ function ChapterPage({ page, idx, total, pageRef }) {
 
   // Format de la page : peut être { url } ou { data, mime }
   const src = page.url
-    ? `${API_BASE}${page.url}`
+    ? resolveMediaUrl(page.url)
     : page.data
       ? `data:${page.mime || 'image/jpeg'};base64,${page.data}`
       : null
@@ -597,7 +551,7 @@ function ChapterPage({ page, idx, total, pageRef }) {
         </div>
       )}
       {src && !error && (
-        <img
+        <MediaImage
           src={src}
           alt={`Page ${idx + 1}`}
           className={`${styles.pageImg} ${loaded ? styles.pageLoaded : ''}`}
@@ -699,7 +653,7 @@ function ChaptersDrawer({ chapters, currentChapNumber, mangaTitle, onClose, onSe
             <button
               key={c.id}
               onClick={() => onSelect(c.chapterNumber)}
-              className={`${styles.drawerItem} ${String(c.chapterNumber) === String(currentChapNumber) ? styles.drawerItemActive : ''}`}
+              className={`${styles.drawerItem} ${Number(c.chapterNumber) === Number(currentChapNumber) ? styles.drawerItemActive : ''}`}
             >
               <div className={styles.drawerItemNum}>
                 <span className={styles.drawerItemNumLbl}>CH</span>

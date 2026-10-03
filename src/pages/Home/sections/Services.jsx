@@ -1,3 +1,4 @@
+import OtakuMark from '../../../components/ui/OtakuMark'
 // src/pages/Home/sections/Services.jsx
 import { Shield, Swords, Crown, Check, Star, Sparkles } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
@@ -56,7 +57,7 @@ export default function Services() {
       <div className="container">
         <div className={styles.header}>
           <div className={styles.tag}>
-            <Sparkles size={14} strokeWidth={2.3} />
+            <OtakuMark size={14} strokeWidth={2.3} />
             <span>{lang === 'fr' ? 'Nos Formules' : 'Our Packages'}</span>
           </div>
 

@@ -28,6 +28,7 @@ const ShopPage        = lazy(() => import('./pages/Boutique/shop'))
 const ReservationPage = lazy(() => import('./pages/Reservation'))
 const LegalPage       = lazy(() => import('./pages/Legal'))
 const Blog            = lazy(() => import('./pages/Blog'))
+const EventsPage      = lazy(() => import('./pages/Events'))
 const Profil          = lazy(() => import('./pages/Profil'))
 const FandomPage      = lazy(() => import('./pages/Fandom'))
 const MembershipPage  = lazy(() => import('./pages/Membership'))
@@ -83,6 +84,8 @@ export default function App() {
       <Route path="/boutique/:slug" element={<ShopPage />} />
       <Route path="/reservation" element={<ReservationPage />} />
       <Route path="/blog"        element={<Blog />} />
+      <Route path="/evenements"  element={<EventsPage />} />
+      <Route path="/panier"      element={<Profil cartPage />} />
       <Route path="/legal"       element={<LegalPage />} />
       <Route path="/membership"  element={<MembershipPage />} />
       <Route path="/poles"       element={<PolesPage />} />

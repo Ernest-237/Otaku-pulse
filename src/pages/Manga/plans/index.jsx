@@ -1,3 +1,4 @@
+import OtakuMark from '../../../components/ui/OtakuMark'
 // src/pages/Manga/plans/index.jsx — Souscription abonnements manga
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -242,7 +243,7 @@ export default function PlansPage() {
                   >
                     {conf.badge && (
                       <span className={styles.planBadge}>
-                        {conf.featured && <Sparkles size={11} />}
+                        {conf.featured && <OtakuMark size={11} />}
                         {conf.badge}
                       </span>
                     )}
@@ -316,10 +317,10 @@ export default function PlansPage() {
           </div>
           <div className={styles.benefitsGrid}>
             {[
-              { icon: <Zap size={22} />,    title: t.benefit1Title, sub: t.benefit1Sub, color: '#22c55e' },
+              { icon: <OtakuMark size={22} />,    title: t.benefit1Title, sub: t.benefit1Sub, color: '#22c55e' },
               { icon: <Star size={22} />,   title: t.benefit2Title, sub: t.benefit2Sub, color: '#a78bfa' },
               { icon: <Lock size={22} />,   title: t.benefit3Title, sub: t.benefit3Sub, color: '#06b6d4' },
-              { icon: <Sparkles size={22} />, title: t.benefit4Title, sub: t.benefit4Sub, color: '#eab308' },
+              { icon: <OtakuMark size={22} />, title: t.benefit4Title, sub: t.benefit4Sub, color: '#eab308' },
             ].map((b, i) => (
               <div key={i} className={styles.benefitCard}>
                 <div className={styles.benefitIcon} style={{ background: `${b.color}18`, color: b.color }}>

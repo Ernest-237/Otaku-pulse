@@ -4,13 +4,13 @@ import { Spinner } from './Spinner'
 export default function Button({
   children, variant = 'primary', size = 'md',
   disabled = false, loading = false,
-  onClick, type = 'button', style = {}, className = '',
+  onClick, type = 'button', style = {}, className = '', ...props
 }) {
   const base = {
     display:'inline-flex', alignItems:'center', gap:8,
     borderRadius:10, border:'none',
     cursor: disabled || loading ? 'not-allowed' : 'pointer',
-    fontFamily:"'Rajdhani', sans-serif", fontWeight:700, letterSpacing:'1px',
+    fontFamily:'var(--font-body)', fontWeight:600,
     transition:'all .25s', textDecoration:'none',
     opacity: disabled || loading ? 0.55 : 1,
   }
@@ -21,23 +21,23 @@ export default function Button({
   }
   const variants = {
     primary: {
-      background:'linear-gradient(135deg,#22c55e,#16a34a)',
-      color:'#0c1a2e',
-      boxShadow:'0 0 15px rgba(34,197,94,0.2)',
+      background:'var(--green-700)',
+      color:'#fffef9',
     },
     ghost: {
-      background:'rgba(255,255,255,0.04)',
-      border:'1px solid rgba(255,255,255,0.1)',
-      color:'rgba(240,253,244,0.6)',
+      background:'var(--bg-card)',
+      border:'1px solid var(--border)',
+      color:'var(--text)',
     },
     danger: {
       background:'rgba(220,38,38,0.08)',
       border:'1px solid rgba(220,38,38,0.2)',
-      color:'#f87171',
+      color:'#b13737',
     },
   }
   return (
     <button
+      {...props}
       type={type}
       disabled={disabled || loading}
       onClick={onClick}

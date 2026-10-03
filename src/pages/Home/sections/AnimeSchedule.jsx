@@ -1,117 +1,190 @@
-// src/pages/Home/sections/AnimeSchedule.jsx
-// Planning des animés à venir/en cours pour le mois courant (géré depuis l'admin)
-import { useState } from 'react'
-import { CalendarDays, Play, Sparkles, X } from 'lucide-react'
+import MediaImage from '../../../components/ui/MediaImage'
+import { useMemo, useState } from 'react'
+import { Search, ArrowUpRight, Star } from 'lucide-react'
 import { useLang } from '../../../contexts/LangContext'
 import { useApi } from '../../../hooks/useApi'
-import { animeApi, API_BASE } from '../../../api'
-import styles from './Events.module.css'
-
-const currentMonth = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01` }
+import { animeApi } from '../../../api'
+import AnimeDialog, { coverUrl } from '../../../components/AnimeDialog'
+import styles from './Discovery.module.css'
 
 export default function AnimeSchedule() {
   const { lang } = useLang()
+  const fr = lang === 'fr'
   const [selected, setSelected] = useState(null)
-
-  const { data, loading } = useApi(
-    () => animeApi.getAll({ month: currentMonth() }),
-    [],
-    true
+  const [filter, setFilter] = useState('all')
+  const [search, setSearch] = useState('')
+  const [count, setCount] = useState(12)
+  const { data, loading, error, refresh } = useApi(
+    () => animeApi.getAll({ discover: true, limit: 100 }),
+    []
   )
-
-  const animes = data?.animes || []
-  if (loading || animes.length === 0) return null
-
-  const STATUS_LABEL = {
-    upcoming: lang === 'fr' ? 'À venir' : 'Upcoming',
-    airing:   lang === 'fr' ? 'En cours' : 'Airing',
-    ended:    lang === 'fr' ? 'Terminé' : 'Ended',
+  const animes = useMemo(
+    () =>
+      (data?.animes || []).filter(
+        (a) =>
+          (filter === 'all' || a.status === filter) &&
+          `${a.titleF} ${a.titleE || ''}`
+            .toLocaleLowerCase()
+            .includes(search.toLocaleLowerCase())
+      ),
+    [data, filter, search]
+  )
+  const labels = {
+    airing: fr ? 'En diffusion' : 'Airing',
+    upcoming: fr ? 'Bientôt' : 'Upcoming',
   }
-
   return (
     <section id="anime-schedule" className={styles.section}>
       <div className="container">
-        <div className={styles.sectionHeader}>
-          <div className={styles.tag}>
-            <CalendarDays size={14} strokeWidth={2.2} />
-            <span>{lang === 'fr' ? 'Planning du mois' : "This month's lineup"}</span>
+        <div className={styles.header}>
+          <div>
+            <span className={styles.kicker}>
+              {fr ? 'LE CARNET DES DÉCOUVERTES' : 'THE DISCOVERY JOURNAL'}
+            </span>
+            <h2>{fr ? 'Ta prochaine obsession.' : 'Your next obsession.'}</h2>
+            <p>
+              {fr
+                ? 'Les séries à suivre, les univers à explorer.'
+                : 'Series to follow. Worlds to explore.'}
+            </p>
           </div>
-          <h2 className={styles.title}>
-            {lang === 'fr' ? 'ANIMÉS ' : 'ANIME '}
-            <span className={styles.titleAccent}>{lang === 'fr' ? 'DU MOMENT' : 'RIGHT NOW'}</span>
-          </h2>
-          <p className={styles.subtitle}>
-            {lang === 'fr'
-              ? 'Ce qui sort et ce qui tourne ce mois-ci — mis à jour chaque semaine'
-              : "What's dropping and what's airing this month — updated weekly"}
-          </p>
+          <span className={styles.live}>
+            <span />
+            {fr ? 'Sélection de saison' : 'Seasonal selection'}
+          </span>
         </div>
-
-        <div className={styles.grid}>
-          {animes.map(a => (
-            <AnimeCard key={a.id} anime={a} lang={lang} statusLabel={STATUS_LABEL[a.status]} onClick={() => setSelected(a)} />
-          ))}
+        <div className={styles.toolbar}>
+          <div className={styles.filters}>
+            {['all', 'airing', 'upcoming'].map((key) => (
+              <button
+                key={key}
+                aria-pressed={filter === key}
+                className={filter === key ? styles.active : ''}
+                onClick={() => {
+                  setFilter(key)
+                  setCount(12)
+                }}
+              >
+                {key === 'all'
+                  ? fr
+                    ? 'La sélection'
+                    : 'Discover'
+                  : labels[key]}
+              </button>
+            ))}
+          </div>
+          <label className={styles.search}>
+            <Search size={16} />
+            <input
+              aria-label={fr ? 'Rechercher un animé' : 'Search anime'}
+              placeholder={fr ? 'Un anime en tête ?' : 'Looking for an anime?'}
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setCount(12)
+              }}
+            />
+          </label>
         </div>
-      </div>
-
-      {selected && (
-        <div className={styles.modalOverlay} onClick={() => setSelected(null)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <button className={styles.modalClose} onClick={() => setSelected(null)} aria-label="close modal">
-              <X size={16} strokeWidth={2.4} />
-            </button>
-
-            <div className={styles.modalEmoji}><Sparkles size={34} strokeWidth={2.1} /></div>
-            <h2 className={styles.modalTitle}>{lang === 'en' ? (selected.titleE || selected.titleF) : selected.titleF}</h2>
-            {(lang === 'en' ? selected.synopsisE : selected.synopsisF) && (
-              <p className={styles.modalExcerpt}>{lang === 'en' ? selected.synopsisE : selected.synopsisF}</p>
-            )}
-
-            {selected.openingUrl && (
-              <a href={selected.openingUrl} target="_blank" rel="noreferrer" className={styles.cardBtn} style={{ marginBottom:'1rem' }}>
-                <Play size={15} strokeWidth={2.3} /> {selected.openingTitle || (lang === 'fr' ? "Voir l'opening" : 'Watch opening')}
-              </a>
-            )}
-
-            {selected.characters?.length > 0 && (
-              <div className={styles.modalContent}>
-                <strong>{lang === 'fr' ? 'Personnages' : 'Characters'}</strong>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:8 }}>
-                  {selected.characters.map((c, i) => (
-                    <span key={i} style={{ fontSize:'.8rem', padding:'4px 10px', borderRadius:20, background:'var(--green-pale)', color:'var(--green)' }}>
-                      {c.name}{c.role ? ` · ${c.role}` : ''}
-                    </span>
-                  ))}
+        {loading ? (
+          <div
+            className={styles.grid}
+            aria-label={fr ? 'Chargement des animés' : 'Loading anime'}
+            aria-busy="true"
+          >
+            {Array.from({ length: 6 }, (_, i) => (
+              <div className={styles.skeleton} key={i} />
+            ))}
+          </div>
+        ) : error ? (
+          <div className={styles.empty} role="status">
+            <p>
+              {fr
+                ? 'La sélection est momentanément indisponible.'
+                : 'The selection is temporarily unavailable.'}
+            </p>
+            <button onClick={refresh}>{fr ? 'Réessayer' : 'Try again'}</button>
+          </div>
+        ) : !animes.length ? (
+          <div className={styles.empty}>
+            {search
+              ? fr
+                ? 'Aucun animé trouvé. Essaie un autre titre.'
+                : 'No anime found. Try another title.'
+              : fr
+                ? 'La prochaine sélection se prépare. Repasse bientôt !'
+                : 'The next selection is on its way. Check back soon!'}
+          </div>
+        ) : (
+          <div className={styles.grid}>
+            {animes.slice(0, count).map((a, i) => (
+              <button
+                key={a.id}
+                className={styles.card}
+                onClick={() => setSelected(a)}
+                style={{ animationDelay: `${Math.min(i, 5) * 45}ms` }}
+              >
+                <div className={styles.poster}>
+                  {a.coverUrl ? (
+                    <MediaImage
+                      src={coverUrl(a.coverUrl)}
+                      alt=""
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.visibility = 'hidden'
+                      }}
+                    />
+                  ) : (
+                    <span className={styles.noCover}>アニメ</span>
+                  )}
+                  <span className={styles.status}>
+                    {labels[a.status] || a.status}
+                  </span>
+                  <span className={styles.cardArrow}>
+                    <ArrowUpRight size={18} />
+                  </span>
                 </div>
-              </div>
-            )}
+                <div className={styles.cardMeta}>
+                  <span>{a.studio || 'Anime'}</span>
+                  {a.score > 0 && (
+                    <span>
+                      <Star size={11} /> {(a.score / 10).toFixed(1)}
+                    </span>
+                  )}
+                </div>
+                <h3>{fr ? a.titleF : a.titleE || a.titleF}</h3>
+                <p>
+                  {a.nextEpisodeNumber
+                    ? `${fr ? 'Épisode' : 'Episode'} ${a.nextEpisodeNumber} · ${a.weekday || (fr ? 'À suivre' : 'Coming up')}`
+                    : (a.genres || []).slice(0, 2).join(' · ')}
+                </p>
+              </button>
+            ))}
           </div>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function AnimeCard({ anime, lang, statusLabel, onClick }) {
-  const title = lang === 'en' ? (anime.titleE || anime.titleF) : anime.titleF
-  return (
-    <div className={styles.card} onClick={onClick}>
-      <div className={styles.cardImg}>
-        {anime.coverUrl
-          ? <img src={`${API_BASE}${anime.coverUrl}`} alt={title} loading="lazy" />
-          : <span className={styles.cardEmoji}>📺</span>}
-        <span className={styles.featuredBadge}>{statusLabel}</span>
-      </div>
-      <div className={styles.cardBody}>
-        <div className={styles.cardMeta}>
-          {anime.weekday && <span className={styles.cardCat}>{anime.weekday}</span>}
-          {anime.studio && <span className={styles.cardDate}>{anime.studio}</span>}
-        </div>
-        <h3 className={styles.cardTitle}>{title}</h3>
-        {anime.openingTitle && (
-          <p className={styles.cardExcerpt}>🎵 {anime.openingTitle}</p>
+        )}
+        {animes.length > count && (
+          <button
+            className={styles.more}
+            onClick={() => setCount((c) => c + 12)}
+          >
+            {fr ? 'Voir plus d’animés' : 'Show more anime'}
+          </button>
+        )}
+        {data?.animes?.some((a) => a.syncedAt) && (
+          <p className={styles.source}>
+            {fr
+              ? 'Catalogue synchronisé avec AniList'
+              : 'Catalogue synced with AniList'}
+          </p>
         )}
       </div>
-    </div>
+      {selected && (
+        <AnimeDialog
+          anime={selected}
+          lang={lang}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </section>
   )
 }

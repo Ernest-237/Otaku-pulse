@@ -1,5 +1,7 @@
 // server/routes/chapters.js — Lecture de chapitres + gating
 const router = require('express').Router()
+const { getChapterAccess } = require('../services/chapterAccess')
+const { chapterPayload } = require('../utils/chapterPolicy')
 const crypto = require('crypto')
 const { Op } = require('sequelize')
 const { body, validationResult } = require('express-validator')
@@ -12,54 +14,16 @@ const validate = (req, res, next) => {
   next()
 }
 
-// Helper : a-t-il un abonnement actif ?
-async function hasActiveSubscription(userId) {
-  if (!userId) return false
-  const sub = await Subscription.findOne({
-    where: { userId, status: 'active', expiresAt: { [Op.gt]: new Date() } },
-    order: [['expiresAt','DESC']],
-  })
-  return !!sub
-}
-
-// Helper : ce user peut-il lire ce chapitre ?
-async function canRead(user, chapter, manga, pageIndex = 0) {
-  // Premier chapitre toujours accessible aux 1ères pages (teaser)
-  const isFirstChapter = parseFloat(chapter.chapterNumber) === 1
-
-  // Anonyme : 1ère page de chaque chapitre free OK, sinon login obligatoire
-  if (!user) {
-    if (chapter.accessTier === 'free' && pageIndex === 0) return { allowed: true, reason: 'free_first_page' }
-    return { allowed: false, reason: 'login_required' }
-  }
-
-  // Admin / superadmin : tout
-  if (['admin','superadmin'].includes(user.role)) return { allowed: true, reason: 'admin' }
-
-  // Auteur du manga : tout
-  if (manga.authorId === user.id) return { allowed: true, reason: 'author' }
-
-  // Chapitre free : OK
-  if (chapter.accessTier === 'free') return { allowed: true, reason: 'free_chapter' }
-  // Manga free : OK
-  if (manga.accessTier === 'free')   return { allowed: true, reason: 'free_manga' }
-
-  // Premier chapitre toujours free pour les connectés (teaser)
-  if (isFirstChapter) return { allowed: true, reason: 'first_chapter_teaser' }
-
-  // Abonnement actif requis
-  const hasSub = await hasActiveSubscription(user.id)
-  if (hasSub) return { allowed: true, reason: 'subscription' }
-
-  return { allowed: false, reason: 'subscription_required' }
-}
-
 // ── GET /api/chapters/by-manga/:mangaId ────────────
-router.get('/by-manga/:mangaId', async (req, res) => {
+router.get('/by-manga/:mangaId', optionalAuth, async (req, res) => {
   try {
+    const manga = await Manga.findByPk(req.params.mangaId, { attributes: ['id','authorId','moderationStatus'] })
+    if (!manga) return res.status(404).json({ error: 'Manga introuvable' })
+    const owner = req.user && (manga.authorId === req.user.id || ['admin','superadmin'].includes(req.user.role))
+    if (!owner && manga.moderationStatus !== 'approved') return res.status(404).json({ error: 'Manga introuvable' })
     const chapters = await Chapter.findAll({
-      where: { mangaId: req.params.mangaId, isPublished: true },
-      attributes: ['id','chapterNumber','title','pageCount','accessTier','publishedAt','viewCount'],
+      where: { mangaId: manga.id, ...(owner ? {} : { isPublished: true }) },
+      attributes: ['id','chapterNumber','title','pageCount','accessTier','publishedAt','viewCount','coinCost','isPublished'],
       order: [['chapterNumber','ASC']],
     })
     res.json({ chapters })
@@ -77,27 +41,17 @@ router.get('/:id', optionalAuth, async (req, res) => {
       return res.status(404).json({ error: 'Chapitre introuvable' })
     }
 
-    const access = await canRead(req.user, chapter, chapter.manga, 0)
+    const access = await getChapterAccess(req.user, chapter, chapter.manga)
+    if (access.reason === 'not_found') return res.status(404).json({ error: 'Chapitre introuvable' })
 
-    // Si pas le droit : retourner uniquement la 1ère page (teaser) ou un message
+    // Un refus d'accès ne doit inclure aucune image du chapitre.
     const j = chapter.toJSON()
     delete j.manga.coverImageData
     delete j.manga.bannerImageData
 
+    delete j.manga.bgMusicData
     if (!access.allowed) {
-      // Pour anonyme/sans-abo : on retourne quand même 1 page si "login_required" (teaser)
-      // Pour subscription_required : on retourne 1 page teaser si premier chapitre, sinon rien
-      if (access.reason === 'login_required' && chapter.accessTier === 'free' && chapter.pages.length > 0) {
-        j.pages = [chapter.pages[0]]
-        j.gatingMessage = 'login_required'
-      } else if (access.reason === 'subscription_required') {
-        j.pages = chapter.pages.slice(0, 1)
-        j.gatingMessage = 'subscription_required'
-      } else {
-        j.pages = []
-        j.gatingMessage = access.reason
-      }
-      j.accessGranted = false
+      j.pages = []; j.accessGranted = false; j.gatingMessage = access.reason
       return res.json({ chapter: j, access })
     }
 
@@ -145,14 +99,14 @@ router.post('/', protect, [
     const isAdmin = ['admin','superadmin'].includes(req.user.role)
     if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Non autorisé' })
 
-    const data = { ...req.body }
+    const data = { ...chapterPayload(req.body), mangaId: manga.id }
     if (Array.isArray(data.pages)) data.pageCount = data.pages.length
 
     const chapter = await Chapter.create(data)
 
     // Mettre à jour le compteur du manga
     const total = await Chapter.count({ where: { mangaId: manga.id, isPublished: true } })
-    await manga.update({ totalChapters: total })
+    await manga.update({ totalChapters: total, accessTier: await Chapter.count({ where: { mangaId: manga.id, isPublished: true, accessTier: 'premium' } }) ? 'premium' : 'free' })
 
     res.status(201).json({ chapter })
   } catch (err) {
@@ -172,21 +126,13 @@ router.patch('/:id', protect, async (req, res) => {
     const isAdmin = ['admin','superadmin'].includes(req.user.role)
     if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Non autorisé' })
 
-    const updates = { ...req.body }
-    if (Array.isArray(updates.pages)) {
-      if (updates.pages.length === 0) return res.status(400).json({ error: 'Un chapitre doit garder au moins une page.' })
-      updates.pages = updates.pages.map((p, i) => ({ ...p, order: i }))
-      updates.pageCount = updates.pages.length
-    }
-
-    // Si publication pour la 1ère fois : set publishedAt
-    if (updates.isPublished && !chapter.isPublished) updates.publishedAt = new Date()
+    const updates = chapterPayload(req.body, chapter.toJSON())
 
     await chapter.update(updates)
 
     // Recompte chapitres publiés
     const total = await Chapter.count({ where: { mangaId: chapter.mangaId, isPublished: true } })
-    await Manga.update({ totalChapters: total }, { where: { id: chapter.mangaId } })
+    await Manga.update({ totalChapters: total, accessTier: await Chapter.count({ where: { mangaId: chapter.mangaId, isPublished: true, accessTier: 'premium' } }) ? 'premium' : 'free' }, { where: { id: chapter.mangaId } })
 
     res.json({ chapter })
   } catch (err) { res.status(400).json({ error: err.message }) }
@@ -204,7 +150,7 @@ router.delete('/:id', protect, async (req, res) => {
 
     await chapter.destroy()
     const total = await Chapter.count({ where: { mangaId: chapter.mangaId, isPublished: true } })
-    await Manga.update({ totalChapters: total }, { where: { id: chapter.mangaId } })
+    await Manga.update({ totalChapters: total, accessTier: await Chapter.count({ where: { mangaId: chapter.mangaId, isPublished: true, accessTier: 'premium' } }) ? 'premium' : 'free' }, { where: { id: chapter.mangaId } })
 
     res.json({ success: true })
   } catch (err) { res.status(500).json({ error: err.message }) }

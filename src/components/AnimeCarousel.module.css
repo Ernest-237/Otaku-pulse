@@ -13,7 +13,7 @@
   box-shadow: var(--shadow-md);
 }
 .wrap.dark {
-  border-color: rgba(51,255,51,.2);
+  border-color: rgba(169,195,160,.25);
   background: rgba(255,255,255,.03);
 }
 
@@ -43,7 +43,8 @@
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
-.viewport:hover .track { animation-play-state: paused; }
+.viewport:hover .track,.viewport:focus-within .track { animation-play-state: paused; }
+@media(prefers-reduced-motion:reduce){.viewport{overflow-x:auto}.track{animation:none!important}}
 
 @keyframes scrollLeft {
   from { transform: translateX(0); }

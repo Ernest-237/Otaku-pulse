@@ -1,33 +1,33 @@
 // src/hooks/useApi.js
 import { useState, useEffect, useCallback, useRef } from 'react'
 
-// Cache simple pour éviter les refetch inutiles
-const cache = new Map()
-
 export function useApi(apiFn, deps = [], immediate = true) {
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(immediate)
   const [error,   setError]   = useState(null)
   const fnRef = useRef(apiFn)
+  const sequence = useRef(0)
   fnRef.current = apiFn
 
   const execute = useCallback(async (...args) => {
+    const current = ++sequence.current
     setLoading(true)
     setError(null)
     try {
       const result = await fnRef.current(...args)
-      setData(result)
+      if (current === sequence.current) setData(result)
       return result
     } catch (err) {
-      setError(err.message)
+      if (current === sequence.current) setError(err.message)
       return null
     } finally {
-      setLoading(false)
+      if (current === sequence.current) setLoading(false)
     }
   }, []) // eslint-disable-line
 
   useEffect(() => {
     if (immediate) execute()
+    return () => { sequence.current++ }
   }, deps) // eslint-disable-line
 
   const refresh = useCallback(() => execute(), [execute])

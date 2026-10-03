@@ -156,6 +156,7 @@ const Product = sequelize.define('Product', {
 
 // ══ ORDER (existant) ════════════════════════════════
 const Order = sequelize.define('Order', {
+  checkoutKey: { type: DataTypes.STRING(64) },
   id:            { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   orderNumber:   { type: DataTypes.STRING(30), unique: true },
   userId:        { type: DataTypes.UUID, allowNull: false },
@@ -854,6 +855,10 @@ const Anime = sequelize.define('Anime', {
   studio:          { type: DataTypes.STRING(120) },
   openingTitle:    { type: DataTypes.STRING(150) },
   openingUrl:      { type: DataTypes.STRING(500) },
+  malId:          { type: DataTypes.INTEGER },
+  themes:         { type: DataTypes.JSONB, defaultValue: [] },
+  themesSyncedAt:  { type: DataTypes.DATE },
+  themesAttemptedAt: { type: DataTypes.DATE },
   characters:      { type: DataTypes.JSONB, defaultValue: [] }, // [{ name, role, imageUrl }]
   // ── SYNCHRONISATION AUTOMATIQUE ────────────────────
   // 'manual' : saisi par l'admin — le bot n'y touche JAMAIS.

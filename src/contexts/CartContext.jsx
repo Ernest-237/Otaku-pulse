@@ -1,17 +1,18 @@
 // src/contexts/CartContext.jsx
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { sanitizeCart, addCartItem } from '../utils/cart'
 
 const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('op_cart') || '[]') }
+    try { return sanitizeCart(JSON.parse(localStorage.getItem('op_cart') || '[]')) }
     catch { return [] }
   })
 
   // Persister dans localStorage à chaque changement
   useEffect(() => {
-    localStorage.setItem('op_cart', JSON.stringify(items))
+    try { localStorage.setItem('op_cart', JSON.stringify(items)) } catch { /* The in-memory cart remains available in private browsing. */ }
   }, [items])
 
   // ── Totaux calculés ─────────────────────────────────
@@ -22,19 +23,7 @@ export function CartProvider({ children }) {
 
   // ── Actions ─────────────────────────────────────────
   const addItem = useCallback((product) => {
-    setItems(prev => {
-      const exists = prev.find(i => i.id === product.id)
-      if (exists) {
-        return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i)
-      }
-      return [...prev, {
-        id:    product.id,
-        name:  product.nameF || product.name,
-        price: product.price,
-        emoji: product.emoji || '🎁',
-        qty:   1,
-      }]
-    })
+    setItems(prev => addCartItem(prev, product))
   }, [])
 
   const removeItem = useCallback((id) => {
@@ -43,7 +32,7 @@ export function CartProvider({ children }) {
 
   const updateQty = useCallback((id, delta) => {
     setItems(prev => prev
-      .map(i => i.id === id ? { ...i, qty: i.qty + delta } : i)
+      .map(i => i.id === id ? { ...i, qty: Math.min(i.stock ?? 99, 99, i.qty + delta) } : i)
       .filter(i => i.qty > 0)
     )
   }, [])
@@ -51,11 +40,12 @@ export function CartProvider({ children }) {
   const clearCart = useCallback(() => {
     setItems([])
   }, [])
+  const replaceItems = useCallback(next => setItems(sanitizeCart(next)), [])
 
   return (
     <CartContext.Provider value={{
       items, count, subtotal, shipping, total,
-      addItem, removeItem, updateQty, clearCart,
+      addItem, removeItem, updateQty, clearCart, replaceItems,
     }}>
       {children}
     </CartContext.Provider>

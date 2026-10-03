@@ -1,23 +1,21 @@
 // server/routes/events.js — Sequelize
 const express = require('express');
-const { Event, EventRegistration, User } = require('../models/index');
+const models = require('../models/index');
+const { Event, EventRegistration, User, sequelize } = models;
+const { Op } = require('sequelize');
+const { normalizeImageFields, versionedImage } = require('../utils/media');
+const { eventPayload, pagination } = require('../utils/publication');
+const { registerEvent, cameroonToday } = require('../services/eventBooking');
 const { protect, restrictTo } = require('../middleware/auth');
 const { sendTicketConfirmed } = require('../utils/mailer');
 const router  = express.Router();
 
 // ── Helper : normalise imageUrl (data URL → imageData/imageMime) ──
 // même convention que server/routes/blog.js
-function normalizeImageFields(body) {
-  const out = { ...body };
-  if (typeof out.imageUrl === 'string' && out.imageUrl.startsWith('data:')) {
-    const match = out.imageUrl.match(/^data:([^;]+);base64,(.*)$/s);
-    if (match) { out.imageMime = match[1]; out.imageData = match[2]; out.imageUrl = null; }
-  }
-  return out;
-}
+
 const withImageUrl = (event) => {
   const j = event.toJSON ? event.toJSON() : { ...event };
-  if (!j.imageUrl && j.imageMime) j.imageUrl = `/api/events/${j.id}/image`;
+  if (!j.imageUrl && j.imageMime) j.imageUrl = versionedImage(`/api/events/${j.id}/image`, j.updatedAt);
   delete j.imageData;
   return j;
 };
@@ -26,14 +24,16 @@ const withImageUrl = (event) => {
 router.get('/', async (req, res, next) => {
   try {
     const { status, city, limit = 10 } = req.query;
-    const where = {};
-    if (status) where.status = status;
+    const where = { status: { [Op.ne]: 'draft' } };
+    if (req.query.period === 'upcoming') { where.date = { [Op.gte]: cameroonToday() }; where.status = ['upcoming','ongoing']; }
+    if (req.query.period === 'past') where.date = { [Op.lt]: cameroonToday() };
+    if (status && status !== 'draft') where.status = status;
     if (city)   where.city   = city;
-    const events = await Event.findAll({
-      where, order: [['date','ASC']], limit: parseInt(limit),
+    const { rows: events, count: total } = await Event.findAndCountAll({
+      where, order: [['date','ASC']], limit: pagination(req.query, 24).limit, offset: pagination(req.query, 24).offset,
       attributes: { exclude: ['imageData'] },
     });
-    res.json({ events: events.map(withImageUrl) });
+    res.json({ events: events.map(withImageUrl), total });
   } catch (err) { next(err); }
 });
 
@@ -85,28 +85,71 @@ router.delete('/registrations/:id', protect, async (req, res, next) => {
     const isAdmin = ['admin','superadmin'].includes(req.user.role);
     if (reg.userId !== req.user.id && !isAdmin) return res.status(403).json({ error: 'Non autorisé.' });
 
-    if (reg.status === 'confirmed') {
-      const event = await Event.findByPk(reg.eventId);
-      if (event) await event.decrement('registered', { by: reg.guests || 1 });
-    }
-    await reg.destroy();
+    await sequelize.transaction(async transaction => {
+      const event = await Event.findByPk(reg.eventId, { transaction, lock: transaction.LOCK.UPDATE });
+      const current = await EventRegistration.findByPk(reg.id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!current || current.status === 'cancelled') return;
+      if (current.status === 'confirmed' && event) await event.update({ registered: Math.max(0, event.registered - (current.guests || 1)) }, { transaction });
+      await current.update({ status: 'cancelled', ticketIssuedAt: null }, { transaction });
+    });
     res.json({ message: 'Inscription annulée.' });
   } catch (err) { next(err); }
 });
 
 // PATCH /api/events/registrations/:id/confirm-payment — admin, accuse réception du paiement et émet le billet définitif
+router.patch('/registrations/:id/confirm', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    const entry = await EventRegistration.findByPk(req.params.id)
+    if (!entry) return res.status(404).json({ error: 'Inscription introuvable.' })
+    const registration = await sequelize.transaction(async transaction => {
+      const event = await Event.findByPk(entry.eventId, { transaction, lock: transaction.LOCK.UPDATE })
+      const reg = await EventRegistration.findByPk(entry.id, { transaction, lock: transaction.LOCK.UPDATE })
+      if (!reg || !['waitlist','pending'].includes(reg.status)) throw Object.assign(new Error('Cette inscription ne peut pas être confirmée.'), { status: 400 })
+      if (!event || !['upcoming','ongoing'].includes(event.status) || event.date < cameroonToday()) throw Object.assign(new Error('Les inscriptions sont fermées.'), { status: 400 })
+      if (event.registered + reg.guests > event.capacity) throw Object.assign(new Error('Pas assez de places disponibles pour ce groupe.'), { status: 400 })
+      const free = event.isFree || event.price === 0
+      await reg.update({ status: 'confirmed', ...(free ? { paymentStatus: 'paid', paidAt: new Date(), ticketIssuedAt: new Date() } : {}) }, { transaction })
+      await event.increment('registered', { by: reg.guests, transaction })
+      return reg
+    })
+    res.json({ registration })
+  } catch (err) { next(err) }
+})
+
 router.patch('/registrations/:id/confirm-payment', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
   try {
-    const reg = await EventRegistration.findByPk(req.params.id, {
-      include: [{ model: Event, as: 'event' }, { model: User, as: 'user' }],
+    const entry = await EventRegistration.findByPk(req.params.id);
+    if (!entry) return res.status(404).json({ error: 'Inscription introuvable.' });
+    const result = await sequelize.transaction(async transaction => {
+      // Même ordre de verrouillage que les réservations et annulations.
+      const event = await Event.findByPk(entry.eventId, { transaction, lock: transaction.LOCK.UPDATE });
+      const reg = await EventRegistration.findByPk(entry.id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!reg || reg.status !== 'confirmed') throw Object.assign(new Error('Confirme une place avant de valider le paiement.'), { status: 400 });
+      if (!event || ['draft', 'cancelled'].includes(event.status)) throw Object.assign(new Error('Cet événement ne peut pas émettre de billet.'), { status: 400 });
+      if (reg.paymentStatus === 'paid') return { reg, event, repeated: true };
+      const now = new Date();
+      await reg.update({ paymentStatus: 'paid', paidAt: now, ticketIssuedAt: now }, { transaction });
+      return { reg, event, repeated: false };
     });
-    if (!reg) return res.status(404).json({ error: 'Inscription introuvable.' });
-    const now = new Date();
-    await reg.update({ paymentStatus: 'paid', paidAt: now, ticketIssuedAt: now });
-    if (reg.event && reg.user) {
-      sendTicketConfirmed(reg.user, reg.event, reg).catch(e => console.error('❌ Email billet:', e.message));
+    if (!result.repeated) {
+      // Les notifications ne doivent jamais faire échouer un paiement déjà enregistré.
+      Promise.resolve().then(async () => {
+        const user = await User.findByPk(result.reg.userId);
+        if (user) await sendTicketConfirmed(user, result.event, result.reg);
+      }).catch(e => console.error('❌ Email billet:', e.message));
     }
-    res.json({ message: 'Paiement confirmé, billet envoyé.', registration: reg });
+    res.json({ message: result.repeated ? 'Paiement déjà confirmé.' : 'Paiement confirmé, billet disponible.', registration: result.reg });
+  } catch (err) { next(err); }
+});
+
+router.get('/admin/list', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    const { limit, offset } = pagination(req.query);
+    const where = {};
+    if (req.query.search) where.titleF = { [Op.iLike]: `%${req.query.search}%` };
+    if (req.query.status) where.status = req.query.status;
+    const { rows, count } = await Event.findAndCountAll({ where, limit, offset, order: [['date','DESC']], attributes: { exclude: ['imageData'] } });
+    res.json({ events: rows.map(withImageUrl), total: count });
   } catch (err) { next(err); }
 });
 
@@ -115,11 +158,8 @@ router.get('/:id', async (req, res, next) => {
   try {
     const event = await Event.findByPk(req.params.id, {
       attributes: { exclude: ['imageData'] },
-      include: [{ model: EventRegistration, as: 'registrations',
-        include: [{ model: User, as: 'user', attributes: ['id','pseudo','avatar'] }],
-      }],
     });
-    if (!event) return res.status(404).json({ error: 'Événement introuvable.' });
+    if (!event || event.status === 'draft') return res.status(404).json({ error: 'Événement introuvable.' });
     res.json({ event: withImageUrl(event) });
   } catch (err) { next(err); }
 });
@@ -127,39 +167,14 @@ router.get('/:id', async (req, res, next) => {
 // POST /api/events/register
 router.post('/register', protect, async (req, res, next) => {
   try {
-    const { eventId, guests = 1 } = req.body;
-    const event = await Event.findByPk(eventId);
-    if (!event) return res.status(404).json({ error: 'Événement introuvable.' });
-
-    const already = await EventRegistration.findOne({ where: { eventId, userId: req.user.id } });
-    if (already) return res.status(409).json({ error: 'Déjà inscrit.' });
-
-    const isFull  = event.registered >= event.capacity;
-    const status  = isFull ? 'waitlist' : 'confirmed';
-
-    const ticketCode = `OP-${Date.now().toString(36).toUpperCase()}`;
-
-    await EventRegistration.create({
-      eventId, userId: req.user.id,
-      name:  `${req.user.firstName || ''} ${req.user.lastName || req.user.pseudo}`.trim(),
-      email: req.user.email,
-      phone: req.user.phone,
-      guests, status, ticketCode,
-    });
-
-    if (!isFull) await event.increment('registered', { by: guests });
-
-    res.json({
-      message: isFull ? "Ajouté en liste d'attente." : 'Inscription confirmée !',
-      status,
-    });
+    res.json(await registerEvent(models, req.user, req.body));
   } catch (err) { next(err); }
 });
 
 // POST /api/events — admin
 router.post('/', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
   try {
-    const event = await Event.create(normalizeImageFields(req.body));
+    const event = await Event.create(eventPayload(req.body));
     res.status(201).json({ event: withImageUrl(event) });
   } catch (err) { next(err); }
 });
@@ -167,9 +182,12 @@ router.post('/', protect, restrictTo('admin','superadmin'), async (req, res, nex
 // PATCH /api/events/:id — admin
 router.patch('/:id', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
   try {
-    const event = await Event.findByPk(req.params.id);
-    if (!event) return res.status(404).json({ error: 'Événement introuvable.' });
-    await event.update(normalizeImageFields(req.body));
+    const event = await sequelize.transaction(async transaction => {
+      const current = await Event.findByPk(req.params.id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!current) throw Object.assign(new Error('Événement introuvable.'), { status: 404 });
+      await current.update(eventPayload(req.body, current.toJSON()), { transaction });
+      return current;
+    });
     res.json({ event: withImageUrl(event) });
   } catch (err) { next(err); }
 });

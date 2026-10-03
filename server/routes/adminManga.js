@@ -1,3 +1,4 @@
+const { versionedImage } = require('../utils/media')
 // server/routes/adminManga.js — Endpoints admin pour la plateforme Manga
 const express = require('express')
 const { Op, fn, col } = require('sequelize')
@@ -7,6 +8,7 @@ const {
 } = require('../models/index')
 const { protect, restrictTo } = require('../middleware/auth')
 const { grantRole, revokeRole } = require('../utils/roles')
+const { chapterPayload } = require('../utils/chapterPolicy')
 const router = express.Router()
 
 router.use(protect, restrictTo('admin','superadmin'))
@@ -98,7 +100,7 @@ router.get('/dashboard', async (req, res, next) => {
     })
     const topMangasWithUrl = topMangas.map(m => {
       const j = m.toJSON()
-      if (m.coverImageMime) j.coverUrl = `/api/manga/${m.id}/cover`
+      if (m.coverImageMime) j.coverUrl = versionedImage(`/api/manga/${m.id}/cover`, m.updatedAt)
       return j
     })
 
@@ -192,7 +194,7 @@ router.get('/list', async (req, res, next) => {
 
     const result = mangas.map(m => {
       const j = m.toJSON()
-      if (m.coverImageMime) j.coverUrl = `/api/manga/${m.id}/cover`
+      if (m.coverImageMime) j.coverUrl = versionedImage(`/api/manga/${m.id}/cover`, m.updatedAt)
       return j
     })
 
@@ -356,13 +358,13 @@ router.patch('/chapters/:id', async (req, res, next) => {
     const updates = {}
     allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k] })
     if (updates.isPublished && !ch.publishedAt) updates.publishedAt = new Date()
-    await ch.update(updates)
+    await ch.update(chapterPayload(updates, ch.toJSON()))
 
     // Recompter les chapitres publiés du manga
     const publishedCount = await Chapter.count({
       where: { mangaId: ch.mangaId, isPublished: true },
     })
-    await Manga.update({ totalChapters: publishedCount }, { where: { id: ch.mangaId } })
+    await Manga.update({ totalChapters: publishedCount, accessTier: await Chapter.count({ where: { mangaId: ch.mangaId, isPublished: true, accessTier: 'premium' } }) ? 'premium' : 'free' }, { where: { id: ch.mangaId } })
 
     res.json({ chapter: ch })
   } catch (err) { next(err) }
@@ -378,7 +380,7 @@ router.delete('/chapters/:id', async (req, res, next) => {
     const mangaId = ch.mangaId
     await ch.destroy()
     const publishedCount = await Chapter.count({ where: { mangaId, isPublished: true } })
-    await Manga.update({ totalChapters: publishedCount }, { where: { id: mangaId } })
+    await Manga.update({ totalChapters: publishedCount, accessTier: await Chapter.count({ where: { mangaId, isPublished: true, accessTier: 'premium' } }) ? 'premium' : 'free' }, { where: { id: mangaId } })
     res.json({ success: true })
   } catch (err) { next(err) }
 })

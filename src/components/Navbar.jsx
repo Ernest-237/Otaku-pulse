@@ -1,3 +1,5 @@
+import OtakuMark from './ui/OtakuMark'
+import MediaImage from './ui/MediaImage'
 // src/components/Navbar.jsx — Version complète avec icône user néon
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -85,6 +87,11 @@ export default function Navbar() {
 
   // Close mobile menu on route change
   useEffect(() => { setMenuOpen(false) }, [location.pathname])
+  useEffect(() => {
+    const open = () => { setAuthTab('login'); setAuthError(''); setAuthModal(true) }
+    window.addEventListener('op:login', open)
+    return () => window.removeEventListener('op:login', open)
+  }, [])
 
   // Auto-open login modal if sessionStorage flag set (from other pages)
   useEffect(() => {
@@ -131,7 +138,7 @@ export default function Navbar() {
     try {
       const u = await login(fd.get('email'), fd.get('password'))
       closeAuthModal()
-      toast.success(`Bienvenue ${u.pseudo} ⚡`)
+      toast.success(`Bienvenue ${u.pseudo} 🍥`)
       if (['admin','superadmin'].includes(u.role)) setTimeout(() => navigate('/admin'), 600)
     } catch(err) { setAuthError(err.message) }
     finally { setLoginLoading(false) }
@@ -147,7 +154,7 @@ export default function Navbar() {
     try {
       const u = await register(fd.get('pseudo'), fd.get('email'), fd.get('password'))
       closeAuthModal()
-      toast.success(`Bienvenue ${u.pseudo} ⚡`)
+      toast.success(`Bienvenue ${u.pseudo} 🍥`)
     } catch(err) { setAuthError(err.message) }
     finally { setSignupLoading(false) }
   }
@@ -204,7 +211,7 @@ export default function Navbar() {
 
   const navLinks = [
     { label: T.shop,   action: () => navigate('/boutique') },
-    { label: T.events, action: () => navigate('/reservation') },
+    { label: T.events, action: () => navigate('/evenements') },
     { label: T.fandom, href: '/fandom' },
     { label: T.manga,  href: '/manga' },
     { label: T.about,  action: () => scrollTo('apropos')  },
@@ -222,7 +229,7 @@ export default function Navbar() {
         <div className={styles.navInner}>
           {/* Logo */}
           <Link to="/" className={styles.logo}>
-            <img src="/assets/logo/otaku-pulse-icon.svg" alt="Otaku Pulse" className={styles.logoBolt} width={40} height={40} />
+            <span className={styles.logoBolt}><OtakuMark kind="🍥" size={27} /></span>
             <div>
               <div className={styles.logoName}>OTAKU PULSE</div>
               <div className={styles.logoSub}>VIVEZ L'EXPÉRIENCE</div>
@@ -255,7 +262,7 @@ export default function Navbar() {
             </div>
 
             {/* Cart */}
-            <button className={styles.cartBtn} onClick={() => navigate('/profil')} title='Mon panier'>
+            <button className={styles.cartBtn} onClick={() => navigate('/panier')} title='Mon panier' aria-label="Mon panier">
               <IconCart size={19} />{cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
             </button>
 
@@ -472,7 +479,7 @@ export default function Navbar() {
           {authTab === 'login' && (
             <form onSubmit={handleLogin} className={styles.authForm}>
               <div className={styles.authHeader}>
-                <div className={styles.authBolt}>⚡</div>
+                <div className={styles.authBolt}>🍥</div>
                 <h2 className={styles.authTitle}>{T.loginTitle}</h2>
                 <p className={styles.authSub}>Rejoins l'univers Otaku Pulse</p>
               </div>
@@ -495,7 +502,7 @@ export default function Navbar() {
 </div>
               {authError && <div className={styles.authError}>{authError}</div>}
               <button type="submit" className={styles.authSubmit} disabled={loginLoading}>
-                {loginLoading ? <><Spinner size={16} color="#0c1a2e"/> {T.connecting}</> : `⚡ ${T.loginTitle}`}
+                {loginLoading ? <><Spinner size={16} color="#0c1a2e"/> {T.connecting}</> : `🍥 ${T.loginTitle}`}
               </button>
               <GoogleSignInButton onCredential={handleGoogle} disabled={googleLoading || loginLoading} text="signin_with" />
               <p className={styles.authSwitch}>{T.noAccount}{' '}
@@ -515,7 +522,7 @@ export default function Navbar() {
           {authTab === 'signup' && (
             <form onSubmit={handleSignup} className={styles.authForm}>
               <div className={styles.authHeader}>
-                <div className={styles.authBolt}>⚡</div>
+                <div className={styles.authBolt}>🍥</div>
                 <h2 className={styles.authTitle}>{T.signupTitle}</h2>
                 <p className={styles.authSub}>Crée ton compte Otaku</p>
               </div>
@@ -548,7 +555,7 @@ export default function Navbar() {
 </div>
               {authError && <div className={styles.authError}>{authError}</div>}
               <button type="submit" className={styles.authSubmit} disabled={signupLoading}>
-                {signupLoading ? <><Spinner size={16} color="#0c1a2e"/> {T.joining}...</> : `⚡ ${T.joining}`}
+                {signupLoading ? <><Spinner size={16} color="#0c1a2e"/> {T.joining}...</> : `🍥 ${T.joining}`}
               </button>
               <GoogleSignInButton onCredential={handleGoogle} disabled={googleLoading || signupLoading} text="signup_with" />
               <p className={styles.authSwitch}>{T.hasAccount}{' '}

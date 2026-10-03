@@ -24,20 +24,20 @@ const MONTHS_FR = {
 }
 
 const STATUS_COLORS = {
-  pending:'#f59e0b', confirmed:'#3b82f6', preparing:'#8b5cf6',
-  shipped:'#06b6d4', delivered:'#10b981', cancelled:'#ef4444', refunded:'#64748b',
+  pending:'#a36310', confirmed:'#3b82f6', preparing:'#8b5cf6',
+  shipped:'#06b6d4', delivered:'#477c5c', cancelled:'#ef4444', refunded:'#64748b',
 }
 
 // Palette catégorielle : teintes distinctes mais de saturation comparable, pour
 // qu'aucune ne domine visuellement les autres dans un camembert.
-const CAT_COLORS = ['#10b981','#3b82f6','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#f97316','#ec4899','#14b8a6','#6366f1']
+const CAT_COLORS = ['#477c5c','#3b82f6','#8b5cf6','#a36310','#ef4444','#06b6d4','#f97316','#ec4899','#14b8a6','#6366f1']
 
 // Aligné sur la palette du panneau (voir src/styles/admin.css).
 const CHART = {
-  text: '#8996a8',
-  grid: 'rgba(255,255,255,.05)',
-  tooltipBg: '#161d27',
-  tooltipBorder: '#26313f',
+  text: '#60705f',
+  grid: 'rgba(71,124,92,.05)',
+  tooltipBg: '#fffef9',
+  tooltipBorder: '#cad6c5',
 }
 
 const tooltipStyle = {
@@ -45,7 +45,7 @@ const tooltipStyle = {
   border: `1px solid ${CHART.tooltipBorder}`,
   borderRadius: 10,
   fontSize: '.78rem',
-  color: '#e6ebf2',
+  color: '#263e30',
 }
 
 function ChartTooltip({ active, payload, label, unit = '' }) {
@@ -105,7 +105,7 @@ export default function DashboardSection({ setSection }) {
 
   if (loading) return <PageLoader />
 
-  if (!data?.stats) return (
+  if (!data?.stats || !['users','orders','revenue','products','contacts','events'].every(key => data.stats[key])) return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
       <TriangleAlert size={40} className="text-warn" />
       <div>
@@ -229,8 +229,8 @@ export default function DashboardSection({ setSection }) {
         <AreaChart data={mergedData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="gradCA" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="5%" stopColor="#477c5c" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="#477c5c" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradCmd" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
@@ -245,7 +245,7 @@ export default function DashboardSection({ setSection }) {
           />
           <Tooltip content={<ChartTooltip unit=" F" />} />
           <Legend formatter={v => <span className="text-[0.78rem] text-fg-muted">{v}</span>} />
-          <Area type="monotone" dataKey="CA" name="CA (FCFA)" stroke="#10b981" strokeWidth={2} fill="url(#gradCA)" dot={{ fill: '#10b981', r: 3 }} />
+          <Area type="monotone" dataKey="CA" name="CA (FCFA)" stroke="#477c5c" strokeWidth={2} fill="url(#gradCA)" dot={{ fill: '#477c5c', r: 3 }} />
           <Area type="monotone" dataKey="Commandes" stroke="#3b82f6" strokeWidth={2} fill="url(#gradCmd)" dot={{ fill: '#3b82f6', r: 3 }} />
         </AreaChart>
       </ChartCard>

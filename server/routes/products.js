@@ -1,8 +1,10 @@
+const { normalizeImageFields, versionedImage } = require('../utils/media')
 // server/routes/products.js — Produits avec fournisseurs + images BD
 const router  = require('express').Router()
 const { Op }  = require('sequelize')
 const { Product, Supplier } = require('../models/index')
 const { protect, restrictTo } = require('../middleware/auth')
+const { pagination, productPayload } = require('../utils/publication')
 
 const ALL_CATS = ['posters','stickers','accessoires','kits','manga','livre','dessin','nutrition','echange','jeux']
 
@@ -51,7 +53,7 @@ router.get('/', async (req, res) => {
 
     const productsWithImageUrl = products.map(p => {
       const pJson = p.toJSON()
-      if (withImage.has(p.id)) pJson.imageUrl = `/api/upload/product/${p.id}/image`
+      if (withImage.has(p.id)) pJson.imageUrl = versionedImage(`/api/upload/product/${p.id}/image`, p.updatedAt)
       // Une boutique non validée ne doit pas être mise en avant publiquement.
       if (pJson.supplier && pJson.supplier.status !== 'approved') pJson.supplier = null
       return pJson
@@ -85,7 +87,7 @@ router.get('/mine', protect, async (req, res) => {
     })
     const withUrl = products.map(p => {
       const j = p.toJSON()
-      if (p.imageMime) j.imageUrl = `/api/upload/product/${p.id}/image`
+      if (p.imageMime) j.imageUrl = versionedImage(`/api/upload/product/${p.id}/image`, p.updatedAt)
       return j
     })
     res.json({ products: withUrl })
@@ -100,7 +102,7 @@ router.post('/mine', protect, async (req, res) => {
     if (!ALL_CATS.includes(req.body.category))
       return res.status(400).json({ error: `Catégorie invalide. Valides: ${ALL_CATS.join(', ')}` })
 
-    const product = await Product.create({ ...req.body, supplierId: supplier.id, isOwnProduct: false })
+    const product = await Product.create({ ...productPayload(req.body), supplierId: supplier.id, isOwnProduct: false })
     res.status(201).json({ product })
   } catch (err) {
     if (err.name === 'SequelizeUniqueConstraintError')
@@ -121,9 +123,9 @@ router.patch('/mine/:id', protect, async (req, res) => {
       return res.status(400).json({ error: 'Catégorie invalide' })
 
     const { supplierId, isOwnProduct, ...allowed } = req.body // pas de réassignation possible depuis cet écran
-    await product.update(allowed)
+    await product.update(productPayload(allowed))
     const pJson = product.toJSON()
-    if (product.imageMime) pJson.imageUrl = `/api/upload/product/${product.id}/image`
+    if (product.imageMime) pJson.imageUrl = versionedImage(`/api/upload/product/${product.id}/image`, product.updatedAt)
     res.json({ product: pJson })
   } catch (err) { res.status(400).json({ error: err.message }) }
 })
@@ -142,6 +144,17 @@ router.delete('/mine/:id', protect, async (req, res) => {
 })
 
 // ── GET /api/products/:slug ────────────────────────────
+router.get('/admin/list', protect, restrictTo('admin','superadmin'), async (req, res, next) => {
+  try {
+    const { limit, offset } = pagination(req.query)
+    const where = {}
+    if (req.query.search) where.nameF = { [Op.iLike]: `%${req.query.search}%` }
+    if (req.query.category && req.query.category !== 'all') where.category = req.query.category
+    const { rows, count } = await Product.findAndCountAll({ where, limit, offset, order: [['createdAt','DESC']], attributes: { exclude: ['imageData'] }, include: [{ model: Supplier, as: 'supplier', attributes: ['id','name'] }] })
+    res.json({ products: rows.map(p => { const j = p.toJSON(); if (p.imageMime) j.imageUrl = versionedImage(`/api/upload/product/${p.id}/image`, p.updatedAt); return j }), total: count })
+  } catch (err) { next(err) }
+})
+
 router.get('/:slug', async (req, res) => {
   try {
     const p = await Product.findOne({
@@ -152,7 +165,7 @@ router.get('/:slug', async (req, res) => {
     })
     if (!p) return res.status(404).json({ error: 'Produit introuvable' })
     const pJson = p.toJSON()
-    if (p.imageMime) pJson.imageUrl = `/api/upload/product/${p.id}/image`
+    if (p.imageMime) pJson.imageUrl = versionedImage(`/api/upload/product/${p.id}/image`, p.updatedAt)
     if (pJson.supplier) {
       // Attribution masquée tant que la boutique n'est pas validée par l'admin.
       if (pJson.supplier.status !== 'approved') pJson.supplier = null
@@ -167,7 +180,7 @@ router.post('/', protect, restrictTo('admin','superadmin'), async (req, res) => 
   try {
     if (!ALL_CATS.includes(req.body.category))
       return res.status(400).json({ error: `Catégorie invalide. Valides: ${ALL_CATS.join(', ')}` })
-    const product = await Product.create(req.body)
+    const product = await Product.create(productPayload(req.body))
     res.status(201).json({ product })
   } catch(err) {
     if (err.name === 'SequelizeUniqueConstraintError')
@@ -183,9 +196,9 @@ router.patch('/:id', protect, restrictTo('admin','superadmin'), async (req, res)
     if (!product) return res.status(404).json({ error: 'Produit introuvable' })
     if (req.body.category && !ALL_CATS.includes(req.body.category))
       return res.status(400).json({ error: 'Catégorie invalide' })
-    await product.update(req.body)
+    await product.update(productPayload(req.body))
     const pJson = product.toJSON()
-    if (product.imageMime) pJson.imageUrl = `/api/upload/product/${product.id}/image`
+    if (product.imageMime) pJson.imageUrl = versionedImage(`/api/upload/product/${product.id}/image`, product.updatedAt)
     res.json({ product: pJson })
   } catch(err) { res.status(400).json({ error: err.message }) }
 })

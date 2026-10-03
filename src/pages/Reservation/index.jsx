@@ -1,3 +1,4 @@
+import OtakuMark from '../../components/ui/OtakuMark'
 import { useState } from 'react'
 import { API_BASE } from '../../api'
 import { Link } from 'react-router-dom'
@@ -288,7 +289,7 @@ export default function ReservationPage() {
           </div>
 
           <div className={styles.headerBadge}>
-            <Sparkles size={14} />
+            <OtakuMark size={14} />
             <span>Otaku Pulse Events</span>
           </div>
 
@@ -391,7 +392,7 @@ export default function ReservationPage() {
 
               <div className={styles.formCol}>
                 <h3 className={styles.formGroupTitle}>
-                  <Sparkles size={16} />
+                  <OtakuMark size={16} />
                   <span>{T.event}</span>
                 </h3>
 
@@ -509,7 +510,7 @@ export default function ReservationPage() {
                 { icon: <Mail size={15} />, label: T.email, value: form.email },
                 { icon: <Phone size={15} />, label: T.phone, value: form.phone },
                 { icon: <MessageSquare size={15} />, label: T.whatsapp, value: form.whatsapp || form.phone },
-                { icon: <Sparkles size={15} />, label: T.animeTheme, value: form.theme },
+                { icon: <OtakuMark size={15} />, label: T.animeTheme, value: form.theme },
                 { icon: <Users size={15} />, label: T.guests, value: form.guests },
                 {
                   icon: <CalendarDays size={15} />,

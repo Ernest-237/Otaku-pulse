@@ -1,7 +1,9 @@
+import OtakuMark from '../../components/ui/OtakuMark'
+import MediaImage from '../../components/ui/MediaImage'
 // src/pages/Fandom/index.jsx — FANDOM (titraille/activités admin-gérées)
 // 3 onglets : Cosplay (upload + votes), Quizz, Classements
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Trophy, Heart, Camera, Brain, Gamepad2, Crown, Medal,
   Upload, X, Loader2, Sparkles, Award, ChevronRight, Star,
@@ -9,12 +11,13 @@ import {
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useLang } from '../../contexts/LangContext'
-import { fandomApi, API_BASE } from '../../api'
+import { fandomApi, API_BASE , resolveMediaUrl } from '../../api'
 import Navbar from '../../components/Navbar'
 import Footer from '../Home/sections/Footer'
 import Modal from '../../components/ui/Modal'
 import AnimeCarousel from '../../components/AnimeCarousel'
 import styles from './Fandom.module.css'
+import QuizExperience from './QuizExperience'
 
 async function fileToBase64Safe(file) {
   return new Promise((resolve, reject) => {
@@ -35,7 +38,9 @@ export default function FandomPage() {
   const { isLoggedIn, user } = useAuth()
   const { lang } = useLang()
   const toast = useToast()
-  const [tab, setTab] = useState('cosplay')
+  const [params, setParams] = useSearchParams()
+  const tab = ['cosplay', 'quiz', 'ranking'].includes(params.get('tab')) ? params.get('tab') : 'quiz'
+  const setTab = value => setParams({ tab: value }, { replace: true })
   const [config, setConfig] = useState(null)
   const [activities, setActivities] = useState([])
 
@@ -64,7 +69,7 @@ export default function FandomPage() {
       <section className={styles.hero}>
         <div className={styles.heroGlow} />
         <div className="container">
-          <span className={styles.heroBadge}><Sparkles size={12} /> {badge || 'ESPACE FANDOM'}</span>
+          <span className={styles.heroBadge}><OtakuMark size={12} /> {badge || 'ESPACE FANDOM'}</span>
           <h1 className={styles.heroTitle}>{title || 'FANDOM ARENA'}</h1>
           <p className={styles.heroSub}>
             Montre ton cosplay, teste tes connaissances otaku, grimpe au classement.
@@ -84,14 +89,15 @@ export default function FandomPage() {
               const aTitle = lang === 'en' ? (a.titleE || a.titleF) : a.titleF
               const aDesc  = lang === 'en' ? (a.descE || a.descF) : a.descF
               const onClick = a.linkTab && a.linkTab !== 'custom'
-                ? () => setTab(a.linkTab === 'classement' ? 'ranking' : a.linkTab)
+                ? () => setTab(a.linkTab === 'classement' ? 'ranking' : a.linkTab === 'quizz' ? 'quiz' : a.linkTab)
                 : a.externalUrl ? () => window.open(a.externalUrl, '_blank') : undefined
               return (
                 <button key={a.id} className={styles.activityCard} onClick={onClick} disabled={!onClick}>
                   {a.imageUrl
-                    ? <img src={`${API_BASE}${a.imageUrl}`} alt={aTitle} className={styles.activityImg} />
+                    ? <MediaImage src={resolveMediaUrl(a.imageUrl)} alt={aTitle} className={styles.activityImg} />
                     : <span className={styles.activityIcon}>{a.icon}</span>}
                   <div className={styles.activityBody}>
+                    {a.source === 'auto' && <span className={styles.botLabel}>{lang === 'fr' ? 'LE RENDEZ-VOUS DE LA SEMAINE' : 'THIS WEEK’S CHALLENGE'}</span>}
                     <h3>{aTitle}</h3>
                     {aDesc && <p>{aDesc}</p>}
                   </div>
@@ -118,7 +124,7 @@ export default function FandomPage() {
 
       <div className="container">
         {tab === 'cosplay' && <CosplayTab isLoggedIn={isLoggedIn} user={user} toast={toast} />}
-        {tab === 'quiz'    && <QuizTab isLoggedIn={isLoggedIn} toast={toast} />}
+        {tab === 'quiz'    && <QuizExperience isLoggedIn={isLoggedIn} toast={toast} />}
         {tab === 'ranking' && <RankingTab />}
       </div>
 
@@ -176,7 +182,7 @@ function CosplayTab({ isLoggedIn, user, toast }) {
             <div key={e.id} className={styles.cosplayCard}>
               {i < 3 && <span className={styles.rankBadge}>{['🥇','🥈','🥉'][i]}</span>}
               <div className={styles.cosplayImg}>
-                <img src={`${API_BASE}${e.imageUrl}`} alt={e.characterName} loading="lazy" />
+                <MediaImage src={resolveMediaUrl(e.imageUrl)} alt={e.characterName} loading="lazy" />
               </div>
               <div className={styles.cosplayBody}>
                 <h3 className={styles.cosplayChar}>{e.characterName}</h3>
@@ -246,7 +252,7 @@ function CosplaySubmitModal({ onClose, onSuccess, toast }) {
       <div className={styles.field}>
         <label>Photo du cosplay *</label>
         <div className={styles.dropZone} onClick={() => document.getElementById('cosFile').click()}>
-          {preview ? <img src={preview} alt="preview" className={styles.dropPreview} />
+          {preview ? <MediaImage src={preview} alt="preview" className={styles.dropPreview} />
             : <div className={styles.dropPlaceholder}><Camera size={28} /><span>Cliquer pour choisir</span></div>}
           <input id="cosFile" type="file" accept="image/*" style={{ display: 'none' }}
             onChange={e => pickFile(e.target.files?.[0])} />
@@ -268,102 +274,6 @@ function CosplaySubmitModal({ onClose, onSuccess, toast }) {
           rows={2} placeholder="Quelques mots sur ton cosplay..." />
       </div>
     </Modal>
-  )
-}
-
-/* ══ ONGLET QUIZ ══ */
-function QuizTab({ isLoggedIn, toast }) {
-  const [state, setState] = useState('idle') // idle | playing | done
-  const [questions, setQuestions] = useState([])
-  const [current, setCurrent] = useState(0)
-  const [answers, setAnswers] = useState([])
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
-
-  const start = async () => {
-    if (!isLoggedIn) { toast.error('Connecte-toi pour jouer'); return }
-    setLoading(true)
-    try {
-      const d = await fandomApi.getQuizQuestions({ limit: 10 })
-      if (!d.questions?.length) { toast.error('Aucune question disponible pour le moment'); setLoading(false); return }
-      setQuestions(d.questions); setCurrent(0); setAnswers([]); setState('playing')
-    } catch (e) { toast.error(e.message) }
-    finally { setLoading(false) }
-  }
-
-  const answer = (idx) => {
-    const q = questions[current]
-    const newAnswers = [...answers, { questionId: q.id, answerIndex: idx }]
-    setAnswers(newAnswers)
-    if (current + 1 < questions.length) {
-      setCurrent(current + 1)
-    } else {
-      finish(newAnswers)
-    }
-  }
-
-  const finish = async (finalAnswers) => {
-    setLoading(true)
-    try {
-      const r = await fandomApi.submitQuiz(finalAnswers)
-      setResult(r); setState('done')
-    } catch (e) { toast.error(e.message) }
-    finally { setLoading(false) }
-  }
-
-  if (state === 'idle') {
-    return (
-      <div className={styles.tabContent}>
-        <div className={styles.quizIntro}>
-          <div className={styles.quizIntroIcon}>🧠</div>
-          <h2>Quizz Otaku</h2>
-          <p>10 questions pour tester tes connaissances anime & manga. Chaque bonne réponse rapporte des points !</p>
-          <button className={styles.ctaBtn} onClick={start} disabled={loading}>
-            {loading ? <Loader2 size={16} className={styles.spin} /> : <Brain size={16} />} Commencer le quizz
-          </button>
-          {!isLoggedIn && <p className={styles.quizWarn}>⚠️ Connecte-toi pour jouer et sauvegarder ton score</p>}
-        </div>
-      </div>
-    )
-  }
-
-  if (state === 'playing') {
-    const q = questions[current]
-    return (
-      <div className={styles.tabContent}>
-        <div className={styles.quizCard}>
-          <div className={styles.quizProgress}>
-            <span>Question {current + 1}/{questions.length}</span>
-            <div className={styles.quizBar}>
-              <div className={styles.quizBarFill} style={{ width: `${((current) / questions.length) * 100}%` }} />
-            </div>
-          </div>
-          <h3 className={styles.quizQuestion}>{q.question}</h3>
-          <div className={styles.quizOptions}>
-            {q.options.map((opt, i) => (
-              <button key={i} className={styles.quizOption} onClick={() => answer(i)}>
-                <span className={styles.quizOptLetter}>{['A','B','C','D'][i]}</span> {opt}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // done
-  return (
-    <div className={styles.tabContent}>
-      <div className={styles.quizResult}>
-        <div className={styles.quizResultIcon}>{result.correct >= result.total / 2 ? '🎉' : '💪'}</div>
-        <h2>Score : {result.score} pts</h2>
-        <p>{result.correct}/{result.total} bonnes réponses</p>
-        <p className={styles.quizBest}>🏆 Ton meilleur score : {result.bestScore} pts</p>
-        <button className={styles.ctaBtn} onClick={() => setState('idle')}>
-          <Brain size={16} /> Rejouer
-        </button>
-      </div>
-    </div>
   )
 }
 
@@ -400,7 +310,7 @@ function RankingTab() {
               {cosplay.map((e, i) => (
                 <div key={e.id} className={styles.rankItem}>
                   <span className={styles.rankPos}>{['🥇','🥈','🥉'][i] || `#${i+1}`}</span>
-                  <img src={`${API_BASE}${e.imageUrl}`} alt="" className={styles.rankThumb} />
+                  <MediaImage src={resolveMediaUrl(e.imageUrl)} alt="" className={styles.rankThumb} />
                   <div className={styles.rankInfo}>
                     <div className={styles.rankName}>{e.characterName}</div>
                     <div className={styles.rankMeta}>par {e.pseudo}</div>

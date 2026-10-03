@@ -1,0 +1,67 @@
+/* Jade, sage and warm paper. Shared tokens retain compatibility with shop/admin. */
+:root {
+  --neon: #a4c7a2;
+  --neon-glow: #759d7633;
+  --neon-soft: #7899740d;
+  --green-50: #f0f5ed;
+  --green-100: #e3eddf;
+  --green-200: #cedec8;
+  --green-300: #a9c3a0;
+  --green-400: #86ac80;
+  --green-500: #668f67;
+  --green-600: #477c5c;
+  --green-700: #32634d;
+  --green-800: #234c3c;
+  --green-900: #1a3c30;
+  --green-950: #142e25;
+  --bg: #f8f7f0;
+  --bg-alt: #fffef9;
+  --bg-soft: #eeeee4;
+  --bg-card: #fffef9;
+  --text-strong: #1d332a;
+  --text: #2d4036;
+  --text-muted: #657064;
+  --muted: #657064;
+  --text-light: #7b8478;
+  --border: #dedfd2;
+  --border-soft: #eaeadd;
+  --border-strong: #bcc9b5;
+  --gold: #ad9461;
+  --gold-pale: #f5efdf;
+  --sakura: #b9848c;
+  --shadow-green-sm: 0 3px 12px #234c3c12;
+  --shadow-green: 0 6px 20px #234c3c22;
+  --shadow-green-lg: 0 12px 30px #234c3c26;
+  --shadow-neon: 0 0 0 3px #668f6729;
+  --shadow-neon-glow: 0 0 20px #668f6720;
+}
+body::before {
+  background-image: radial-gradient(ellipse at 0 0, #a4c7a210, transparent 60%);
+}
+::selection {
+  background: #cedec8;
+  color: #142e25;
+}
+:focus-visible {
+  outline: 3px solid var(--green-600);
+  outline-offset: 4px;
+}
+section[id] {
+  scroll-margin-top: 90px;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

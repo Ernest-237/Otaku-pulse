@@ -11,7 +11,7 @@ export default function MangaCommentsSection({ toast }) {
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
 
-  const { data, loading, execute } = useApi(
+  const { data, loading, error, execute } = useApi(
     () => adminMangaApi.getComments({
       hidden: filter === 'hidden' ? 'true' : filter === 'visible' ? 'false' : undefined,
       search: search || undefined,
@@ -40,6 +40,7 @@ export default function MangaCommentsSection({ toast }) {
     } catch (err) { toast.error(err.message) }
   }
 
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
   return (
     <div>
       <div className={styles.filters}>
@@ -65,8 +66,8 @@ export default function MangaCommentsSection({ toast }) {
             {comments.map(c => (
               <div key={c.id} style={{
                 display:'flex', gap:12, padding:'1rem',
-                background: c.isHidden ? 'rgba(239,68,68,.04)' : 'rgba(255,255,255,.02)',
-                border: `1px solid ${c.isHidden ? 'rgba(239,68,68,.15)' : 'rgba(255,255,255,.06)'}`,
+                background: c.isHidden ? 'rgba(239,68,68,.04)' : 'rgba(71,124,92,.02)',
+                border: `1px solid ${c.isHidden ? 'rgba(239,68,68,.15)' : 'rgba(71,124,92,.06)'}`,
                 borderRadius:10, marginBottom:8,
               }}>
                 <div style={{
@@ -79,10 +80,10 @@ export default function MangaCommentsSection({ toast }) {
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5, flexWrap:'wrap' }}>
-                    <strong style={{ color:'#e2e8f0', fontSize:'.88rem' }}>{c.user?.pseudo || 'Anonyme'}</strong>
-                    <span style={{ fontSize:'.72rem', color:'rgba(180,190,220,.5)' }}>
+                    <strong style={{ color:'#263e30', fontSize:'.88rem' }}>{c.user?.pseudo || 'Anonyme'}</strong>
+                    <span style={{ fontSize:'.72rem', color:'#64735d' }}>
                       sur <a href={`/manga/${c.manga?.slug}`} target="_blank" rel="noreferrer"
-                        style={{ color:'#a78bfa', textDecoration:'none' }}>📖 {c.manga?.titleF}</a>
+                        style={{ color:'#7051b0', textDecoration:'none' }}>📖 {c.manga?.titleF}</a>
                     </span>
                     <span style={{ fontSize:'.72rem', color:'rgba(180,190,220,.4)' }}>
                       · {new Date(c.createdAt).toLocaleDateString('fr-FR', { dateStyle:'short' })}
@@ -90,7 +91,7 @@ export default function MangaCommentsSection({ toast }) {
                     {c.isHidden && <Badge variant="red" style={{ fontSize:'.6rem' }}>🙈 MASQUÉ</Badge>}
                   </div>
                   <p style={{
-                    color: c.isHidden ? 'rgba(180,190,220,.4)' : '#cbd5e1',
+                    color: c.isHidden ? 'rgba(180,190,220,.4)' : '#405342',
                     fontSize:'.9rem', lineHeight:1.6, margin:'4px 0 8px',
                     wordBreak:'break-word',
                   }}>

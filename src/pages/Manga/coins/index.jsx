@@ -1,3 +1,4 @@
+import OtakuMark from '../../../components/ui/OtakuMark'
 // src/pages/Manga/coins/index.jsx — Achat de coins
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -29,7 +30,7 @@ const TX_META = {
   unlock:       { icon: <TrendingDown size={14} />, color: '#ef4444', label: 'Déblocage' },
   bonus:        { icon: <Gift size={14} />,         color: '#a78bfa', label: 'Bonus' },
   refund:       { icon: <TrendingUp size={14} />,   color: '#3b82f6', label: 'Remboursement' },
-  admin_adjust: { icon: <Sparkles size={14} />,     color: '#f59e0b', label: 'Ajustement' },
+  admin_adjust: { icon: <OtakuMark size={14} />,     color: '#f59e0b', label: 'Ajustement' },
   earning:      { icon: <Coins size={14} />,        color: '#22c55e', label: 'Revenu' },
 }
 
@@ -125,7 +126,7 @@ export default function CoinsPage() {
                   className={`${styles.packCard} ${st.popular ? styles.packPopular : ''}`}
                   style={{ '--pack-color': st.color, '--pack-glow': st.glow }}
                 >
-                  {st.popular && <div className={styles.popularBadge}><Zap size={11} /> POPULAIRE</div>}
+                  {st.popular && <div className={styles.popularBadge}><OtakuMark size={11} /> POPULAIRE</div>}
 
                   <div className={styles.packIcon}>{st.icon}</div>
 
@@ -159,7 +160,7 @@ export default function CoinsPage() {
                       setPurchaseModal(pack)
                     }}
                   >
-                    <Sparkles size={14} /> Acheter
+                    <OtakuMark size={14} /> Acheter
                   </button>
                 </div>
               )

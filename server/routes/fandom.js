@@ -4,9 +4,10 @@ const router = require('express').Router()
 const { Op, fn, col } = require('sequelize')
 const {
   sequelize, CosplayEntry, CosplayVote, QuizQuestion, QuizScore, GameScore, User,
-  FandomPageConfig, FandomActivity,
+  FandomPageConfig, FandomActivity, Anime,
 } = require('../models/index')
 const { protect, restrictTo } = require('../middleware/auth')
+const { weeklyActivities, validateAnswers } = require('../services/communityContent')
 
 // Helper : reconstruit l'URL image d'un cosplay
 const cosplayUrl = (id) => `/api/fandom/cosplay/${id}/image`
@@ -149,7 +150,7 @@ router.get('/quiz/questions', async (req, res, next) => {
     const where = { isActive: true }
     if (category && category !== 'all') where.category = category
     const questions = await QuizQuestion.findAll({
-      where, order: sequelize.random(), limit: parseInt(limit),
+      where, order: sequelize.random(), limit: Math.max(1, Math.min(parseInt(limit, 10) || 10, 10)),
       attributes: ['id', 'question', 'options', 'category', 'difficulty', 'points'], // PAS correctIndex
     })
     res.json({ questions })
@@ -160,11 +161,12 @@ router.get('/quiz/questions', async (req, res, next) => {
 router.post('/quiz/submit', protect, async (req, res, next) => {
   try {
     const { answers } = req.body // [{ questionId, answerIndex }]
-    if (!Array.isArray(answers) || !answers.length) {
-      return res.status(400).json({ error: 'Aucune réponse fournie' })
+    if (!validateAnswers(answers)) {
+      return res.status(400).json({ error: 'Réponses invalides : 1 à 10 questions distinctes attendues.' })
     }
     const ids = answers.map(a => a.questionId)
     const questions = await QuizQuestion.findAll({ where: { id: ids } })
+    if (questions.length !== ids.length) return res.status(400).json({ error: 'Une question est indisponible. Relance le quiz.' })
     const qMap = {}
     questions.forEach(q => { qMap[q.id] = q })
 
@@ -280,16 +282,17 @@ router.patch('/admin/config', protect, restrictTo('admin','superadmin'), async (
 // GET /api/fandom/activities — liste publique, actives, triées
 router.get('/activities', async (req, res, next) => {
   try {
+    const auto = process.env.FANDOM_BOT_ENABLED === 'false' ? [] : weeklyActivities(await Anime.findAll({ where: { isActive: true, status: 'airing' }, attributes: ['id', 'titleF', 'titleE'], order: [['popularity', 'DESC']], limit: 30 }))
     const activities = await FandomActivity.findAll({
       where: { isActive: true },
       order: [['order', 'ASC'], ['createdAt', 'ASC']],
       attributes: { exclude: ['imageData'] },
     })
-    res.json({ activities: activities.map(a => {
+    res.json({ activities: [...auto, ...activities.map(a => {
       const j = a.toJSON()
       if (a.imageMime) j.imageUrl = activityUrl(j.id)
       return j
-    }) })
+    })] })
   } catch (err) { next(err) }
 })
 

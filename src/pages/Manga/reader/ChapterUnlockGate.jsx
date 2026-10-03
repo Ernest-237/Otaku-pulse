@@ -1,3 +1,4 @@
+import OtakuMark from '../../../components/ui/OtakuMark'
 // src/pages/Manga/reader/ChapterUnlockGate.jsx
 // Overlay de déblocage d'un chapitre premium par coins
 import { useState } from 'react'
@@ -19,30 +20,24 @@ export default function ChapterUnlockGate({
   const enough = walletBalance >= cost
 
   const handleUnlock = async () => {
+    if (loading) return
     if (!enough) {
       navigate('/manga/coins')
       return
     }
     setLoading(true)
     try {
-      const { data, error } = await coinsApi.unlockChapter(chapter.id)
-      if (error) {
-        // Cas solde insuffisant renvoyé par le backend
-        toast.error(error)
-        setLoading(false)
-        return
-      }
+      const data = await coinsApi.unlockChapter(chapter.id)
       if (data?.alreadyUnlocked) {
         toast.success('Chapitre déjà débloqué')
-        onUnlocked(walletBalance)
+        await onUnlocked(walletBalance)
         return
       }
       toast.success(data?.message || `Chapitre débloqué ! (-${cost} coins)`)
-      onUnlocked(data?.newBalance ?? (walletBalance - cost))
+      await onUnlocked(data?.newBalance ?? walletBalance)
     } catch (err) {
       toast.error(err.message || 'Erreur lors du déblocage')
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   return (
@@ -55,7 +50,7 @@ export default function ChapterUnlockGate({
         </div>
 
         <span className={styles.premiumBadge}>
-          <Sparkles size={12} /> CHAPITRE PREMIUM
+          <OtakuMark size={12} /> CHAPITRE PREMIUM
         </span>
 
         <h2 className={styles.gateTitle}>
@@ -66,7 +61,7 @@ export default function ChapterUnlockGate({
         <p className={styles.gateSub}>
           Débloque ce chapitre pour continuer ta lecture de{' '}
           <strong>{mangaTitle}</strong>. Une fois débloqué, l'accès est{' '}
-          <strong>permanent</strong>.
+          <strong>conservé dans ton compte tant que le chapitre reste disponible</strong>.
         </p>
 
         {/* Coût */}

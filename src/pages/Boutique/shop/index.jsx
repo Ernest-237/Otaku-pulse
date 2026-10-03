@@ -1,3 +1,4 @@
+import MediaImage from '../../../components/ui/MediaImage'
 // src/pages/Boutique/shop/index.jsx — vitrine publique d'une boutique partenaire
 //
 // Route : /boutique/<slug>. C'est le lien que le partenaire partage sur
@@ -13,7 +14,7 @@ import {
   MapPin, Store, BadgeCheck, Eye, Loader2, MessageCircle,
 } from 'lucide-react'
 import { useApi } from '../../../hooks/useApi'
-import { suppliersApi, shopUrl, API_BASE } from '../../../api'
+import { suppliersApi, shopUrl, API_BASE , resolveMediaUrl } from '../../../api'
 import { useCart } from '../../../contexts/CartContext'
 import { useToast } from '../../../contexts/ToastContext'
 import styles from './Shop.module.css'
@@ -23,7 +24,7 @@ const fmt = (n) => Number(n || 0).toLocaleString('fr-FR')
 // Les images stockées en base sont servies par l'API sous un chemin relatif ;
 // une URL externe (Cloudinary) est utilisée telle quelle.
 const resolveImg = (url) =>
-  !url ? null : url.startsWith('/') ? `${API_BASE}${url}` : url
+  !url ? null : url.startsWith('/') ? resolveMediaUrl(url) : url
 
 export default function PartnerShop() {
   const { slug } = useParams()
@@ -177,7 +178,7 @@ export default function PartnerShop() {
 
           <div className={styles.identity}>
             {logoSrc ? (
-              <img className={styles.logo} src={logoSrc} alt={shop.name} />
+              <MediaImage className={styles.logo} src={logoSrc} alt={shop.name} />
             ) : (
               <div className={`${styles.logo} ${styles.logoFallback}`}>
                 {shop.name.charAt(0).toUpperCase()}
@@ -266,7 +267,7 @@ function ProductCard({ product: p, onAdd }) {
     <article className={styles.card}>
       <div className={styles.cardMedia}>
         {img
-          ? <img className={styles.cardImg} src={img} alt={p.nameF} loading="lazy" />
+          ? <MediaImage className={styles.cardImg} src={img} alt={p.nameF} loading="lazy" />
           : <Package size={30} className={styles.cardFallback} />}
         {hasPromo && <span className={styles.discount}>−{discount}%</span>}
         {outOfStock && <div className={styles.soldOut}>Épuisé</div>}

@@ -1,121 +1,108 @@
-import { useState, useEffect, useRef } from 'react'
-import { ChevronRight, MessageCircle, Quote, UserRound, X } from 'lucide-react'
+import MediaImage from './ui/MediaImage'
+import { useEffect, useState } from 'react'
+import { ChevronRight, Quote, X } from 'lucide-react'
+import { request } from '../api'
 import styles from './FloatingCharacter.module.css'
 
+// Each adapted quote owns its character ID: a portrait can never drift from its author.
 const QUOTES = [
-  { text: "La douleur reconnaît la douleur. C'est pour ça que tu me comprends.", char: 'Pain', anime: 'Naruto' },
-  { text: "Si tu ne te bats pas, tu ne peux pas gagner !", char: 'Eren Yeager', anime: "L'Attaque des Titans" },
-  { text: "Je ne mourrai pas. Je vais vivre et voir un monde libre !", char: 'Armin Arlert', anime: "L'Attaque des Titans" },
-  { text: "Le monde est cruel, mais aussi très beau.", char: 'Mikasa Ackerman', anime: "L'Attaque des Titans" },
-  { text: "Ceux qui se battent avec honneur jusqu'au bout sont les véritables héros.", char: 'Whitebeard', anime: 'One Piece' },
-  { text: "Je n'ai pas besoin d'un monde sans guerre. J'ai besoin de mes nakama !", char: 'Monkey D. Luffy', anime: 'One Piece' },
-  { text: "Le passé ne revient jamais. Mais tu peux choisir comment tu avances.", char: 'Itachi Uchiha', anime: 'Naruto' },
-  { text: "Ceux qui violent les règles sont des déchets. Mais ceux qui abandonnent leurs amis sont pires que des déchets.", char: 'Kakashi Hatake', anime: 'Naruto' },
-  { text: "Dans ce monde, il y a des choses que l'on ne peut pas exprimer avec des mots.", char: 'Gojo Satoru', anime: 'Jujutsu Kaisen' },
-  { text: "Je suis le plus fort. C'est pour ça que je peux protéger tout le monde.", char: 'Gojo Satoru', anime: 'Jujutsu Kaisen' },
-  { text: "Le saviez-vous ? En mode Bansho Man, Shinra peut atteindre la vitesse de la lumière !", char: 'Shinra Kusakabe', anime: 'Fire Force' },
-  { text: "La force sans sagesse n'est que violence. La sagesse sans force n'est que rêve.", char: 'Aizen Sōsuke', anime: 'Bleach' },
-  { text: "Même les plus faibles ont leur propre façon de briller.", char: 'Izuku Midoriya', anime: 'My Hero Academia' },
-  { text: "Un héros naît au fond de nos cœurs quand on choisit de ne pas abandonner.", char: 'All Might', anime: 'My Hero Academia' },
-  { text: "La vie d'un être vivant vaut plus que n'importe quel trésor.", char: 'Edward Elric', anime: 'Fullmetal Alchemist' },
+  {
+    text: 'Ceux qui abandonnent leurs amis sont pires que ceux qui enfreignent les règles.',
+    char: 'Kakashi Hatake',
+    anime: 'Naruto',
+    id: 85,
+    initials: 'KH',
+  },
+  {
+    text: 'Le monde est cruel, mais aussi très beau.',
+    char: 'Mikasa Ackerman',
+    anime: 'L’Attaque des Titans',
+    id: 40881,
+    initials: 'MA',
+  },
+  {
+    text: 'Si tu ne te bats pas, tu ne peux pas gagner.',
+    char: 'Eren Yeager',
+    anime: 'L’Attaque des Titans',
+    id: 40882,
+    initials: 'EY',
+  },
 ]
 
-const CHARACTER_IMG = '/assets/characters/yuta.jpg'
-
 export default function FloatingCharacter() {
-  const [visible, setVisible] = useState(false)
-  const [quoteIdx, setQuoteIdx] = useState(0)
-  const [quoteAnim, setQuoteAnim] = useState(true)
-  const [minimized, setMinimized] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
-  const timerRef = useRef(null)
-
+  const [open, setOpen] = useState(false)
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem('char_dismissed') === '1'
+    } catch {
+      return false
+    }
+  })
+  const [index, setIndex] = useState(
+    () => Math.floor(Date.now() / 86400000) % QUOTES.length
+  )
+  const [portraits, setPortraits] = useState({})
+  const [failed, setFailed] = useState({})
+  const q = QUOTES[index]
   useEffect(() => {
-    const alreadyDismissed = sessionStorage.getItem('char_dismissed') === '1'
-    if (alreadyDismissed) return
-    const t = setTimeout(() => setVisible(true), 4000)
-    return () => clearTimeout(t)
+    let active = true
+    request('GET', '/api/anime/quote-portraits', null, false)
+      .then((data) => {
+        if (active) setPortraits(data?.portraits || {})
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
   }, [])
-
-  useEffect(() => {
-    if (!visible || minimized) return
-    timerRef.current = setInterval(() => {
-      setQuoteAnim(false)
-      setTimeout(() => {
-        setQuoteIdx((i) => (i + 1) % QUOTES.length)
-        setQuoteAnim(true)
-      }, 300)
-    }, 8000)
-
-    return () => clearInterval(timerRef.current)
-  }, [visible, minimized])
-
-  const nextQuote = () => {
-    setQuoteAnim(false)
-    setTimeout(() => {
-      setQuoteIdx((i) => (i + 1) % QUOTES.length)
-      setQuoteAnim(true)
-    }, 200)
-  }
-
-  const dismiss = () => {
-    setDismissed(true)
-    sessionStorage.setItem('char_dismissed', '1')
-  }
-
-  if (dismissed || !visible) return null
-
-  const q = QUOTES[quoteIdx]
-
+  if (dismissed) return null
   return (
-    <div className={`${styles.wrapper} ${minimized ? styles.minimized : ''}`}>
-      {!minimized && (
-        <div className={`${styles.bubble} ${quoteAnim ? styles.bubbleIn : styles.bubbleOut}`}>
-          <button className={styles.closeBtn} onClick={dismiss} title="Fermer" type="button">
-            <X size={12} strokeWidth={2.5} />
+    <aside className={styles.wrapper} aria-label="La pause citation">
+      {open && (
+        <div id="quote-bubble" className={styles.bubble} key={index}>
+          <button
+            className={styles.close}
+            aria-label="Masquer les citations pour cette session"
+            onClick={() => {
+              setDismissed(true)
+              try {
+                sessionStorage.setItem('char_dismissed', '1')
+              } catch {}
+            }}
+          >
+            <X size={14} />
           </button>
-
-          <div className={styles.quoteIcon}>
-            <Quote size={20} strokeWidth={2.2} />
-          </div>
-
-          <p className={styles.quoteText}>{q.text}</p>
-
-          <div className={styles.quoteMeta}>
-            <span className={styles.charName}>— {q.char}</span>
-            <span className={styles.animeName}>{q.anime}</span>
-          </div>
-
-          <button className={styles.nextBtn} onClick={nextQuote} type="button">
-            Suivante
-            <ChevronRight size={14} strokeWidth={2.4} />
+          <span className={styles.label}>LA PAUSE CITATION</span>
+          <blockquote>« {q.text} »</blockquote>
+          <strong>{q.char}</strong>
+          <small>{q.anime} · Traduction adaptée</small>
+          <button
+            className={styles.next}
+            onClick={() => setIndex((i) => (i + 1) % QUOTES.length)}
+          >
+            Autre personnage <ChevronRight size={14} />
           </button>
-
-          <div className={styles.bubbleTail} />
         </div>
       )}
-
-      <div className={styles.character} onClick={() => setMinimized((m) => !m)}>
-        <img
-          src={CHARACTER_IMG}
-          alt="Personnage Otaku"
-          className={styles.charImg}
-          onError={(e) => {
-            e.target.style.display = 'none'
-            e.target.parentNode.classList.add(styles.charFallback)
-          }}
-        />
-
-        <div className={styles.charEmojiDefault}>
-          <UserRound size={40} strokeWidth={1.9} />
-        </div>
-
-        <div className={styles.charBadge}>
-          {minimized ? <MessageCircle size={12} strokeWidth={2.2} /> : <X size={12} strokeWidth={2.3} />}
-        </div>
-
-        <div className={styles.charShadow} />
-      </div>
-    </div>
+      <button
+        className={styles.trigger}
+        aria-expanded={open}
+        aria-controls="quote-bubble"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={`${open ? 'Réduire' : 'Lire'} la citation de ${q.char}`}
+      >
+        {portraits[q.id] && !failed[q.id] ? (
+          <MediaImage
+            key={q.id}
+            src={portraits[q.id]}
+            alt={q.char}
+            onError={() => setFailed((v) => ({ ...v, [q.id]: true }))}
+          />
+        ) : (
+          <span className={styles.initials}>{q.initials}</span>
+        )}
+        <Quote size={12} className={styles.quoteIcon} />
+      </button>
+    </aside>
   )
 }

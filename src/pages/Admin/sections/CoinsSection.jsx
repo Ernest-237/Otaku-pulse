@@ -1,3 +1,4 @@
+import OtakuMark from '../../../components/ui/OtakuMark'
 // src/pages/Admin/sections/CoinsSection.jsx — Gestion des achats de coins
 import { useState } from 'react'
 import {
@@ -11,12 +12,12 @@ import { useToast } from '../../../contexts/ToastContext'
 import styles from '../Admin.module.css'
 
 const PAYMENT_LABELS = {
-  mtn_money:    { label: 'MTN Money', emoji: '📱', color: '#fbbf24' },
+  mtn_money:    { label: 'MTN Money', emoji: '📱', color: '#956018' },
   orange_money: { label: 'Orange Money', emoji: '🟠', color: '#f97316' },
 }
 
 const STATUS_BADGE = {
-  pending:   { label: 'En attente', color: '#f59e0b', icon: <Clock size={12} /> },
+  pending:   { label: 'En attente', color: '#a36310', icon: <Clock size={12} /> },
   approved:  { label: 'Validé',     color: '#22c55e', icon: <CheckCircle2 size={12} /> },
   rejected:  { label: 'Rejeté',     color: '#ef4444', icon: <XCircle size={12} /> },
   cancelled: { label: 'Annulé',     color: '#6b7280', icon: <X size={12} /> },
@@ -34,7 +35,7 @@ export default function CoinsSection() {
   const stats = dashData?.stats || {}
 
   // Requests
-  const { data: reqData, loading, refresh } = useApi(
+  const { data: reqData, loading, error, refresh } = useApi(
     () => adminCoinsApi.getRequests({ status: statusFilter, search }),
     [statusFilter, search]
   )
@@ -44,6 +45,7 @@ export default function CoinsSection() {
 
   return (
     <div className={styles.section}>
+      {error && <p role="alert" className="editorial-notice">{error} <button onClick={refresh}>Réessayer</button></p>}
       {/* ── HEADER ── */}
       <div className={styles.sectionHead}>
         <div>
@@ -55,7 +57,7 @@ export default function CoinsSection() {
           </p>
         </div>
         <button className={styles.btnSecondary} onClick={() => setAdjustModal(true)}>
-          <Sparkles size={15} /> Ajuster un solde
+          <OtakuMark size={15} /> Ajuster un solde
         </button>
       </div>
 
@@ -65,7 +67,7 @@ export default function CoinsSection() {
           icon={<Clock size={18} />}
           label="En attente"
           value={stats.pending ?? 0}
-          color="#f59e0b"
+          color="#a36310"
           highlight={stats.pending > 0}
         />
         <StatCard
@@ -84,13 +86,13 @@ export default function CoinsSection() {
           icon={<TrendingUp size={18} />}
           label="Ce mois"
           value={`${(stats.monthRevenue ?? 0).toLocaleString('fr-FR')} F`}
-          color="#a78bfa"
+          color="#7051b0"
         />
         <StatCard
           icon={<Coins size={18} />}
           label="Coins vendus"
           value={(stats.totalCoinsSold ?? 0).toLocaleString('fr-FR')}
-          color="#eab308"
+          color="#906610"
         />
       </div>
 
@@ -335,7 +337,7 @@ function AdjustModal({ onClose, onDone, toast }) {
     <div className={styles.modalBackdrop} onClick={onClose}>
       <div className={styles.modalBox} onClick={e => e.stopPropagation()}>
         <div className={styles.modalHead}>
-          <h3><Sparkles size={18} /> Ajuster un solde</h3>
+          <h3><OtakuMark size={18} /> Ajuster un solde</h3>
           <button onClick={onClose}><X size={18} /></button>
         </div>
         <p className={styles.modalText}>

@@ -1,3 +1,4 @@
+const { validateImage, versionedImage } = require('../utils/media')
 // server/routes/suppliers.js — Gestion fournisseurs + boutiques partenaires en libre-service
 const router  = require('express').Router()
 const { Supplier, Product, User } = require('../models/index')
@@ -21,6 +22,7 @@ router.post('/apply', protect, async (req, res) => {
     const { name, email, phone, whatsapp, city, description, logoData, logoMime } = req.body
     if (!name?.trim()) return res.status(400).json({ error: 'Nom de la marque requis.' })
 
+    if (logoData) validateImage(logoData, logoMime)
     const payload = {
       userId: req.user.id, name: name.trim(), email, phone, whatsapp, city, description,
       logoData: logoData || null, logoMime: logoMime || null,
@@ -46,8 +48,8 @@ router.get('/my', protect, async (req, res) => {
       attributes: { exclude: ['logoData','bannerData'] },
     })
     const j = supplier?.toJSON() || null
-    if (j?.logoMime)   j.logoUrl   = `/api/suppliers/${j.id}/logo`
-    if (j?.bannerMime) j.bannerUrl = `/api/suppliers/${j.id}/banner`
+    if (j?.logoMime)   j.logoUrl   = versionedImage(`/api/suppliers/${j.id}/logo`, j.updatedAt)
+    if (j?.bannerMime) j.bannerUrl = versionedImage(`/api/suppliers/${j.id}/banner`, j.updatedAt)
     res.json({ supplier: j, isPartner: !!req.user.isPartner })
   } catch (err) { res.status(500).json({ error: err.message }) }
 })
@@ -82,10 +84,12 @@ router.patch('/me', protect, async (req, res) => {
       }
     }
 
+    if (allowed.logoData) validateImage(allowed.logoData, allowed.logoMime)
+    if (allowed.bannerData) validateImage(allowed.bannerData, allowed.bannerMime)
     await supplier.update(allowed)
     const j = supplier.toJSON()
-    if (j.logoMime)   j.logoUrl   = `/api/suppliers/${j.id}/logo`
-    if (j.bannerMime) j.bannerUrl = `/api/suppliers/${j.id}/banner`
+    if (j.logoMime)   j.logoUrl   = versionedImage(`/api/suppliers/${j.id}/logo`, j.updatedAt)
+    if (j.bannerMime) j.bannerUrl = versionedImage(`/api/suppliers/${j.id}/banner`, j.updatedAt)
     res.json({ supplier: j })
   } catch (err) {
     // La contrainte d'unicité en base est le dernier rempart si deux
@@ -153,13 +157,13 @@ router.get('/shop/:slug', async (req, res) => {
 
     const items = products.map(p => {
       const j = p.toJSON()
-      if (withImage.has(p.id)) j.imageUrl = `/api/upload/product/${p.id}/image`
+      if (withImage.has(p.id)) j.imageUrl = versionedImage(`/api/upload/product/${p.id}/image`, p.updatedAt)
       return j
     })
 
     const s = supplier.toJSON()
-    if (s.logoMime)   s.logoUrl   = `/api/suppliers/${s.id}/logo`
-    if (s.bannerMime) s.bannerUrl = `/api/suppliers/${s.id}/banner`
+    if (s.logoMime)   s.logoUrl   = versionedImage(`/api/suppliers/${s.id}/logo`, s.updatedAt)
+    if (s.bannerMime) s.bannerUrl = versionedImage(`/api/suppliers/${s.id}/banner`, s.updatedAt)
     // Coordonnées bancaires déjà exclues ci-dessus ; on retire aussi l'email
     // privé du partenaire, qui n'a pas à être exposé publiquement.
     delete s.email
@@ -244,6 +248,8 @@ router.get('/:id', protect, restrictTo('admin','superadmin'), async (req, res) =
 // POST /api/suppliers — admin
 router.post('/', protect, restrictTo('admin','superadmin'), async (req, res) => {
   try {
+    if (req.body.logoData) validateImage(req.body.logoData, req.body.logoMime)
+    if (req.body.bannerData) validateImage(req.body.bannerData, req.body.bannerMime)
     const s = await Supplier.create(req.body)
     res.status(201).json({ supplier: s })
   } catch(err) { res.status(400).json({ error: err.message }) }
@@ -254,6 +260,8 @@ router.patch('/:id', protect, restrictTo('admin','superadmin'), async (req, res)
   try {
     const s = await Supplier.findByPk(req.params.id)
     if (!s) return res.status(404).json({ error: 'Fournisseur introuvable' })
+    if (req.body.logoData) validateImage(req.body.logoData, req.body.logoMime)
+    if (req.body.bannerData) validateImage(req.body.bannerData, req.body.bannerMime)
     await s.update(req.body)
     res.json({ supplier: s })
   } catch(err) { res.status(400).json({ error: err.message }) }

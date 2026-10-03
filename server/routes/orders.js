@@ -1,7 +1,9 @@
 // server/routes/orders.js — Commandes avec emails + WhatsApp
 const router  = require('express').Router()
 const { Op }  = require('sequelize')
-const { Order, Product, User } = require('../models/index')
+const models = require('../models/index')
+const { Order, Product, User } = models
+const { createCheckout, normalizeOrderItems } = require('../services/checkout')
 const { protect, restrictTo }  = require('../middleware/auth')
 const {
   sendOrderConfirmation,
@@ -31,79 +33,26 @@ function buildWhatsAppMessage(order, user) {
   )
 }
 
+router.post('/quote', protect, async (req, res, next) => {
+  try {
+    const items = normalizeOrderItems(req.body.items)
+    const products = await Product.findAll({ where: { id: items.map(i => i.id) }, attributes: { exclude: ['imageData'] } })
+    const lines = items.map(item => {
+      const product = products.find(p => p.id === item.id)
+      return { id: item.id, name: product?.nameF || 'Article indisponible', price: Number(product?.price || 0), qty: item.quantity, stock: product?.isActive ? product.stock : 0, emoji: product?.emoji, imageUrl: product?.imageUrl || (product?.imageMime ? `/api/upload/product/${product.id}/image?v=${new Date(product.updatedAt).getTime()}` : '') }
+    })
+    res.json({ items: lines })
+  } catch (err) { next(err) }
+})
+
 // ── POST /api/orders — Créer une commande (lot = 1 seul orderNumber) ──
 router.post('/', protect, async (req, res) => {
   try {
-    const { items, paymentMethod, whatsappNumber, quartier, city, fullAddress } = req.body
-
-    if (!items?.length)    return res.status(400).json({ error: 'Panier vide' })
-    if (!whatsappNumber)   return res.status(400).json({ error: 'Numéro WhatsApp requis' })
-    if (!quartier)         return res.status(400).json({ error: 'Quartier de livraison requis' })
-
-    let subtotal = 0
-    const orderItems = []
-
-    for (const item of items) {
-      const product = await Product.findByPk(item.productId || item.id, {
-        include: [{ association: 'supplier', attributes: ['id','name','commission'] }]
-      })
-      if (!product || !product.isActive) continue
-      if (product.stock < (item.quantity || item.qty || 1))
-        return res.status(400).json({ error: `Stock insuffisant pour ${product.nameF}` })
-
-      const qty = item.quantity || item.qty || 1
-      const lineTotal = product.price * qty
-      subtotal += lineTotal
-
-      orderItems.push({
-        productId:    product.id,
-        nameF:        product.nameF,
-        nameE:        product.nameE || product.nameF,
-        emoji:        product.emoji || '🎁',
-        price:        product.price,
-        quantity:     qty,
-        lineTotal,
-        supplierId:   product.supplierId || null,
-        supplierName: product.supplier?.name || null,
-        isOwnProduct: product.isOwnProduct,
-        commission:   product.supplier?.commission || 0,
-        imageUrl:     product.imageUrl || null,
-      })
-
-      await product.update({
-        stock: product.stock - qty,
-        sold:  (product.sold || 0) + qty,
-      })
-    }
-
-    if (!orderItems.length) return res.status(400).json({ error: 'Aucun produit valide dans le panier' })
-
-    const shipping = subtotal >= 15000 ? 0 : 2000
-    const total    = subtotal + shipping
-
-    // ✅ UN SEUL orderNumber pour tout le lot du panier
-    const order = await Order.create({
-      orderNumber:   genOrderNumber(),
-      userId:        req.user.id,
-      items:         orderItems,
-      subtotal,
-      shipping,
-      total,
-      paymentMethod: paymentMethod || 'mtn_money',
-      whatsappNumber,
-      quartier,
-      city:          city || req.user.city || 'Yaoundé',
-      fullAddress:   fullAddress || '',
-      status:        'pending',
-      statusHistory: [{
-        status: 'pending',
-        date:   new Date().toISOString(),
-        note:   'Commande reçue — notre équipe vous contacte sous peu.'
-      }]
-    })
+    const { order, repeated } = await createCheckout(models, req.user, req.body)
+    if (repeated) return res.json({ order, message: 'Commande déjà enregistrée.' })
 
     // Charger le user pour les emails
-    const user = await User.findByPk(req.user.id, { attributes: ['pseudo','email','phone','whatsapp'] })
+    const user = req.user
 
     // ── Emails non bloquants ──
     Promise.all([
@@ -126,7 +75,7 @@ router.post('/', protect, async (req, res) => {
     })
   } catch(err) {
     console.error('Order creation error:', err)
-    res.status(500).json({ error: err.message })
+    res.status(err.status || 500).json({ error: err.message })
   }
 })
 
@@ -145,7 +94,7 @@ router.get('/my', protect, async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
   try {
     const where = { id: req.params.id }
-    if (req.user.role === 'user') where.userId = req.user.id
+    if (!['admin','superadmin'].includes(req.user.role)) where.userId = req.user.id
     const order = await Order.findOne({
       where,
       include: [{ model: User, as: 'user', attributes: ['id','pseudo','email','phone'] }]

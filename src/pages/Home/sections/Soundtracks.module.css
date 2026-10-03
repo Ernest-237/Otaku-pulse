@@ -1,0 +1,149 @@
+.section {
+  background: var(--green-950);
+  color: #f6f5e9;
+  padding: 65px 0;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 70px;
+}
+.intro > svg {
+  color: #bed0a7;
+  margin-bottom: 20px;
+}
+.intro > span {
+  display: block;
+  letter-spacing: 2px;
+  font-size: 9px;
+  color: #bed0a7;
+}
+.intro h2 {
+  font-family: Georgia, serif;
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: pre-line;
+  margin: 20px 0;
+}
+.intro p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #bac8bc;
+  max-width: 340px;
+}
+.intro small {
+  display: block;
+  font-size: 9px;
+  color: #9caf9d;
+  margin-top: 26px;
+}
+.library {
+  min-width: 0;
+}
+.controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  border-bottom: 1px solid #ffffff24;
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.controls button {
+  background: transparent;
+  color: #b1c5b5;
+  border: 0;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+.controls .active {
+  background: #d6e2c9;
+  color: #183d2f;
+}
+.controls input {
+  background: #ffffff0a;
+  border: 1px solid #ffffff24;
+  color: #f6f5e9;
+  font-size: 12px;
+  max-width: 180px;
+  padding: 8px 12px;
+}
+.controls input::placeholder {
+  color: #b1c5b5;
+}
+.track {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 4px;
+  border-bottom: 1px solid #ffffff1c;
+  color: #f6f5e9;
+  transition: background 0.2s;
+}
+.track:hover {
+  color: #fff;
+  background: #ffffff08;
+}
+.number {
+  font-family: Georgia, serif;
+  color: #a6bd92;
+  font-size: 19px;
+}
+.track > div {
+  flex: 1;
+  min-width: 0;
+}
+.track strong {
+  font-size: 12px;
+  font-weight: 600;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.track div > span {
+  display: block;
+  color: #adbfaf;
+  font-size: 10px;
+  margin-top: 5px;
+}
+.track > svg {
+  color: #adbfaf;
+  flex-shrink: 0;
+}
+.empty {
+  padding: 45px 15px;
+  text-align: center;
+  color: #bdcbbf;
+  font-size: 13px;
+}
+.empty button,
+.more {
+  color: #f6f5e9;
+  background: transparent;
+  border: 1px solid #ffffff40;
+  padding: 8px 15px;
+  border-radius: 20px;
+  margin-top: 15px;
+}
+.more {
+  display: block;
+  margin: 20px auto 0;
+}
+@media (max-width: 700px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .section {
+    padding: 45px 0;
+  }
+  .intro h2 {
+    font-size: 32px;
+  }
+  .controls input {
+    max-width: 145px;
+  }
+}

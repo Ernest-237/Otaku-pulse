@@ -1,3 +1,4 @@
+import MediaImage from '../../../components/ui/MediaImage'
 // src/pages/Manga/library/index.jsx — Bibliothèque personnelle MyAnimeList-style
 import { useEffect, useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -8,7 +9,7 @@ import {
 import { useLang } from '../../../contexts/LangContext'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useApi, useMutation } from '../../../hooks/useApi'
-import { libraryApi, API_BASE } from '../../../api'
+import { libraryApi, API_BASE , resolveMediaUrl } from '../../../api'
 import { useToast } from '../../../contexts/ToastContext'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../Home/sections/Footer'
@@ -250,8 +251,8 @@ function LibraryCard({ item, lang, t, onRemove }) {
     <div className={styles.libCard}>
       <Link to={`/manga/${m.slug}`} className={styles.libCover}>
         {m.coverUrl ? (
-          <img
-            src={`${API_BASE}${m.coverUrl}`}
+          <MediaImage
+            src={resolveMediaUrl(m.coverUrl)}
             alt={title}
             loading="lazy"
           />

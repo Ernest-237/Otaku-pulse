@@ -1,7 +1,8 @@
+import MediaImage from '../../../components/ui/MediaImage'
 // src/pages/Admin/sections/FandomSection.jsx
 // Gestion de la page Fandom : titraille, activités, questions de quizz
 import { useState, useEffect } from 'react'
-import { fandomApi, API_BASE } from '../../../api'
+import { fandomApi, API_BASE , resolveMediaUrl } from '../../../api'
 import { useApi } from '../../../hooks/useApi'
 import ImageUploader from '../../../components/ui/ImageUploader'
 import Button from '../../../components/ui/Button'
@@ -42,7 +43,7 @@ export default function FandomSection({ toast }) {
 
 /* ══ TITRAILLE ══ */
 function ConfigTab({ toast }) {
-  const { data, loading, execute } = useApi(() => fandomApi.getConfig(), [], true)
+  const { data, loading, error, execute } = useApi(() => fandomApi.getConfig(), [], true)
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
   const s = (k,v) => setForm(f => ({ ...f, [k]:v }))
@@ -60,7 +61,9 @@ function ConfigTab({ toast }) {
     finally { setSaving(false) }
   }
 
-  if (loading || !form) return <PageLoader />
+  if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
+  if (error || !form) return <p role="alert" className="editorial-notice">{error || 'Configuration indisponible.'} <button onClick={execute}>Réessayer</button></p>
 
   return (
     <div className={styles.card}>
@@ -94,7 +97,7 @@ function ConfigTab({ toast }) {
 
 /* ══ ACTIVITÉS ══ */
 function ActivitiesTab({ toast }) {
-  const { data, loading, execute } = useApi(() => fandomApi.adminGetActivities(), [], true)
+  const { data, loading, error, execute } = useApi(() => fandomApi.adminGetActivities(), [], true)
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const activities = data?.activities || []
@@ -112,6 +115,7 @@ function ActivitiesTab({ toast }) {
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
 
   return (
     <div className={styles.card}>
@@ -121,13 +125,13 @@ function ActivitiesTab({ toast }) {
       </div>
       <div style={{ padding:'1rem', display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:10 }}>
         {activities.map(a => (
-          <div key={a.id} style={{ display:'flex', alignItems:'center', gap:10, padding:10, background:'rgba(255,255,255,.03)', border:'1px solid var(--ad-border,rgba(51,255,51,.12))', borderRadius:10 }}>
+          <div key={a.id} style={{ display:'flex', alignItems:'center', gap:10, padding:10, background:'rgba(71,124,92,.03)', border:'1px solid var(--ad-border,rgba(51,255,51,.12))', borderRadius:10 }}>
             {a.imageUrl
-              ? <img src={`${API_BASE}${a.imageUrl}`} alt="" style={{ width:36, height:36, borderRadius:8, objectFit:'cover', flexShrink:0 }} />
+              ? <MediaImage src={resolveMediaUrl(a.imageUrl)} alt="" style={{ width:36, height:36, borderRadius:8, objectFit:'cover', flexShrink:0 }} />
               : <span style={{ fontSize:'1.5rem', width:36, textAlign:'center', flexShrink:0 }}>{a.icon}</span>}
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:'.85rem', fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'var(--ad-text,#e8ffe8)' }}>{a.titleF}</div>
-              <div style={{ fontSize:'.72rem', color: a.isActive ? '#4ade80' : '#f87171' }}>{a.isActive ? '✅ Active' : '🔴 Masquée'}</div>
+              <div style={{ fontSize:'.85rem', fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'var(--ad-text,#263e30)' }}>{a.titleF}</div>
+              <div style={{ fontSize:'.72rem', color: a.isActive ? '#32634d' : '#b53c44' }}>{a.isActive ? '✅ Active' : '🔴 Masquée'}</div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => { setEditing(a); setModal(true) }}>✏️</Button>
             <Button variant="danger" size="sm" onClick={() => remove(a.id)}>🗑️</Button>
@@ -177,14 +181,14 @@ function ActivityModal({ activity:a, onClose, onSave, toast }) {
       <div style={{ marginBottom:'1rem' }}>
         <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:6, textTransform:'uppercase' }}>Image (optionnel, sinon icône)</label>
         <ImageUploader
-          currentUrl={a?.imageUrl ? `${API_BASE}${a.imageUrl}` : null}
+          currentUrl={a?.imageUrl ? resolveMediaUrl(a.imageUrl) : null}
           onUpload={async (data, mime) => { s('imageData', data); s('imageMime', mime) }}
           allowUrl={false}
           placeholder="Cliquer pour choisir une image"
         />
       </div>
-      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}>
-        <input type="checkbox" checked={form.isActive} onChange={e => s('isActive', e.target.checked)} style={{ accentColor:'#33ff33' }} /> ✅ Visible sur le site
+      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#405342' }}>
+        <input type="checkbox" checked={form.isActive} onChange={e => s('isActive', e.target.checked)} style={{ accentColor:'#477c5c' }} /> ✅ Visible sur le site
       </label>
     </Modal>
   )
@@ -192,7 +196,7 @@ function ActivityModal({ activity:a, onClose, onSave, toast }) {
 
 /* ══ QUESTIONS QUIZZ ══ */
 function QuizTab({ toast }) {
-  const { data, loading, execute } = useApi(() => fandomApi.adminGetQuestions(), [], true)
+  const { data, loading, error, execute } = useApi(() => fandomApi.adminGetQuestions(), [], true)
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const questions = data?.questions || []
@@ -210,6 +214,7 @@ function QuizTab({ toast }) {
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
 
   return (
     <div className={styles.card}>
@@ -221,8 +226,8 @@ function QuizTab({ toast }) {
         {questions.map(q => (
           <div key={q.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:'1px solid var(--ad-border,rgba(51,255,51,.12))' }}>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:'.85rem', fontWeight:700, color:'var(--ad-text,#e8ffe8)' }}>{q.question}</div>
-              <div style={{ fontSize:'.72rem', color:'var(--ad-text-2,#8fa896)' }}>{q.category} · {q.difficulty} · {q.points} pts · {q.isActive ? '✅ Active' : '🔴 Inactive'}</div>
+              <div style={{ fontSize:'.85rem', fontWeight:700, color:'var(--ad-text,#263e30)' }}>{q.question}</div>
+              <div style={{ fontSize:'.72rem', color:'var(--ad-text-2,#60705f)' }}>{q.category} · {q.difficulty} · {q.points} pts · {q.isActive ? '✅ Active' : '🔴 Inactive'}</div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => { setEditing(q); setModal(true) }}>✏️</Button>
             <Button variant="danger" size="sm" onClick={() => remove(q.id)}>🗑️</Button>
@@ -259,12 +264,12 @@ function QuestionModal({ question:q, onClose, onSave, toast }) {
         return (
           <div key={i} style={{ display:'flex', gap:8, alignItems:'center', marginBottom:'.6rem' }}>
             <input type="radio" name="correct" checked={isCorrect} onChange={() => s('correctIndex',i)}
-              style={{ accentColor:'#33ff33', flexShrink:0 }} title="Bonne réponse" />
+              style={{ accentColor:'#477c5c', flexShrink:0 }} title="Bonne réponse" />
             <span style={{ width:22, textAlign:'center', fontWeight:800, fontSize:'.8rem', color: isCorrect ? '#22c55e' : 'var(--muted)', flexShrink:0 }}>{['A','B','C','D'][i]}</span>
             <input value={opt} onChange={e => setOption(i, e.target.value)} placeholder={`Option ${['A','B','C','D'][i]}`}
               style={{ ...fieldBaseStyle, flex:1, padding:'8px 10px',
-                borderColor: isCorrect ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.12)',
-                background: isCorrect ? 'rgba(34,197,94,.06)' : 'rgba(255,255,255,.04)' }}
+                borderColor: isCorrect ? 'rgba(34,197,94,.5)' : 'rgba(71,124,92,.12)',
+                background: isCorrect ? 'rgba(34,197,94,.06)' : 'rgba(71,124,92,.04)' }}
               onFocus={onFocusField} onBlur={e => { if (!isCorrect) onBlurField(e) }} />
           </div>
         )
@@ -275,17 +280,17 @@ function QuestionModal({ question:q, onClose, onSave, toast }) {
           options={[{v:'facile',l:'Facile'},{v:'moyen',l:'Moyen'},{v:'difficile',l:'Difficile'}]} />
         <HInput label="Points" type="number" value={form.points} onChange={v => s('points', Number(v))} />
       </div>
-      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1', marginTop:'.6rem' }}>
-        <input type="checkbox" checked={form.isActive} onChange={e => s('isActive', e.target.checked)} style={{ accentColor:'#33ff33' }} /> ✅ Active (jouable)
+      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#405342', marginTop:'.6rem' }}>
+        <input type="checkbox" checked={form.isActive} onChange={e => s('isActive', e.target.checked)} style={{ accentColor:'#477c5c' }} /> ✅ Active (jouable)
       </label>
     </Modal>
   )
 }
 
 /* ══ Helpers de formulaire (mêmes styles que HeroSection) ══ */
-const fieldBaseStyle = { width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', transition:'border-color .15s, background .15s' }
+const fieldBaseStyle = { width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1.5px solid rgba(71,124,92,.12)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', transition:'border-color .15s, background .15s' }
 const onFocusField = e => { e.target.style.borderColor = '#22c55e'; e.target.style.background = 'rgba(34,197,94,.06)' }
-const onBlurField  = e => { e.target.style.borderColor = 'rgba(255,255,255,.12)'; e.target.style.background = 'rgba(255,255,255,.04)' }
+const onBlurField  = e => { e.target.style.borderColor = 'rgba(71,124,92,.12)'; e.target.style.background = 'rgba(71,124,92,.04)' }
 
 function HInput({ label, value, onChange, type='text', placeholder }) {
   return (
@@ -311,7 +316,7 @@ function HSelect({ label, value, onChange, options }) {
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
         style={fieldBaseStyle} onFocus={onFocusField} onBlur={onBlurField}>
-        {options.map(o => <option key={o.v} value={o.v} style={{ background:'#0f140f' }}>{o.l}</option>)}
+        {options.map(o => <option key={o.v} value={o.v} style={{ background:'#fffef9' }}>{o.l}</option>)}
       </select>
     </div>
   )

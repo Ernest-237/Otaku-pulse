@@ -1,3 +1,4 @@
+import MediaImage from '../../../components/ui/MediaImage'
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -81,12 +82,12 @@ export default function Boutique() {
       <div className="container">
         <div className={styles.sectionHeader}>
           <h2 className={styles.title}>
-            <span className={styles.titleGreen}>BOUTIQUE</span> GOODIES
+            {lang === 'fr' ? 'Un morceau de ton ' : 'A piece of your '}<span className={styles.titleGreen}>{lang === 'fr' ? 'univers.' : 'world.'}</span>
           </h2>
           <p className={styles.subtitle}>
             {lang === 'fr'
-              ? 'Articles exclusifs pour les vrais otakus'
-              : 'Exclusive items for real otakus'}
+              ? 'Des petites trouvailles pour les grandes passions.'
+              : 'Little finds for the things you love.'}
           </p>
         </div>
 
@@ -206,7 +207,7 @@ function ProductCard({ product, lang, inWishlist, onAddCart, onToggleWish }) {
 
       <div className={styles.cardImg}>
         {imgSrc ? (
-          <img src={imgSrc} alt={product.nameF} loading="lazy" className={styles.productImg} />
+          <MediaImage src={imgSrc} alt={product.nameF} loading="lazy" className={styles.productImg} />
         ) : (
           <span className={styles.productFallback}>
             <Package size={30} strokeWidth={2.1} />

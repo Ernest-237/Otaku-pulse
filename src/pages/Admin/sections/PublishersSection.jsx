@@ -14,14 +14,14 @@ export default function PublishersSection({ toast }) {
   return (
     <div>
       {/* Tabs interne */}
-      <div style={{ display:'flex', gap:6, marginBottom:'1.2rem', background:'rgba(255,255,255,.03)', padding:4, borderRadius:10, border:'1px solid rgba(255,255,255,.06)', maxWidth:'fit-content' }}>
+      <div style={{ display:'flex', gap:6, marginBottom:'1.2rem', background:'rgba(71,124,92,.03)', padding:4, borderRadius:10, border:'1px solid rgba(71,124,92,.06)', maxWidth:'fit-content' }}>
         <button
           onClick={() => setTab('applications')}
           style={{
             padding:'9px 18px', borderRadius:8,
             background: tab === 'applications' ? 'rgba(124,58,237,.18)' : 'none',
             border: tab === 'applications' ? '1px solid rgba(124,58,237,.3)' : '1px solid transparent',
-            color: tab === 'applications' ? '#a78bfa' : 'rgba(180,190,220,.5)',
+            color: tab === 'applications' ? '#7051b0' : '#64735d',
             cursor:'pointer', fontFamily:'var(--font-body)', fontSize:'.84rem', fontWeight:700, letterSpacing:'.5px',
           }}>
           📋 Candidatures
@@ -32,7 +32,7 @@ export default function PublishersSection({ toast }) {
             padding:'9px 18px', borderRadius:8,
             background: tab === 'active' ? 'rgba(124,58,237,.18)' : 'none',
             border: tab === 'active' ? '1px solid rgba(124,58,237,.3)' : '1px solid transparent',
-            color: tab === 'active' ? '#a78bfa' : 'rgba(180,190,220,.5)',
+            color: tab === 'active' ? '#7051b0' : '#64735d',
             cursor:'pointer', fontFamily:'var(--font-body)', fontSize:'.84rem', fontWeight:700, letterSpacing:'.5px',
           }}>
           ✍️ Éditeurs actifs
@@ -50,7 +50,7 @@ function ApplicationsList({ toast }) {
   const [filter, setFilter] = useState('pending')
   const [selected, setSelected] = useState(null)
 
-  const { data, loading, execute } = useApi(
+  const { data, loading, error, execute } = useApi(
     () => adminMangaApi.getPubApps({ status: filter !== 'all' ? filter : undefined, limit: 100 }),
     [filter],
     true
@@ -67,6 +67,7 @@ function ApplicationsList({ toast }) {
     } catch (err) { toast.error(err.message) }
   }
 
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
   return (
     <div>
       <div className={styles.filters}>
@@ -97,8 +98,8 @@ function ApplicationsList({ toast }) {
                 {apps.map(a => (
                   <tr key={a.id} className={styles.tr}>
                     <td>
-                      <strong style={{ color:'#e2e8f0' }}>{a.user?.pseudo || a.pseudo}</strong>
-                      {a.realName && <div style={{ fontSize:'.72rem', color:'rgba(180,190,220,.5)' }}>{a.realName}</div>}
+                      <strong style={{ color:'#263e30' }}>{a.user?.pseudo || a.pseudo}</strong>
+                      {a.realName && <div style={{ fontSize:'.72rem', color:'#64735d' }}>{a.realName}</div>}
                     </td>
                     <td style={{ fontSize:'.82rem' }}>{a.email || a.user?.email}</td>
                     <td style={{ fontSize:'.78rem', maxWidth:280, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -106,7 +107,7 @@ function ApplicationsList({ toast }) {
                     </td>
                     <td style={{ fontSize:'.78rem' }}>
                       {a.portfolioLinks?.length > 0
-                        ? <span style={{ color:'#4ade80' }}>{a.portfolioLinks.length} lien{a.portfolioLinks.length > 1 ? 's' : ''}</span>
+                        ? <span style={{ color:'#32634d' }}>{a.portfolioLinks.length} lien{a.portfolioLinks.length > 1 ? 's' : ''}</span>
                         : <span style={{ color:'rgba(180,190,220,.4)' }}>—</span>}
                     </td>
                     <td>
@@ -114,7 +115,7 @@ function ApplicationsList({ toast }) {
                         {a.status}
                       </Badge>
                     </td>
-                    <td style={{ fontSize:'.78rem', color:'rgba(180,190,220,.5)' }}>
+                    <td style={{ fontSize:'.78rem', color:'#64735d' }}>
                       {new Date(a.createdAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short' })}
                     </td>
                     <td style={{ display:'flex', gap:4 }}>
@@ -157,11 +158,11 @@ function ApplicationDetail({ app, onClose, onReview }) {
       <div className={styles.detailGrid} style={{ marginBottom:'1.2rem' }}>
         <div className={styles.detailItem}>
           <div className={styles.detailLbl}>Pseudo</div>
-          <strong style={{ color:'#e2e8f0' }}>{app.user?.pseudo || app.pseudo}</strong>
+          <strong style={{ color:'#263e30' }}>{app.user?.pseudo || app.pseudo}</strong>
         </div>
         <div className={styles.detailItem}>
           <div className={styles.detailLbl}>Email</div>
-          <strong style={{ fontSize:'.85rem', color:'#e2e8f0' }}>{app.email || app.user?.email}</strong>
+          <strong style={{ fontSize:'.85rem', color:'#263e30' }}>{app.email || app.user?.email}</strong>
         </div>
         <div className={styles.detailItem}>
           <div className={styles.detailLbl}>Nom réel</div>
@@ -185,17 +186,17 @@ function ApplicationDetail({ app, onClose, onReview }) {
         </div>
       </div>
 
-      <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.06)', borderRadius:10, padding:'1rem', marginBottom:'1rem' }}>
-        <div style={{ fontSize:'.68rem', color:'rgba(180,190,220,.5)', fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', marginBottom:8 }}>📝 Bio / Motivation</div>
-        <p style={{ color:'#cbd5e1', fontSize:'.88rem', lineHeight:1.7, margin:0, whiteSpace:'pre-wrap' }}>{app.bio || '—'}</p>
+      <div style={{ background:'rgba(71,124,92,.03)', border:'1px solid rgba(71,124,92,.06)', borderRadius:10, padding:'1rem', marginBottom:'1rem' }}>
+        <div style={{ fontSize:'.68rem', color:'#64735d', fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', marginBottom:8 }}>📝 Bio / Motivation</div>
+        <p style={{ color:'#405342', fontSize:'.88rem', lineHeight:1.7, margin:0, whiteSpace:'pre-wrap' }}>{app.bio || '—'}</p>
       </div>
 
       {app.portfolioLinks?.length > 0 && (
-        <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.06)', borderRadius:10, padding:'1rem', marginBottom:'1rem' }}>
-          <div style={{ fontSize:'.68rem', color:'rgba(180,190,220,.5)', fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', marginBottom:8 }}>🔗 Portfolio</div>
+        <div style={{ background:'rgba(71,124,92,.03)', border:'1px solid rgba(71,124,92,.06)', borderRadius:10, padding:'1rem', marginBottom:'1rem' }}>
+          <div style={{ fontSize:'.68rem', color:'#64735d', fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', marginBottom:8 }}>🔗 Portfolio</div>
           {app.portfolioLinks.map((link, i) => (
             <a key={i} href={link} target="_blank" rel="noreferrer"
-              style={{ display:'block', color:'#4ade80', fontSize:'.85rem', padding:'4px 0', textDecoration:'none' }}>
+              style={{ display:'block', color:'#32634d', fontSize:'.85rem', padding:'4px 0', textDecoration:'none' }}>
               → {link}
             </a>
           ))}
@@ -204,7 +205,7 @@ function ApplicationDetail({ app, onClose, onReview }) {
 
       {app.adminNotes && (
         <div style={{ background:'rgba(245,158,11,.08)', border:'1px solid rgba(245,158,11,.2)', borderRadius:10, padding:'1rem', marginBottom:'1rem' }}>
-          <div style={{ fontSize:'.68rem', color:'#fcd34d', fontWeight:800, letterSpacing:1, textTransform:'uppercase', marginBottom:5 }}>Notes admin précédentes</div>
+          <div style={{ fontSize:'.68rem', color:'#956018', fontWeight:800, letterSpacing:1, textTransform:'uppercase', marginBottom:5 }}>Notes admin précédentes</div>
           <p style={{ color:'rgba(252,211,77,.85)', fontSize:'.85rem', margin:0, lineHeight:1.6 }}>{app.adminNotes}</p>
         </div>
       )}
@@ -212,13 +213,13 @@ function ApplicationDetail({ app, onClose, onReview }) {
       {/* Actions */}
       {app.status === 'pending' && (
         <div style={{ background:'rgba(34,197,94,.05)', border:'1px solid rgba(34,197,94,.15)', borderRadius:12, padding:'1rem' }}>
-          <div style={{ fontSize:'.68rem', color:'#4ade80', fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', marginBottom:'.8rem' }}>⚡ Décision</div>
+          <div style={{ fontSize:'.68rem', color:'#32634d', fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', marginBottom:'.8rem' }}>⚡ Décision</div>
 
           <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
             placeholder="Note (optionnelle pour approbation, conseillée pour rejet)..."
-            style={{ width:'100%', padding:'9px 12px', background:'rgba(255,255,255,.04)', border:'1.5px solid rgba(255,255,255,.12)', borderRadius:8, color:'#e2e8f0', fontSize:'.85rem', resize:'vertical', outline:'none', marginBottom:'1rem', fontFamily:'var(--font-body)', lineHeight:1.5, transition:'border-color .15s, background .15s' }}
+            style={{ width:'100%', padding:'9px 12px', background:'rgba(71,124,92,.04)', border:'1.5px solid rgba(71,124,92,.12)', borderRadius:8, color:'#263e30', fontSize:'.85rem', resize:'vertical', outline:'none', marginBottom:'1rem', fontFamily:'var(--font-body)', lineHeight:1.5, transition:'border-color .15s, background .15s' }}
             onFocus={e => { e.target.style.borderColor='#22c55e'; e.target.style.background='rgba(34,197,94,.06)' }}
-            onBlur={e => { e.target.style.borderColor='rgba(255,255,255,.12)'; e.target.style.background='rgba(255,255,255,.04)' }} />
+            onBlur={e => { e.target.style.borderColor='rgba(71,124,92,.12)'; e.target.style.background='rgba(71,124,92,.04)' }} />
 
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             <Button variant="primary" onClick={() => onReview(app, 'approved', notes)}>
@@ -239,7 +240,7 @@ function ApplicationDetail({ app, onClose, onReview }) {
 
 /* ══ ACTIVE PUBLISHERS ═════════════════════════════════ */
 function ActivePublishersList({ toast }) {
-  const { data, loading, execute } = useApi(() => adminMangaApi.getPublishers(), [], true)
+  const { data, loading, error, execute } = useApi(() => adminMangaApi.getPublishers(), [], true)
   const publishers = data?.publishers || []
 
   const revoke = async (p) => {
@@ -252,6 +253,7 @@ function ActivePublishersList({ toast }) {
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
 
   return (
     <div className={styles.card}>
@@ -269,8 +271,8 @@ function ActivePublishersList({ toast }) {
               {publishers.map(p => (
                 <tr key={p.id} className={styles.tr}>
                   <td>
-                    <strong style={{ color:'#e2e8f0' }}>{p.pseudo}</strong>
-                    <div style={{ fontSize:'.7rem', color:'rgba(180,190,220,.5)' }}>{p.role}</div>
+                    <strong style={{ color:'#263e30' }}>{p.pseudo}</strong>
+                    <div style={{ fontSize:'.7rem', color:'#64735d' }}>{p.role}</div>
                   </td>
                   <td style={{ fontSize:'.82rem' }}>{p.email}</td>
                   <td>
@@ -284,7 +286,7 @@ function ActivePublishersList({ toast }) {
                   <td style={{ fontSize:'.85rem', color:'#3b82f6', fontFamily:'var(--font-title)' }}>
                     {(p.stats?.totalReads || 0).toLocaleString()}
                   </td>
-                  <td style={{ fontSize:'.78rem', color:'rgba(180,190,220,.5)' }}>
+                  <td style={{ fontSize:'.78rem', color:'#64735d' }}>
                     {new Date(p.createdAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'2-digit' })}
                   </td>
                   <td>

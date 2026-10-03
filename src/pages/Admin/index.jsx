@@ -1,9 +1,12 @@
+import OtakuMark from '../../components/ui/OtakuMark'
+import EditorialSection from './sections/EditorialSection'
+import MediaImage from '../../components/ui/MediaImage'
 // src/pages/Admin/index.jsx — COMPLET (dark néon gaming)
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth }  from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
-import { adminApi, productsApi, eventsApi, contactApi, blogApi, suppliersApi, fileToBase64, API_BASE, request } from '../../api'
+import { adminApi, productsApi, eventsApi, contactApi, blogApi, suppliersApi, fileToBase64, API_BASE, request , resolveMediaUrl } from '../../api'
 import { useApi } from '../../hooks/useApi'
 import { PageLoader, EmptyState } from '../../components/ui/Spinner'
 import ImageUploader from '../../components/ui/ImageUploader'
@@ -46,7 +49,7 @@ const NAV = [
   {
     group: 'Commerce',
     items: [
-      { id: 'dashboard',  icon: LayoutDashboard, label: 'Dashboard'     },
+      { id: 'dashboard',  icon: LayoutDashboard, label: 'Vue d’ensemble'     },
       { id: 'orders',     icon: ShoppingCart,    label: 'Commandes'     },
       { id: 'invoices',   icon: FileText,        label: 'Factures'      },
       { id: 'products',   icon: Package,         label: 'Produits'      },
@@ -67,7 +70,7 @@ const NAV = [
   {
     group: 'Contenu',
     items: [
-      { id: 'blog',       icon: Newspaper,       label: 'Blog & Promos' },
+      { id: 'blog',       icon: Newspaper,       label: 'Blog & actualités' },
       { id: 'hero',       icon: ImageIcon,       label: 'Hero dynamique'},
     ],
   },
@@ -89,7 +92,11 @@ export default function Admin() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const toast    = useToast()
-  const [section, setSection] = useState('dashboard')
+  const [params, setParams] = useSearchParams()
+  const requestedSection = params.get('section') || 'dashboard'
+  const section = FLAT.some(s => s.id === requestedSection) ? requestedSection : 'dashboard'
+  const setSection = id => setParams({ section: id })
+  const [navSearch, setNavSearch] = useState('')
   const [navOpen, setNavOpen] = useState(false)
 
   useEffect(() => { document.title = 'Admin — Otaku Pulse' }, [])
@@ -127,7 +134,7 @@ export default function Admin() {
       >
         <div className="flex items-center gap-2.5 border-b border-line px-4 py-4">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand/15 text-brand">
-            <Zap size={17} />
+            <OtakuMark size={17} />
           </span>
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-extrabold tracking-wider">OTAKU PULSE</div>
@@ -145,7 +152,8 @@ export default function Admin() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-2.5 py-3">
-          {NAV.map(g => (
+          <input className="adm-input" aria-label="Rechercher une rubrique" placeholder="Trouver une rubrique…" value={navSearch} onChange={e => setNavSearch(e.target.value)} style={{marginBottom:16}} />
+          {NAV.map(g => ({ ...g, items: g.items.filter(i => i.label.toLowerCase().includes(navSearch.toLowerCase())) })).filter(g => g.items.length).map(g => (
             <div key={g.group} className="mb-4 last:mb-0">
               <div className="px-2.5 pb-1.5 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-fg-faint">
                 {g.group}
@@ -227,13 +235,14 @@ export default function Admin() {
         </header>
 
         <main className="px-4 py-5 sm:px-6 sm:py-6">
+          <div className="account-shortcuts"><Link to="/admin?section=events">🎌 Événements</Link><Link to="/admin?section=blog">🍵 Publications</Link><Link to="/manga/publisher">📚 Studio manga</Link><Link to="/admin?section=orders">📦 Commandes</Link></div>
           {section==='dashboard'  && <DashboardSection  toast={toast} setSection={setSection} />}
           {section==='orders'     && <OrdersSection     toast={toast} />}
           {section==='invoices'   && <InvoicesSection   toast={toast} />}
           {section==='products'   && <ProductsSection   toast={toast} />}
           {section==='suppliers'  && <SuppliersSection  toast={toast} />}
-          {section==='events'     && <EventsSection     toast={toast} />}
-          {section==='blog'       && <BlogSection       toast={toast} />}
+          {section==='events'     && <EditorialSection events toast={toast} />}
+          {section==='blog'       && <EditorialSection toast={toast} />}
           {section==='hero'       && <HeroSection       toast={toast} />}
           {section==='fandom'     && <FandomSection     toast={toast} />}
           {section==='anime'      && <AnimeSection      toast={toast} />}
@@ -256,7 +265,7 @@ function ContactsSection({ toast }) {
   const [filter,   setFilter]   = useState('all')
   const [search,   setSearch]   = useState('')
   const [selected, setSelected] = useState(null)
-  const { data, loading, execute } = useApi(() => adminApi.getContacts({ limit:100 }), [], true)
+  const { data, loading, error, execute } = useApi(() => adminApi.getContacts({ limit:100 }), [], true)
   const contacts = data?.contacts || []
   const filtered = contacts.filter(c => {
     const mF = filter==='all' || c.status===filter
@@ -274,6 +283,7 @@ function ContactsSection({ toast }) {
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
   return (
     <div>
       <div className={styles.filters}>
@@ -302,7 +312,7 @@ function ContactsSection({ toast }) {
                 <tr key={c.id} className={styles.tr}>
                   <td>
                     <strong>{c.prenom} {c.nom}</strong>
-                    <br/><small style={{ color:'var(--ad-text-2,#8fa896)' }}>{c.email}</small>
+                    <br/><small style={{ color:'var(--ad-text-2,#60705f)' }}>{c.email}</small>
                   </td>
                   <td><Badge variant="blue" style={{ fontSize:'.65rem' }}>{c.pack?.toUpperCase()}</Badge></td>
                   <td style={{ fontSize:'.82rem' }}>{c.theme}</td>
@@ -349,7 +359,7 @@ function ContactModal({ c, onClose, onSave }) {
         ))}
       </div>
       {c.message && (
-        <p style={{ color:'var(--ad-text-2,#8fa896)', fontSize:'.85rem', lineHeight:1.6, padding:'10px', background:'rgba(255,255,255,.03)', borderRadius:8, marginBottom:'1rem' }}>
+        <p style={{ color:'var(--ad-text-2,#60705f)', fontSize:'.85rem', lineHeight:1.6, padding:'10px', background:'rgba(71,124,92,.03)', borderRadius:8, marginBottom:'1rem' }}>
           {c.message}
         </p>
       )}
@@ -366,7 +376,8 @@ function ProductsSection({ toast }) {
   const [search,    setSearch]    = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing,   setEditing]   = useState(null)
-  const { data, loading, execute } = useApi(() => productsApi.getAll({ limit:200 }), [], true)
+  const [page, setPage] = useState(1)
+  const { data, loading, error, execute } = useApi(() => productsApi.getAdmin({ limit: 25, page, search, category: filter }), [page, search, filter], true)
   const products = data?.products || []
   const filtered = products.filter(p => {
     const mC = filter==='all' || p.category===filter
@@ -387,23 +398,24 @@ function ProductsSection({ toast }) {
     catch(err) { toast.error(err.message) }
   }
 
-  if (loading) return <PageLoader />
   return (
     <div>
       <div className={styles.filters}>
         <button className={`${styles.filterBtn} ${filter==='all'?styles.filterActive:''}`}
-          onClick={() => setFilter('all')}>Tous ({products.length})</button>
+          onClick={() => { setFilter('all'); setPage(1) }}>Tous ({products.length})</button>
         {ALL_CATS.map(c => (
           <button key={c} className={`${styles.filterBtn} ${filter===c?styles.filterActive:''}`}
-            onClick={() => setFilter(c)}>{c.charAt(0).toUpperCase()+c.slice(1)}</button>
+            onClick={() => { setFilter(c); setPage(1) }}>{c.charAt(0).toUpperCase()+c.slice(1)}</button>
         ))}
         <input className={styles.searchBox} placeholder="🔍 Rechercher..."
-          value={search} onChange={e=>setSearch(e.target.value)} />
+          value={search} onChange={e=>{ setSearch(e.target.value); setPage(1) }} />
         <Button variant="primary" size="sm"
           style={{ marginLeft:'auto', whiteSpace:'nowrap' }}
           onClick={() => { setEditing(null); setModalOpen(true) }}>+ Ajouter</Button>
       </div>
       <div className={styles.card}>
+        {error && <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>}
+        {loading && <p role="status">Chargement…</p>}
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}>📦 Produits ({filtered.length})</span>
         </div>
@@ -418,24 +430,24 @@ function ProductsSection({ toast }) {
                 <tr key={p.id} className={styles.tr}>
                   <td>
                     {p.imageUrl
-                      ? <img src={p.imageUrl.startsWith('/')?`${API_BASE}${p.imageUrl}`:p.imageUrl}
+                      ? <MediaImage src={p.imageUrl.startsWith('/')?resolveMediaUrl(p.imageUrl):p.imageUrl}
                           alt={p.nameF} className={styles.productThumb}
                           onError={e=>{e.target.style.display='none'}} />
                       : <div className={styles.productEmoji}>{p.emoji||'🎁'}</div>}
                   </td>
                   <td>
                     <strong>{p.nameF}</strong>
-                    {p.nameE && <div style={{ fontSize:'.75rem', color:'var(--ad-text-2,#8fa896)' }}>{p.nameE}</div>}
+                    {p.nameE && <div style={{ fontSize:'.75rem', color:'var(--ad-text-2,#60705f)' }}>{p.nameE}</div>}
                   </td>
                   <td>
                     {p.supplier
-                      ? <span style={{ fontSize:'.78rem', background:'rgba(51,255,51,.1)', color:'#4ade80', borderRadius:6, padding:'3px 8px' }}>🤝 {p.supplier.name}</span>
-                      : <span style={{ fontSize:'.75rem', color:'var(--ad-text-2,#8fa896)' }}>Otaku Pulse</span>}
+                      ? <span style={{ fontSize:'.78rem', background:'rgba(51,255,51,.1)', color:'#32634d', borderRadius:6, padding:'3px 8px' }}>🤝 {p.supplier.name}</span>
+                      : <span style={{ fontSize:'.75rem', color:'var(--ad-text-2,#60705f)' }}>Otaku Pulse</span>}
                   </td>
                   <td><Badge variant="gray" style={{ fontSize:'.65rem' }}>{p.category}</Badge></td>
                   <td>
-                    <span style={{ fontFamily:'var(--font-title)', color:'#4ade80' }}>{p.price?.toLocaleString()} F</span>
-                    {p.oldPrice && <div style={{ fontSize:'.72rem', color:'var(--ad-text-2,#8fa896)', textDecoration:'line-through' }}>{p.oldPrice?.toLocaleString()}</div>}
+                    <span style={{ fontFamily:'var(--font-title)', color:'#32634d' }}>{p.price?.toLocaleString()} F</span>
+                    {p.oldPrice && <div style={{ fontSize:'.72rem', color:'var(--ad-text-2,#60705f)', textDecoration:'line-through' }}>{p.oldPrice?.toLocaleString()}</div>}
                   </td>
                   <td><Badge variant={p.stock<=0?'red':p.stock<=3?'amber':'green'} style={{ fontSize:'.65rem' }}>{p.stock}</Badge></td>
                   <td><Badge variant={p.isActive?'green':'gray'} style={{ fontSize:'.65rem' }}>{p.isActive?'Actif':'Inactif'}</Badge></td>
@@ -447,9 +459,10 @@ function ProductsSection({ toast }) {
               ))}
             </tbody>
           </table>
-          {!filtered.length && <EmptyState icon="📦" title="Aucun produit" />}
+          {!filtered.length && !loading && !error && <EmptyState icon="📦" title="Aucun produit" />}
         </div>
       </div>
+      <div className="editorial-pagination"><Button variant="ghost" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Précédent</Button><span>Page {page} · {data?.total || 0} produits</span><Button variant="ghost" disabled={page * 25 >= (data?.total || 0)} onClick={() => setPage(p => p + 1)}>Suivant</Button></div>
       {modalOpen && (
         <ProductModal product={editing}
           onClose={() => { setModalOpen(false); setEditing(null) }}
@@ -460,6 +473,8 @@ function ProductsSection({ toast }) {
 }
 
 function ProductModal({ product:p, onClose, onSave, toast }) {
+  const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [form, setForm] = useState({
     nameF:p?.nameF||'', nameE:p?.nameE||'', slug:p?.slug||'',
     category:p?.category||'posters', price:p?.price||'',
@@ -474,16 +489,21 @@ function ProductModal({ product:p, onClose, onSave, toast }) {
   const slugify = str => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')
 
   return (
-    <Modal isOpen dark title={p?'✏️ Modifier produit':'📦 Nouveau produit'} onClose={onClose} wide
+    <Modal isOpen dark title={p?'✏️ Modifier produit':'📦 Nouveau produit'} onClose={onClose} wide dismissible={!busy && !uploading}
       footer={
-        <><Button variant="ghost" onClick={onClose}>Annuler</Button>
-        <Button variant="primary" onClick={() => onSave({
+        <><Button variant="ghost" disabled={busy || uploading} onClick={onClose}>Annuler</Button>
+        <Button variant="primary" disabled={busy || uploading} onClick={async () => {
+          if (!form.nameF.trim() || !form.slug.trim()) return toast.error('Nom et slug requis')
+          if (!Number.isInteger(Number(form.price)) || Number(form.price) < 0 || !Number.isInteger(Number(form.stock)) || Number(form.stock) < 0) return toast.error('Prix et stock doivent être des entiers positifs ou nuls')
+          setBusy(true)
+          try { await onSave({
           ...form,
           price:parseFloat(form.price)||0,
           oldPrice:parseFloat(form.oldPrice)||null,
           stock:parseInt(form.stock)||0,
           supplierId:form.supplierId||null,
-        })}>💾 Enregistrer</Button></>
+          }) } finally { setBusy(false) }
+        }}>💾 Enregistrer</Button></>
       }>
       <div className={styles.formGrid2}>
         <AInput label="Nom FR *" value={form.nameF} onChange={v => { s('nameF',v); if(!p) s('slug',slugify(v)) }} />
@@ -499,7 +519,8 @@ function ProductModal({ product:p, onClose, onSave, toast }) {
       {/* ── IMAGE : fichier OU lien ── */}
       <AField label="Image du produit">
         <ImageUploader
-          currentUrl={form.imageUrl && form.imageUrl.startsWith('/') ? `${API_BASE}${form.imageUrl}` : form.imageUrl}
+          onBusyChange={setUploading}
+          currentUrl={form.imageUrl && form.imageUrl.startsWith('/') ? resolveMediaUrl(form.imageUrl) : form.imageUrl}
           onUpload={async (data, mime) => {
             // Stocke la data URL base64 directement dans imageUrl
             s('imageUrl', `data:${mime};base64,${data}`)
@@ -520,341 +541,11 @@ function ProductModal({ product:p, onClose, onSave, toast }) {
         <AInput label="Badge" value={form.badge||''} onChange={v=>s('badge',v)} placeholder="PROMO, NEW..." />
       </div>
       <ATextarea label="Description FR" value={form.descF||''} onChange={v=>s('descF',v)} rows={2} />
-      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', marginTop:'.5rem', color:'#cbd5e1' }}>
-        <input type="checkbox" checked={form.isActive} onChange={e=>s('isActive',e.target.checked)} style={{ accentColor:'#33ff33' }} />
+      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', marginTop:'.5rem', color:'#405342' }}>
+        <input type="checkbox" checked={form.isActive} onChange={e=>s('isActive',e.target.checked)} style={{ accentColor:'#477c5c' }} />
         ✅ Produit actif
       </label>
     </Modal>
-  )
-}
-
-// ══ EVENTS ════════════════════════════════════════════
-function EventsSection({ toast }) {
-  const { data, loading, execute } = useApi(() => eventsApi.getAll({ limit:50 }), [], true)
-  const [modal,   setModal]   = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [regsFor, setRegsFor] = useState(null)
-  const events = data?.events || []
-
-  const save = async (form) => {
-    try {
-      editing ? await eventsApi.update(editing.id, form) : await eventsApi.create(form)
-      toast.success('✅ Événement enregistré'); execute(); setModal(false); setEditing(null)
-    } catch(err) { toast.error(err.message) }
-  }
-
-  if (loading) return <PageLoader />
-  return (
-    <div className={styles.card}>
-      <div className={styles.cardHeader}>
-        <span className={styles.cardTitle}>🎌 Événements ({events.length})</span>
-        <Button variant="primary" size="sm" onClick={() => { setEditing(null); setModal(true) }}>+ Événement</Button>
-      </div>
-      <div style={{ overflowX:'auto' }}>
-        <table className={styles.table}>
-          <thead><tr><th>Événement</th><th>Type</th><th>Date</th><th>Lieu</th><th>Inscrits</th><th>Statut</th><th></th></tr></thead>
-          <tbody>
-            {events.map(e => (
-              <tr key={e.id} className={styles.tr}>
-                <td><strong>{e.img} {e.titleF}</strong></td>
-                <td><Badge variant="blue" style={{ fontSize:'.65rem' }}>{e.type?.toUpperCase()}</Badge></td>
-                <td style={{ fontSize:'.82rem' }}>{new Date(e.date).toLocaleDateString('fr-FR')}</td>
-                <td style={{ fontSize:'.82rem' }}>{e.venue||e.location||'—'}</td>
-                <td><Badge variant={e.registered>=e.capacity?'red':'green'} style={{ fontSize:'.65rem' }}>{e.registered}/{e.capacity}</Badge></td>
-                <td><Badge variant={statusVariant(e.status)} style={{ fontSize:'.65rem' }}>{STATUS_LABELS[e.status]||e.status}</Badge></td>
-                <td style={{ display:'flex', gap:6 }}>
-                  <Button variant="ghost" size="sm" onClick={() => setRegsFor(e)}>👥 Inscrits</Button>
-                  <Button variant="ghost" size="sm" onClick={() => { setEditing(e); setModal(true) }}>✏️</Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!events.length && <EmptyState icon="🎌" title="Aucun événement" />}
-      </div>
-      {modal && <EventModal event={editing} onClose={() => { setModal(false); setEditing(null) }} onSave={save} toast={toast} />}
-      {regsFor && <RegistrationsModal event={regsFor} onClose={() => setRegsFor(null)} toast={toast} onPaid={execute} />}
-    </div>
-  )
-}
-
-// ── Modale "Inscrits" : liste des inscriptions + confirmation de paiement ──
-function RegistrationsModal({ event, onClose, toast, onPaid }) {
-  const { data, loading, execute } = useApi(() => eventsApi.getRegistrations(event.id), [event.id], true)
-  const [busyId, setBusyId] = useState(null)
-  const registrations = data?.registrations || []
-
-  const regBadge = (status) => ({ confirmed:'green', waitlist:'amber', cancelled:'red' }[status] || 'gray')
-  const payBadge = (status) => (status === 'paid' ? 'green' : 'orange')
-
-  const confirmPayment = async (reg) => {
-    setBusyId(reg.id)
-    try {
-      await eventsApi.confirmPayment(reg.id)
-      toast.success('✅ Paiement confirmé, billet envoyé au client')
-      execute(); onPaid?.()
-    } catch (err) { toast.error(err.message) }
-    finally { setBusyId(null) }
-  }
-
-  return (
-    <Modal isOpen dark wide title={`👥 Inscrits — ${event.titleF}`} onClose={onClose}>
-      {loading ? <PageLoader /> : (
-        <div style={{ overflowX:'auto' }}>
-          <table className={styles.table}>
-            <thead><tr><th>Nom</th><th>Contact</th><th>Invités</th><th>Statut</th><th>Paiement</th><th>Billet</th><th></th></tr></thead>
-            <tbody>
-              {registrations.map(r => (
-                <tr key={r.id} className={styles.tr}>
-                  <td><strong>{r.name || r.user?.pseudo || '—'}</strong></td>
-                  <td style={{ fontSize:'.8rem' }}>{r.email}{r.phone ? ` · ${r.phone}` : ''}</td>
-                  <td>{r.guests || 1}</td>
-                  <td><Badge variant={regBadge(r.status)} style={{ fontSize:'.65rem' }}>{r.status === 'waitlist' ? "Liste d'attente" : r.status === 'cancelled' ? 'Annulé' : 'Confirmé'}</Badge></td>
-                  <td><Badge variant={payBadge(r.paymentStatus)} style={{ fontSize:'.65rem' }}>{r.paymentStatus === 'paid' ? '✅ Payé' : '⏳ En attente'}</Badge></td>
-                  <td style={{ fontSize:'.75rem', fontFamily:'monospace' }}>{r.ticketCode}</td>
-                  <td>
-                    {r.paymentStatus !== 'paid' && (
-                      <Button variant="primary" size="sm" disabled={busyId === r.id} onClick={() => confirmPayment(r)}>
-                        {busyId === r.id ? '⏳...' : '✅ Confirmer paiement'}
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!registrations.length && <EmptyState icon="👥" title="Aucun inscrit pour le moment" />}
-        </div>
-      )}
-    </Modal>
-  )
-}
-
-function EventModal({ event:e, onClose, onSave, toast }) {
-  const [form, setForm] = useState({
-    titleF: e?.titleF||'', titleE: e?.titleE||'', descF: e?.descF||'', descE: e?.descE||'',
-    date: e?.date||'', timeStart: e?.timeStart||'', timeEnd: e?.timeEnd||'',
-    venue: e?.venue||'', city: e?.city||'Yaoundé', type: e?.type||'custom',
-    capacity: e?.capacity??50, price: e?.price??0, isFree: e?.isFree||false,
-    img: e?.img||'🎌', status: e?.status||'upcoming', featured: e?.featured||false,
-    imageUrl: e?.imageUrl||'',
-  })
-  const s = (k,v) => setForm(f => ({ ...f, [k]:v }))
-
-  const submit = () => {
-    if (!form.titleF.trim()) return toast.error('Titre requis')
-    if (!form.date) return toast.error('Date requise')
-    onSave(form)
-  }
-
-  return (
-    <Modal isOpen dark title={e ? '✏️ Modifier événement' : '🎌 Nouvel événement'} onClose={onClose} wide
-      footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={submit}>💾 Enregistrer</Button></>}>
-      <div className={styles.formGrid2}>
-        <AInput label="Titre FR *" value={form.titleF} onChange={v=>s('titleF',v)} />
-        <AInput label="Titre EN" value={form.titleE} onChange={v=>s('titleE',v)} />
-      </div>
-      <div className={styles.formGrid2}>
-        <ATextarea label="Description FR" value={form.descF} onChange={v=>s('descF',v)} rows={2} />
-        <ATextarea label="Description EN" value={form.descE} onChange={v=>s('descE',v)} rows={2} />
-      </div>
-      <div className={styles.formGrid2}>
-        <AInput label="Date *" type="date" value={form.date} onChange={v=>s('date',v)} />
-        <AInput label="Lieu" value={form.venue} onChange={v=>s('venue',v)} />
-      </div>
-      <div className={styles.formGrid2}>
-        <AInput label="Heure début" type="time" value={form.timeStart} onChange={v=>s('timeStart',v)} />
-        <AInput label="Heure fin" type="time" value={form.timeEnd} onChange={v=>s('timeEnd',v)} />
-      </div>
-      <div className={styles.formGrid2}>
-        <AInput label="Ville" value={form.city} onChange={v=>s('city',v)} />
-        <ASelect label="Type" value={form.type} onChange={v=>s('type',v)}
-          options={[{v:'genin',l:'Genin'},{v:'chunin',l:'Chūnin'},{v:'hokage',l:'Hokage'},{v:'custom',l:'Custom'}]} />
-      </div>
-      <div className={styles.formGrid2}>
-        <AInput label="Capacité" type="number" value={form.capacity} onChange={v=>s('capacity',Number(v))} />
-        <AInput label="Prix (FCFA)" type="number" value={form.price} onChange={v=>s('price',Number(v))} />
-      </div>
-      <div className={styles.formGrid2}>
-        <ASelect label="Statut" value={form.status} onChange={v=>s('status',v)}
-          options={[{v:'upcoming',l:'À venir'},{v:'ongoing',l:'En cours'},{v:'past',l:'Passé'},{v:'cancelled',l:'Annulé'},{v:'draft',l:'Brouillon'}]} />
-        <AInput label="Emoji" value={form.img} onChange={v=>s('img',v)} />
-      </div>
-
-      <AField label="Image de l'événement">
-        <ImageUploader
-          currentUrl={form.imageUrl && form.imageUrl.startsWith('/') ? `${API_BASE}${form.imageUrl}` : form.imageUrl}
-          onUpload={async (data, mime) => { s('imageUrl', `data:${mime};base64,${data}`); toast?.success?.('📸 Image chargée') }}
-          onUrlChange={(url) => s('imageUrl', url)}
-          placeholder="Cliquer ou glisser une image d'événement"
-        />
-      </AField>
-
-      <div style={{ display:'flex', gap:'1.5rem', marginTop:'.8rem' }}>
-        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.isFree} onChange={e=>s('isFree',e.target.checked)} style={{ accentColor:'#33ff33' }} /> 🆓 Gratuit</label>
-        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.featured} onChange={e=>s('featured',e.target.checked)} style={{ accentColor:'#33ff33' }} /> ⭐ Mis en avant</label>
-      </div>
-    </Modal>
-  )
-}
-
-// ══ BLOG ══════════════════════════════════════════════
-function BlogSection({ toast }) {
-  const [postModal,   setPostModal]   = useState(false)
-  const [editingPost, setEditingPost] = useState(null)
-  const [partModal,   setPartModal]   = useState(false)
-  const { data:postsData, loading:lP, execute:refetchPosts } = useApi(() => blogApi.getPosts({limit:50}), [], true)
-  const { data:partData,  loading:lPart, execute:refetchPart } = useApi(() => blogApi.getPartners(), [], true)
-  const posts    = postsData?.posts    || []
-  const partners = partData?.partners  || []
-  const CAT_COLORS = { blog:'purple', event:'green', promo:'red', partner:'amber' }
-  const CAT_ICONS  = { blog:'📝', event:'🎌', promo:'🔥', partner:'🤝' }
-
-  const savePost = async (payload) => {
-    try {
-      editingPost ? await blogApi.updatePost(editingPost.id, payload) : await blogApi.createPost(payload)
-      toast.success('✅ Article publié'); refetchPosts(); setPostModal(false); setEditingPost(null)
-    } catch(err) { toast.error(err.message) }
-  }
-  const delPost = async id => {
-    if (!confirm('Supprimer ?')) return
-    try { await blogApi.deletePost(id); refetchPosts(); toast.success('🗑️ Supprimé') }
-    catch(err) { toast.error(err.message) }
-  }
-  const savePartner = async payload => {
-    try { await blogApi.createPartner(payload); toast.success('✅ Partenaire ajouté'); refetchPart(); setPartModal(false) }
-    catch(err) { toast.error(err.message) }
-  }
-
-  return (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap:'1.5rem', alignItems:'start' }}>
-      <div>
-        <div className={styles.card} style={{ marginBottom:'1.5rem' }}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardTitle}>📝 Articles ({posts.length})</span>
-            <Button variant="primary" size="sm" onClick={() => { setEditingPost(null); setPostModal(true) }}>+ Publier</Button>
-          </div>
-          <div style={{ padding:'1rem' }}>
-            {lP && <PageLoader />}
-            {posts.map(p => (
-              <div key={p.id} className={styles.postItem}>
-                <span style={{ fontSize:'1.8rem', width:46, textAlign:'center', flexShrink:0 }}>{p.emoji||CAT_ICONS[p.category]||'📰'}</span>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:'.9rem', fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:3, color:'var(--ad-text,#e8ffe8)' }}>{p.title}</div>
-                  <div style={{ display:'flex', gap:7, flexWrap:'wrap', alignItems:'center' }}>
-                    <Badge variant={CAT_COLORS[p.category]||'gray'} style={{ fontSize:'.62rem' }}>{p.category}</Badge>
-                    <span style={{ fontSize:'.72rem', color:'var(--ad-text-2,#8fa896)' }}>{new Date(p.createdAt).toLocaleDateString('fr-FR')}</span>
-                    <span style={{ fontSize:'.72rem', color:p.isPublished?'#4ade80':'#f87171' }}>{p.isPublished?'✅ Publié':'🔴 Masqué'}</span>
-                  </div>
-                </div>
-                <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-                  <Button variant="ghost" size="sm" onClick={() => { setEditingPost(p); setPostModal(true) }}>✏️</Button>
-                  <Button variant="danger" size="sm" onClick={() => delPost(p.id)}>🗑️</Button>
-                </div>
-              </div>
-            ))}
-            {!posts.length && !lP && <EmptyState icon="📝" title="Aucun article" />}
-          </div>
-        </div>
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardTitle}>🤝 Partenaires ({partners.length})</span>
-            <Button variant="primary" size="sm" onClick={() => setPartModal(true)}>+ Ajouter</Button>
-          </div>
-          <div style={{ padding:'1rem', display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:10 }}>
-            {partners.map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px', background:'rgba(255,255,255,.03)', border:'1px solid var(--ad-border,rgba(51,255,51,.12))', borderRadius:10 }}>
-                <span style={{ fontSize:'1.5rem', width:36, textAlign:'center' }}>{p.logo||'🤝'}</span>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:'.85rem', fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'var(--ad-text,#e8ffe8)' }}>{p.name}</div>
-                  <div style={{ fontSize:'.72rem', color:'var(--ad-text-2,#8fa896)' }}>{p.description||''}</div>
-                </div>
-                <Button variant="danger" size="sm" onClick={async () => { try { await blogApi.deletePartner(p.id); refetchPart() } catch(e) { toast.error(e.message) }}}>✕</Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div>
-        <div className={styles.card} style={{ position:'sticky', top:'70px' }}>
-          <div className={styles.cardHeader}><span className={styles.cardTitle}>🔥 Popup Promo</span></div>
-          <PopupForm toast={toast} />
-        </div>
-      </div>
-      {postModal && <PostModal post={editingPost} onClose={() => { setPostModal(false); setEditingPost(null) }} onSave={savePost} toast={toast} />}
-      {partModal && <PartnerModal onClose={() => setPartModal(false)} onSave={savePartner} />}
-    </div>
-  )
-}
-
-function PostModal({ post:p, onClose, onSave, toast }) {
-  const [form, setForm] = useState({ title:p?.title||'', category:p?.category||'blog', excerpt:p?.excerpt||'', content:p?.content||'', emoji:p?.emoji||'📰', imageUrl:p?.imageUrl||'', isFeatured:p?.isFeatured||false, isPublished:p?.isPublished!==false, promoCode:p?.promoCode||'' })
-  const s = (k,v) => setForm(f=>({...f,[k]:v}))
-  return (
-    <Modal isOpen dark title={p?'✏️ Modifier':'📝 Nouvel article'} onClose={onClose} wide
-      footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={()=>onSave(form)}>💾 Publier</Button></>}>
-      <AInput label="Titre *" value={form.title} onChange={v=>s('title',v)} />
-      <div className={styles.formGrid2}>
-        <ASelect label="Catégorie" value={form.category} onChange={v=>s('category',v)}
-          options={[{v:'blog',l:'📝 Blog'},{v:'event',l:'🎌 Événement'},{v:'promo',l:'🔥 Promo'},{v:'partner',l:'🤝 Partenaire'}]} />
-        <AInput label="Emoji" value={form.emoji} onChange={v=>s('emoji',v)} />
-      </div>
-
-      {/* ── IMAGE : fichier OU lien ── */}
-      <AField label="Image de l'article">
-        <ImageUploader
-          currentUrl={form.imageUrl && form.imageUrl.startsWith('/') ? `${API_BASE}${form.imageUrl}` : form.imageUrl}
-          onUpload={async (data, mime) => {
-            s('imageUrl', `data:${mime};base64,${data}`)
-            toast?.success?.('📸 Image chargée')
-          }}
-          onUrlChange={(url) => s('imageUrl', url)}
-          placeholder="Cliquer ou glisser une image d'article"
-        />
-      </AField>
-
-      <ATextarea label="Résumé" value={form.excerpt} onChange={v=>s('excerpt',v)} rows={2} />
-      <ATextarea label="Contenu *" value={form.content} onChange={v=>s('content',v)} rows={6} />
-      <AInput label="Code promo" value={form.promoCode} onChange={v=>s('promoCode',v)} placeholder="NAKAMA" />
-      <div style={{ display:'flex', gap:'1.5rem', marginTop:'.8rem' }}>
-        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.isFeatured} onChange={e=>s('isFeatured',e.target.checked)} style={{ accentColor:'#33ff33' }} /> ⭐ À la une</label>
-        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:'.88rem', color:'#cbd5e1' }}><input type="checkbox" checked={form.isPublished} onChange={e=>s('isPublished',e.target.checked)} style={{ accentColor:'#33ff33' }} /> ✅ Publié</label>
-      </div>
-    </Modal>
-  )
-}
-
-function PartnerModal({ onClose, onSave }) {
-  const [form, setForm] = useState({ name:'', description:'', logo:'🤝', url:'' })
-  const s = (k,v) => setForm(f=>({...f,[k]:v}))
-  return (
-    <Modal isOpen dark title="🤝 Nouveau partenaire" onClose={onClose}
-      footer={<><Button variant="ghost" onClick={onClose}>Annuler</Button><Button variant="primary" onClick={()=>onSave(form)}>💾 Ajouter</Button></>}>
-      <AInput label="Nom *" value={form.name} onChange={v=>s('name',v)} />
-      <AInput label="Description" value={form.description} onChange={v=>s('description',v)} />
-      <div className={styles.formGrid2}>
-        <AInput label="Emoji" value={form.logo} onChange={v=>s('logo',v)} />
-        <AInput label="Site web" value={form.url} onChange={v=>s('url',v)} placeholder="https://..." />
-      </div>
-    </Modal>
-  )
-}
-
-function PopupForm({ toast }) {
-  const [form, setForm] = useState({ title:'OFFRE LIMITÉE', text:'Profite de notre offre !', emoji:'🔥', code:'' })
-  const s = (k,v) => setForm(f=>({...f,[k]:v}))
-  return (
-    <div style={{ padding:'1rem' }}>
-      <p style={{ fontSize:'.8rem', color:'var(--ad-text-2,#8fa896)', lineHeight:1.5, marginBottom:'1rem' }}>Popup visible sur la page Blog.</p>
-      <AInput label="Emoji" value={form.emoji} onChange={v=>s('emoji',v)} />
-      <AInput label="Titre" value={form.title} onChange={v=>s('title',v)} />
-      <ATextarea label="Texte" value={form.text} onChange={v=>s('text',v)} rows={2} />
-      <AInput label="Code promo" value={form.code} onChange={v=>s('code',v)} placeholder="NAKAMA" />
-      <Button variant="primary" onClick={async()=>{
-        try { await blogApi.savePopup({...form,isActive:true}); toast.success('✅ Popup activée !') }
-        catch(e) { toast.error(e.message) }
-      }} style={{ width:'100%', marginTop:'.8rem' }}>⚡ Activer</Button>
-    </div>
   )
 }
 
@@ -896,7 +587,7 @@ function UsersSection({ toast }) {
   const [search,   setSearch]   = useState('')
   const [selected, setSelected] = useState(null)
 
-  const { data, loading, execute } = useApi(() => adminApi.getUsers({ limit: 200 }), [], true)
+  const { data, loading, error, execute } = useApi(() => adminApi.getUsers({ limit: 200 }), [], true)
   const users = data?.users || []
 
   const filtered = users.filter(u => {
@@ -928,6 +619,7 @@ function UsersSection({ toast }) {
   }
 
   if (loading) return <PageLoader />
+  if (error) return <p role="alert" className="editorial-notice">{error} <button onClick={execute}>Réessayer</button></p>
 
   return (
     <div>
@@ -1188,12 +880,12 @@ function UserModal({ user: u, me, isSuperadmin, staffCount, onClose, onSave, onS
 // ══ FORM HELPERS (dark néon) ══════════════════════════
 const labelStyle = {
   display:'block', fontSize:'.7rem', fontWeight:700, letterSpacing:1,
-  color:'var(--ad-text-2,#8fa896)', marginBottom:5, textTransform:'uppercase',
+  color:'var(--ad-text-2,#60705f)', marginBottom:5, textTransform:'uppercase',
 }
 const fieldStyle = {
   width:'100%', padding:'10px 12px', borderRadius:10,
-  background:'var(--ad-bg,#0a0e0a)', border:'1px solid var(--ad-border-2,rgba(51,255,51,.22))',
-  color:'var(--ad-text,#e8ffe8)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none',
+  background:'var(--ad-bg,#f5f5eb)', border:'1px solid var(--ad-border-2,rgba(51,255,51,.22))',
+  color:'var(--ad-text,#263e30)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none',
   transition:'border-color .2s, box-shadow .2s',
 }
 const onFocusField = e => { e.target.style.borderColor='rgba(51,255,51,.5)'; e.target.style.boxShadow='0 0 0 3px rgba(51,255,51,.12)' }
@@ -1224,7 +916,7 @@ function ASelect({ label, value, onChange, options }) {
       <label style={labelStyle}>{label}</label>
       <select value={value} onChange={e=>onChange(e.target.value)}
         style={fieldStyle} onFocus={onFocusField} onBlur={onBlurField}>
-        {options.map(o=><option key={o.v} value={o.v} style={{ background:'#0f140f' }}>{o.l}</option>)}
+        {options.map(o=><option key={o.v} value={o.v} style={{ background:'#fffef9' }}>{o.l}</option>)}
       </select>
     </div>
   )

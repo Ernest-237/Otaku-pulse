@@ -1,7 +1,7 @@
 // src/pages/Admin/sections/HeroSection.jsx
 // Gestion complète du hero depuis l'admin
 import { useState, useEffect } from 'react'
-import { heroApi, API_BASE } from '../../../api'
+import { heroApi, API_BASE, resolveMediaUrl } from '../../../api'
 import { useApi } from '../../../hooks/useApi'
 import ImageUploader from '../../../components/ui/ImageUploader'
 import Button from '../../../components/ui/Button'
@@ -10,17 +10,17 @@ import styles from '../Admin.module.css'
 
 const ANIME_THEMES = [
   { name:'Naruto',         primary:'#f97316', second:'#fed7aa', glow:'rgba(249,115,22,0.4)',  emoji:'🍥' },
-  { name:'One Piece',      primary:'#3b82f6', second:'#93c5fd', glow:'rgba(59,130,246,0.4)',  emoji:'⚓' },
+  { name:'One Piece',      primary:'#3b82f6', second:'#326bbe', glow:'rgba(59,130,246,0.4)',  emoji:'⚓' },
   { name:'Jujutsu Kaisen', primary:'#8b5cf6', second:'#c4b5fd', glow:'rgba(139,92,246,0.4)', emoji:'💀' },
-  { name:'Demon Slayer',   primary:'#ef4444', second:'#fca5a5', glow:'rgba(239,68,68,0.4)',   emoji:'🗡️' },
-  { name:'Dragon Ball Z',  primary:'#eab308', second:'#fde68a', glow:'rgba(234,179,8,0.4)',   emoji:'🐉' },
+  { name:'Demon Slayer',   primary:'#ef4444', second:'#b53c44', glow:'rgba(239,68,68,0.4)',   emoji:'🗡️' },
+  { name:'Dragon Ball Z',  primary:'#906610', second:'#fde68a', glow:'rgba(234,179,8,0.4)',   emoji:'🐉' },
   { name:'Attack on Titan',primary:'#64748b', second:'#94a3b8', glow:'rgba(100,116,139,0.4)',emoji:'⚔️' },
   { name:'Bleach',         primary:'#06b6d4', second:'#67e8f9', glow:'rgba(6,182,212,0.4)',   emoji:'⚡' },
   { name:'Personnalisé',   primary:'#22c55e', second:'#86efac', glow:'rgba(34,197,94,0.4)',   emoji:'⚡' },
 ]
 
 export default function HeroSection({ toast }) {
-  const { data, loading, execute } = useApi(() => heroApi.get(), [], true)
+  const { data, loading, error, execute } = useApi(() => heroApi.get(), [], true)
   const [form,    setForm]    = useState(null)
   const [saving,  setSaving]  = useState(false)
   const [tab,     setTab]     = useState('content') // content | style | stats | preview
@@ -54,10 +54,11 @@ export default function HeroSection({ toast }) {
       await heroApi.uploadBg(imageData, imageMime)
       await execute()
       toast.success('✅ Image de fond mise à jour !')
-    } catch(err) { toast.error(err.message) }
+    } catch(err) { toast.error(err.message); throw err }
   }
 
-  if (loading || !form) return <PageLoader />
+  if (loading) return <PageLoader />
+  if (error || !form) return <p role="alert" className="editorial-notice">{error || 'La configuration de l’accueil est indisponible.'} <button onClick={execute}>Réessayer</button></p>
 
   const primary = form.primaryColor || '#22c55e'
   const second  = form.secondColor  || '#86efac'
@@ -66,7 +67,7 @@ export default function HeroSection({ toast }) {
     <div>
       {/* Preview mini */}
       <div style={{
-        background: `linear-gradient(135deg, rgba(0,0,0,.7), rgba(0,0,0,.5)), url(${form.bgImageUrl || '/img/deku.jpg'}) center/cover`,
+        background: `linear-gradient(135deg, rgba(0,0,0,.7), rgba(0,0,0,.5)), url(${resolveMediaUrl(form.bgImageUrl) || '/img/deku.jpg'}) center/cover`,
         borderRadius: 16, padding: '2rem', marginBottom: '1.5rem',
         border: `1px solid ${primary}33`, position: 'relative', overflow: 'hidden',
         minHeight: 160,
@@ -144,8 +145,8 @@ export default function HeroSection({ toast }) {
                 {ANIME_THEMES.map(t => (
                   <button key={t.name} onClick={() => applyTheme(t)} style={{
                     padding:'10px 12px', borderRadius:10, cursor:'pointer',
-                    background: form.animeName===t.name ? `${t.primary}22` : 'rgba(255,255,255,.04)',
-                    border: `2px solid ${form.animeName===t.name ? t.primary : 'rgba(255,255,255,.08)'}`,
+                    background: form.animeName===t.name ? `${t.primary}22` : 'rgba(71,124,92,.04)',
+                    border: `2px solid ${form.animeName===t.name ? t.primary : 'rgba(71,124,92,.08)'}`,
                     color: form.animeName===t.name ? t.primary : 'var(--muted)',
                     fontFamily:'var(--font-body)', fontSize:'.82rem', fontWeight:700,
                     textAlign:'center', transition:'all .2s',
@@ -166,7 +167,7 @@ export default function HeroSection({ toast }) {
                   <input type="color" value={form.primaryColor} onChange={e => s('primaryColor',e.target.value)}
                     style={{ width:44, height:44, borderRadius:8, border:'none', cursor:'pointer', background:'none' }} />
                   <input value={form.primaryColor} onChange={e => s('primaryColor',e.target.value)}
-                    style={{ flex:1, padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'monospace', fontSize:'.85rem', outline:'none' }} />
+                    style={{ flex:1, padding:'8px 10px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'monospace', fontSize:'.85rem', outline:'none' }} />
                 </div>
               </div>
               <div>
@@ -175,13 +176,13 @@ export default function HeroSection({ toast }) {
                   <input type="color" value={form.secondColor} onChange={e => s('secondColor',e.target.value)}
                     style={{ width:44, height:44, borderRadius:8, border:'none', cursor:'pointer' }} />
                   <input value={form.secondColor} onChange={e => s('secondColor',e.target.value)}
-                    style={{ flex:1, padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'monospace', fontSize:'.85rem', outline:'none' }} />
+                    style={{ flex:1, padding:'8px 10px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'monospace', fontSize:'.85rem', outline:'none' }} />
                 </div>
               </div>
               <div>
                 <label style={{ display:'block', fontSize:'.72rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:6, textTransform:'uppercase' }}>Nom de l'anime</label>
                 <input value={form.animeName} onChange={e => s('animeName',e.target.value)}
-                  style={{ width:'100%', padding:'10px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
+                  style={{ width:'100%', padding:'10px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
               </div>
             </div>
 
@@ -206,32 +207,32 @@ export default function HeroSection({ toast }) {
           <div style={{ padding:'1.5rem' }}>
             <p style={{ fontSize:'.82rem', color:'var(--muted)', marginBottom:'1.2rem' }}>Ces 4 stats s'affichent en bas du hero. Mets à jour les chiffres régulièrement !</p>
             {(form.statsJson || []).map((stat, i) => (
-              <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1.5fr 1.5fr', gap:'1rem', marginBottom:'1rem', padding:'1rem', background:'rgba(255,255,255,.03)', border:'1px solid var(--border)', borderRadius:10 }}>
+              <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1.5fr 1.5fr', gap:'1rem', marginBottom:'1rem', padding:'1rem', background:'rgba(71,124,92,.03)', border:'1px solid var(--border)', borderRadius:10 }}>
                 <div>
                   <label style={{ display:'block', fontSize:'.65rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>Valeur FR</label>
                   <input value={stat.valueFr} onChange={e => {
                     const next = [...form.statsJson]
                     next[i] = { ...next[i], valueFr: e.target.value }
                     s('statsJson', next)
-                  }} style={{ width:'100%', padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
+                  }} style={{ width:'100%', padding:'8px 10px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:'.65rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>Value EN</label>
                   <input value={stat.valueEn} onChange={e => {
                     const next = [...form.statsJson]; next[i] = { ...next[i], valueEn: e.target.value }; s('statsJson', next)
-                  }} style={{ width:'100%', padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
+                  }} style={{ width:'100%', padding:'8px 10px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:'.65rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>Label FR</label>
                   <input value={stat.labelFr} onChange={e => {
                     const next = [...form.statsJson]; next[i] = { ...next[i], labelFr: e.target.value }; s('statsJson', next)
-                  }} style={{ width:'100%', padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
+                  }} style={{ width:'100%', padding:'8px 10px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:'.65rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>Label EN</label>
                   <input value={stat.labelEn} onChange={e => {
                     const next = [...form.statsJson]; next[i] = { ...next[i], labelEn: e.target.value }; s('statsJson', next)
-                  }} style={{ width:'100%', padding:'8px 10px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
+                  }} style={{ width:'100%', padding:'8px 10px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
                 </div>
               </div>
             ))}
@@ -258,7 +259,7 @@ export default function HeroSection({ toast }) {
               <label style={{ display:'block', fontSize:'.72rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:6, textTransform:'uppercase' }}>Ou entrer une URL d'image</label>
               <input value={form.bgImageUrl || ''} onChange={e => s('bgImageUrl', e.target.value)}
                 placeholder="https://...image.jpg"
-                style={{ width:'100%', padding:'10px 12px', borderRadius:10, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
+                style={{ width:'100%', padding:'10px 12px', borderRadius:10, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.9rem', outline:'none' }} />
             </div>
           </div>
         </div>
@@ -280,8 +281,8 @@ function HInput({ label, value, onChange, type='text', placeholder }) {
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <input type={type} value={value||''} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', transition:'border-color .2s' }}
-        onFocus={e => e.target.style.borderColor='#22c55e'} onBlur={e => e.target.style.borderColor='rgba(255,255,255,.1)'} />
+        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', transition:'border-color .2s' }}
+        onFocus={e => e.target.style.borderColor='#22c55e'} onBlur={e => e.target.style.borderColor='rgba(71,124,92,.1)'} />
     </div>
   )
 }
@@ -290,8 +291,8 @@ function HTextarea({ label, value, onChange, rows=3 }) {
     <div style={{ marginBottom:'.9rem' }}>
       <label style={{ display:'block', fontSize:'.68rem', fontWeight:700, letterSpacing:1, color:'var(--muted)', marginBottom:4, textTransform:'uppercase' }}>{label}</label>
       <textarea value={value||''} onChange={e => onChange(e.target.value)} rows={rows}
-        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', resize:'vertical', lineHeight:1.5, transition:'border-color .2s' }}
-        onFocus={e => e.target.style.borderColor='#22c55e'} onBlur={e => e.target.style.borderColor='rgba(255,255,255,.1)'} />
+        style={{ width:'100%', padding:'9px 12px', borderRadius:8, background:'rgba(71,124,92,.04)', border:'1px solid rgba(71,124,92,.1)', color:'var(--text)', fontFamily:'var(--font-body)', fontSize:'.88rem', outline:'none', resize:'vertical', lineHeight:1.5, transition:'border-color .2s' }}
+        onFocus={e => e.target.style.borderColor='#22c55e'} onBlur={e => e.target.style.borderColor='rgba(71,124,92,.1)'} />
     </div>
   )
 }

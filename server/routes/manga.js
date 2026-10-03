@@ -3,6 +3,8 @@ const router = require('express').Router()
 const { Op } = require('sequelize')
 const { body, validationResult } = require('express-validator')
 const { Manga, Chapter, User, MangaRating, ReadingProgress, LibraryItem } = require('../models/index')
+const { validateImage, versionedImage } = require('../utils/media')
+const { pick } = require('../utils/publication')
 const { protect, optionalAuth, restrictTo } = require('../middleware/auth')
 
 const validate = (req, res, next) => {
@@ -56,8 +58,8 @@ router.get('/', optionalAuth, async (req, res) => {
     // Ajouter URL images
     const result = mangas.map(m => {
       const j = m.toJSON()
-      if (m.coverImageMime)  j.coverUrl   = `/api/manga/${m.id}/cover`
-      if (m.bannerImageMime) j.bannerUrl  = `/api/manga/${m.id}/banner`
+      if (m.coverImageMime)  j.coverUrl   = versionedImage(`/api/manga/${m.id}/cover`, m.updatedAt)
+      if (m.bannerImageMime) j.bannerUrl  = versionedImage(`/api/manga/${m.id}/banner`, m.updatedAt)
       if (m.bgMusicMime)     j.bgMusicUrl = `/api/manga/${m.id}/music`
       return j
     })
@@ -103,7 +105,7 @@ router.get('/:slug', optionalAuth, async (req, res) => {
 
     const chapters = await Chapter.findAll({
       where: { mangaId: m.id, isPublished: true },
-      attributes: ['id','chapterNumber','title','pageCount','accessTier','publishedAt','viewCount'],
+      attributes: ['id','chapterNumber','title','pageCount','accessTier','publishedAt','viewCount','coinCost'],
       order: [['chapterNumber','ASC']],
     })
 
@@ -116,8 +118,8 @@ router.get('/:slug', optionalAuth, async (req, res) => {
     }
 
     const j = m.toJSON()
-    if (m.coverImageMime)  j.coverUrl   = `/api/manga/${m.id}/cover`
-    if (m.bannerImageMime) j.bannerUrl  = `/api/manga/${m.id}/banner`
+    if (m.coverImageMime)  j.coverUrl   = versionedImage(`/api/manga/${m.id}/cover`, m.updatedAt)
+    if (m.bannerImageMime) j.bannerUrl  = versionedImage(`/api/manga/${m.id}/banner`, m.updatedAt)
     if (m.bgMusicMime)     j.bgMusicUrl = `/api/manga/${m.id}/music`
 
     res.json({ manga: j, chapters, progress, inLibrary })
@@ -184,7 +186,7 @@ router.post('/', protect, restrictTo('publisher','admin','superadmin'), [
   validate,
 ], async (req, res) => {
   try {
-    const data = { ...req.body, authorId: req.user.id, authorName: req.user.pseudo }
+    const data = { ...mangaFields(req.body), authorId: req.user.id, authorName: req.user.pseudo, moderationStatus: 'pending' }
 
     // Génération slug unique
     let slug = slugify(data.slug || data.titleF)
@@ -224,7 +226,7 @@ router.patch('/:id', protect, async (req, res) => {
       delete req.body.authorId
     }
 
-    await manga.update(req.body)
+    await manga.update({ ...mangaFields(req.body), ...(isAdmin ? pick(req.body, ['moderationStatus','moderationNotes','isFeatured','authorId']) : {}) })
     res.json({ manga })
   } catch (err) { res.status(400).json({ error: err.message }) }
 })
@@ -302,11 +304,18 @@ router.get('/my/list', protect, async (req, res, next) => {
     })
     const result = mangas.map(m => {
       const j = m.toJSON()
-      if (m.coverImageMime) j.coverUrl = `/api/manga/${m.id}/cover`
+      if (m.coverImageMime) j.coverUrl = versionedImage(`/api/manga/${m.id}/cover`, m.updatedAt)
       return j
     })
     res.json({ mangas: result, total: count })
   } catch (err) { next(err) }
 })
+
+
+function mangaFields(body) {
+  const out = pick(body, ['titleF','titleE','synopsisF','synopsisE','genres','language','status','accessTier','ageRating','coverImageData','coverImageMime','bannerImageData','bannerImageMime','bgMusicData','bgMusicMime'])
+  for (const key of ['coverImage','bannerImage']) if (out[key + 'Data']) validateImage(out[key + 'Data'], out[key + 'Mime'])
+  return out
+}
 
 module.exports = router
