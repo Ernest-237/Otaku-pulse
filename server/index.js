@@ -7,10 +7,11 @@ const morgan    = require('morgan')
 const rateLimit = require('express-rate-limit')
 const path      = require('path')
 
-const { testConnection, sequelize } = require('./config/database')
+const { sequelize } = require('./config/database')
 const { syncDatabase } = require('./models/index')
 
 const app = express()
+let dbStatus = 'connecting'
 
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
@@ -72,9 +73,7 @@ app.use('/api/fandom', require('./routes/fandom'))
 app.use('/api/anime',  require('./routes/anime'))
 
 // Health
-app.get('/api/health', async (req, res) => {
-  let dbStatus = 'disconnected'
-  try { await sequelize.authenticate(); dbStatus = 'connected' } catch (_) {}
+app.get('/api/health', (req, res) => {
   res.json({ status:'OK', version:'2.0.0', db:dbStatus, env:process.env.NODE_ENV })
 })
 
@@ -99,14 +98,33 @@ app.listen(PORT, () => {
 
 const initialize = async () => {
   try {
-    await testConnection()
-    await syncDatabase(false)
-
-    require('./jobs/animeCron').startAnimeCron()
-    require('./jobs/communityCron').startCommunityCron()
+    await sequelize.authenticate()
+    dbStatus = 'connected'
   } catch (error) {
-    console.error('❌ Erreur initialisation :', error)
+    dbStatus = 'disconnected'
+    console.error('❌ PostgreSQL connexion échouée :', error.message)
+    return
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      await syncDatabase(false)
+    } catch (error) {
+      console.error('❌ Synchronisation développement échouée :', error.message)
+      return
+    }
+  }
+
+  for (const [name, start] of [
+    ['anime', () => require('./jobs/animeCron').startAnimeCron()],
+    ['communauté', () => require('./jobs/communityCron').startCommunityCron()],
+  ]) {
+    try {
+      start()
+    } catch (error) {
+      console.error(`❌ Démarrage du job ${name} échoué :`, error.message)
+    }
   }
 }
 
-initialize()
+initialize().catch((error) => console.error('❌ Erreur initialisation :', error))
