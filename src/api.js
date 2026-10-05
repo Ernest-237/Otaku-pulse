@@ -1,6 +1,6 @@
 import { queryString } from './utils/query'
 // src/api.js — OTAKU PULSE v2
-export const API_BASE = import.meta.env.VITE_API_URL || 'darkcyan-swan-590660.hostingersite.com'
+export const API_BASE = import.meta.env.VITE_API_URL || 'https://darkcyan-swan-590660.hostingersite.com'
 import { resolveMediaPath } from './utils/media'
 export const resolveMediaUrl = value => resolveMediaPath(value, API_BASE)
 
